@@ -45,13 +45,12 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 .note{font-size:10.5px;color:#6f8aa5;line-height:1.35;margin-top:4px;white-space:normal}
 /* ---------- MOBILE FIRST ---------- */
 #top .logo{flex:0 0 auto;width:22px;height:22px;margin-right:-2px;align-self:center;filter:drop-shadow(0 0 3px rgba(0,240,255,.85)) drop-shadow(0 0 8px rgba(0,240,255,.35))}
-@media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{display:none} #top .l1::after{display:none}}   /* desktop: logo sits by the compass instead */
+@media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{display:none}}   /* desktop: logo sits by the compass instead */
 #top{order:1;flex:0 0 auto;position:relative;z-index:6}
 #top{padding:4px 10px 3px}
 #top .l1{display:flex;align-items:center;gap:8px;white-space:nowrap}
 #top .l1{justify-content:center}
 #top .l1 .conn{position:absolute;right:10px;top:6px}
-#top .l1::after{content:'';flex:0 0 20px}   /* balances the phone logo so the title itself is centred */
 #top .lp{text-align:center;white-space:nowrap;overflow:hidden;margin:1px 0 2px}
 #top .lp .big{display:inline-block;font-size:26px;line-height:1.1}
 #top .l2{font-size:10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#7f9bb8;margin-top:1px}
@@ -964,16 +963,20 @@ function logoGeom(){
   if(Z){boxes.push([Z.x-Z.lw-14,Z.y0-10,Z.lw+28,Z.y1-Z.y0+20]);if(Z.pw)boxes.push([Z.px-6,Z.py-6,Z.pw+12,Z.ph+12]);}
   const GAP=40, aEnd=L?Math.max(...L.ch.map(c=>c.a)):0.6;
   let g=null;
-  // big logo out in the lower-right empty space: every point of its box >= GAP px beyond the ring/label band; shrink only if nothing fits
-  const need=lab+GAP;
-  for(let S=Math.round(Math.min(185,60+RMAX*0.24));S>=70&&!g;S=Math.round(S*0.94)){
-    let best=null;
-    for(let x=CX;x<=W-8-S;x+=6)for(let y=CY;y<=H-8-S;y+=6){
+  // big logo in the lower-right, horizontally beyond the zoom bar (between it and the right panel), upper part of that space;
+  // every point of its box >= GAP px beyond the ring/label band; shrink only if nothing fits
+  const need=lab+GAP, yT=CY+RMAX*0.55, S0=Math.round(Math.min(185,60+RMAX*0.24));
+  // preferred: left edge past the zoom bar; if that column is too narrow (logo < 75% size), use the open lower-right area instead
+  for(const xMin of (Z?[Z.x+18,CX]:[CX])){g=null;
+  for(let S=S0;S>=60&&!g;S=Math.round(S*0.96)){
+    let best=null;const xC=(xMin+W-8)/2;
+    for(let x=xMin;x<=W-8-S;x+=3)for(let y=CY;y<=H-8-S;y+=4){
       if(boxes.some(b=>x<b[0]+b[2]&&x+S>b[0]&&y<b[1]+b[3]&&y+S>b[1]))continue;
       const dx=Math.max(x-CX,0,CX-(x+S)),dy=Math.max(y-CY,0,CY-(y+S)),d=Math.hypot(dx,dy);if(d<need)continue;
-      const a=Math.atan2(y+S/2-CY,x+S/2-CX),sc=(d-need)+Math.abs(a-0.8)*120;   // hug the ring, near the OVERBOUGHT end
+      const sc=Math.abs(y-yT)+Math.abs(x+S/2-xC)*0.5;
       if(!best||sc<best.sc)best={x,y,S,sc};}
     g=best;}
+  if(g&&g.S>=S0*0.75)break;}
   lgCache={key,g};return g;}
 function drawLogo(){const g=logoGeom();if(!g||!LOGO.complete||!LOGO.naturalWidth)return;
   ctx.save();ctx.shadowColor='rgba(0,240,255,.85)';ctx.shadowBlur=Q>0?18:8;ctx.drawImage(LOGO,g.x,g.y,g.S,g.S);
