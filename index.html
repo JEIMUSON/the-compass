@@ -45,12 +45,14 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 .note{font-size:10.5px;color:#6f8aa5;line-height:1.35;margin-top:4px;white-space:normal}
 /* ---------- MOBILE FIRST ---------- */
 #top .logo{flex:0 0 auto;width:22px;height:22px;margin-right:-2px;align-self:center;filter:drop-shadow(0 0 3px rgba(0,240,255,.85)) drop-shadow(0 0 8px rgba(0,240,255,.35))}
-@media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{width:30px;height:30px;margin-right:0}}
+@media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{display:none}}   /* desktop: logo sits by the compass instead */
 #top{order:1;flex:0 0 auto;position:relative;z-index:6}
 #top{padding:4px 10px 3px}
 #top .l1{display:flex;align-items:center;gap:8px;white-space:nowrap}
-#top .l1 .big{margin-left:auto}
-#top .l2{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#7f9bb8;margin-top:1px}
+#top .l1 .conn{margin-left:auto}
+#top .lp{text-align:center;white-space:nowrap;overflow:hidden;margin:1px 0 2px}
+#top .lp .big{display:inline-block;font-size:26px;line-height:1.1}
+#top .l2{font-size:10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#7f9bb8;margin-top:1px}
 #top .t1{font-family:Orbitron,sans-serif;font-weight:900;font-size:12px;letter-spacing:3px;color:var(--cy);text-shadow:0 0 8px var(--cy),0 0 18px var(--mg)}
 #top .conn{font-size:10px}
 #top .midrow{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
@@ -112,14 +114,14 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 /* ---------- DESKTOP: single right panel, no page scroll, no panel scrollbars ---------- */
 @media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){
  #app{overflow:hidden}
- #colB{flex:0 0 clamp(392px,19.6vw,512px);overflow:hidden;gap:clamp(4px,.8vh,8px)}
+ #colB{flex:0 0 clamp(360px,18vw,480px);overflow:hidden;gap:clamp(4px,.8vh,8px)}
  #pages{overflow:hidden;flex:1 1 auto;min-height:0;padding:clamp(6px,1vh,12px) 12px}
  #sheet{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
  #pages .page{margin-top:clamp(3px,.9vh,10px) !important}
  #pages .page:first-of-type{margin-top:0 !important}
  .row,#pages .row{font-size:clamp(10px,min(1.45vh,calc(.45vw + 4px)),15px);line-height:1.38}
  #top .l1{flex-wrap:wrap;row-gap:0}
- #top .l1 .big{font-size:clamp(22px,min(1.3vw,3.2vh),34px)}
+ #top .lp .big{font-size:clamp(26px,min(1.7vw,4vh),40px)}
  #top .l2{font-size:clamp(10px,min(1.2vh,calc(.35vw + 3px)),13px)}
  .panel h3{font-size:clamp(9px,min(1.2vh,calc(.3vw + 3px)),13px);margin-bottom:clamp(2px,.4vh,5px)}
  .page .row>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -134,7 +136,8 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 <div id="colA"><div id="stage"><canvas id="cv"></canvas><div id="vig"></div><div id="scan"></div></div><canvas id="vcv"></canvas></div>
 <div id="colB">
 <div class="panel" id="top">
- <div class="l1"><img class="logo" src="logo-64.png" srcset="logo-64.png 1x, logo-128.png 2x, logo.png 3x" alt="" width="22" height="22"><div class="t1">XRP&nbsp;COMPASS</div><div class="conn" id="conn"><span class="dot" style="background:#555"></span>INIT</div><div class="big" id="mid">—</div></div>
+ <div class="l1"><img class="logo" src="logo-64.png" srcset="logo-64.png 1x, logo-128.png 2x, logo.png 3x" alt="" width="22" height="22"><div class="t1">XRP&nbsp;COMPASS</div><div class="conn" id="conn"><span class="dot" style="background:#555"></span>INIT</div></div>
+ <div class="lp"><div class="big" id="mid">—</div></div>
  <div class="l2">SPRD <span id="spread">—</span> · IMB <span id="imb">—</span> · Δ <span id="dlt">—</span> · RSI <span id="rsiTop">—</span></div>
 </div>
 
@@ -682,6 +685,7 @@ function lblReset(){
   lblReserve(CX-R0-2,CY-R0-2,2*R0+4,2*R0+4);          // core
   for(const L of ringLabels())for(const ch of L.ch){const h=L.fs+4,rr=L.top?L.r+L.fs*0.4:L.r-L.fs*0.4,x=CX+Math.cos(ch.a)*rr,y=CY+Math.sin(ch.a)*rr;lblReserve(x-h/2,y-h/2,h,h);}   // curved ring labels
   if(!WIDE){const yb=botLblY()-13;lblReserve(0,yb,70,18);lblReserve(W-70,yb,70,18);}
+  {const g=logoGeom();if(g)lblReserve(g.x-4,g.y-4,g.S+8,g.S+8);}   // desktop logo
   const Z=zbarGeom();if(Z){lblReserve(Z.x-Z.lw-10,Z.y0-6,Z.lw+20,Z.y1-Z.y0+12);if(Z.pw)lblReserve(Z.px-2,Z.py-2,Z.pw+4,Z.ph+4);}
 }
 // place a text box (left x, baseline y, width); shifts vertically (pref direction first) until free; returns {x,y} or null
@@ -947,6 +951,24 @@ function ringLabels(){
     [...txt].forEach((c,i)=>{const d=ws[i]/r;const am=top?a+d/2:a-d/2;ch.push({c,a:am,rot:top?am+Math.PI/2:am-Math.PI/2});a+=top?d:-d;});
     out.push({k,r,font,fs,ch,top});}
   ctx.restore();rzCache={key,z:out};return out;}
+// desktop logo beside the compass: lower-right, outside the ring past the OVERBOUGHT label (same logo.png asset)
+const LOGO=new Image();LOGO.src='logo.png';
+let lgCache=null;
+function logoGeom(){
+  if(!WIDE)return null;
+  const key=CX+'|'+CY+'|'+RMAX+'|'+W+'|'+H;if(lgCache&&lgCache.key===key)return lgCache.g;
+  const S=Math.round(Math.max(70,Math.min(110,RMAX*0.22))),GR=RMAX+30,L=ringLabels().find(l=>l.k==='ob');
+  const r=GR+16+S*0.62, Z=zbarGeom(), boxes=[];
+  if(Z){boxes.push([Z.x-Z.lw-10,Z.y0-6,Z.lw+20,Z.y1-Z.y0+12]);if(Z.pw)boxes.push([Z.px-2,Z.py-2,Z.pw+4,Z.ph+4]);}
+  const hit=(x,y)=>x<4||y<4||x+S>W-4||y+S>H-4||boxes.some(b=>x<b[0]+b[2]&&x+S>b[0]&&y<b[1]+b[3]&&y+S>b[1]);
+  const a0=L?Math.min(...L.ch.map(c=>c.a)):0.3;   // OVERBOUGHT starts near the horizon; its lower end has the larger angle
+  const aEnd=L?Math.max(...L.ch.map(c=>c.a)):0.6;
+  let g=null;
+  for(let k=0;k<30&&!g;k++){const a=aEnd+0.06+k*0.03;if(a>Math.PI*0.5)break;const cx=CX+Math.cos(a)*r,cy=CY+Math.sin(a)*r,x=cx-S/2,y=cy-S/2;if(!hit(x,y))g={x,y,S};}
+  lgCache={key,g};return g;}
+function drawLogo(){const g=logoGeom();if(!g||!LOGO.complete||!LOGO.naturalWidth)return;
+  ctx.save();ctx.shadowColor='rgba(0,240,255,.85)';ctx.shadowBlur=Q>0?18:8;ctx.drawImage(LOGO,g.x,g.y,g.S,g.S);
+  if(Q>0){ctx.shadowBlur=6;ctx.globalAlpha=0.5;ctx.drawImage(LOGO,g.x,g.y,g.S,g.S);}ctx.restore();}
 function drawRingLabel(L,c,on,p){
   ctx.font=L.font;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillStyle=rgba(c,on?1:0.7);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(on?12*p:4):0;
   for(const ch of L.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*L.r,CY+Math.sin(ch.a)*L.r);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}
@@ -1318,6 +1340,7 @@ function frame(){
   if(!LIM){clipC();drawTrail(now);ctx.restore();drawTrailLabels();}sparks.length=0;shocks.length=0;
   drawNeedle(now);
   drawRSI(now);
+  drawLogo();
   drawVolume(now);
   drawCore(now);
   drawZoomBar(now);
@@ -1329,7 +1352,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
