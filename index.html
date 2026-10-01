@@ -10,7 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="XRP Compass">
 <meta name="description" content="Live XRP/USD order-flow radar from Kraken public market data">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2305030c'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%2300f0ff' stroke-width='3'/%3E%3Cpath d='M32 10 L38 32 L32 54 L26 32Z' fill='%23ffe600'/%3E%3Cpath d='M12 32a20 20 0 0 1 10-17' stroke='%232bff9a' stroke-width='4' fill='none'/%3E%3Cpath d='M52 32a20 20 0 0 0-10-17' stroke='%23ff2bd6' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>XRP COMPASS</title>
@@ -43,6 +44,8 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .note{font-size:10.5px;color:#6f8aa5;line-height:1.35;margin-top:4px;white-space:normal}
 /* ---------- MOBILE FIRST ---------- */
+#top .logo{flex:0 0 auto;width:22px;height:22px;margin-right:-2px;align-self:center;filter:drop-shadow(0 0 3px rgba(0,240,255,.85)) drop-shadow(0 0 8px rgba(0,240,255,.35))}
+@media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{width:30px;height:30px;margin-right:0}}
 #top{order:1;flex:0 0 auto;position:relative;z-index:6}
 #top{padding:4px 10px 3px}
 #top .l1{display:flex;align-items:center;gap:8px;white-space:nowrap}
@@ -109,7 +112,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 /* ---------- DESKTOP: single right panel, no page scroll, no panel scrollbars ---------- */
 @media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){
  #app{overflow:hidden}
- #colB{flex:0 0 clamp(360px,18vw,480px);overflow:hidden;gap:clamp(4px,.8vh,8px)}
+ #colB{flex:0 0 clamp(392px,19.6vw,512px);overflow:hidden;gap:clamp(4px,.8vh,8px)}
  #pages{overflow:hidden;flex:1 1 auto;min-height:0;padding:clamp(6px,1vh,12px) 12px}
  #sheet{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
  #pages .page{margin-top:clamp(3px,.9vh,10px) !important}
@@ -131,7 +134,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 <div id="colA"><div id="stage"><canvas id="cv"></canvas><div id="vig"></div><div id="scan"></div></div><canvas id="vcv"></canvas></div>
 <div id="colB">
 <div class="panel" id="top">
- <div class="l1"><div class="t1">XRP&nbsp;COMPASS</div><div class="conn" id="conn"><span class="dot" style="background:#555"></span>INIT</div><div class="big" id="mid">—</div></div>
+ <div class="l1"><img class="logo" src="logo-64.png" srcset="logo-64.png 1x, logo-128.png 2x, logo.png 3x" alt="" width="22" height="22"><div class="t1">XRP&nbsp;COMPASS</div><div class="conn" id="conn"><span class="dot" style="background:#555"></span>INIT</div><div class="big" id="mid">—</div></div>
  <div class="l2">SPRD <span id="spread">—</span> · IMB <span id="imb">—</span> · Δ <span id="dlt">—</span> · RSI <span id="rsiTop">—</span></div>
 </div>
 
