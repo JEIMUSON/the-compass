@@ -637,7 +637,8 @@ const rOf=dp=>R0+(RMAX-R0)*Math.abs(dp)/(dispMid*dispRange);
 // perspective: age (s) -> scale & center (vanishing point up/behind)
 let FOCAL=26, fitFrac=0;                 // FOCAL = tunnel depth/perspective; driven by zoom each frame
 function updateFocal(){const z=fitFrac&&dispRange?fitFrac/dispRange:1;          // >1 zoomed in, <1 zoomed out
-  const target=Math.max(6,Math.min(90,26/Math.pow(z,0.9)));FOCAL+=(target-FOCAL)*0.12;}
+  const target=VIEW==='market'?32:Math.max(6,Math.min(90,26/Math.pow(z,0.9)));   // MARKET: fixed deep tunnel so the spiral recedes into the vanishing point
+ FOCAL+=(target-FOCAL)*0.12;}
 // Trend-following tunnel: the tunnel centre at each depth sits at the vertical offset of the (smoothed) mid price
 // at that moment relative to the current mid, in the radar's own price scale. Rising price -> past trails DOWN.
 const pathOff=new Float32Array(HIST_SEC+1), pathRaw=new Float32Array(HIST_SEC+1);
@@ -765,12 +766,14 @@ function drawPriceRings(){
 const MAXSPAN=1.2; // radians each way from the horizontal axis
 function levelSpan(q,maxq){return 0.03+MAXSPAN*Math.pow(q/maxq,0.55);}
 
+// LIMIT fade: newest (at the vanishing point) dim-but-visible, brighter as they rush toward you, fade out as they exit past the ring
+const limFade=(age,dz)=>Math.min(1,0.3+age/5)*(0.3+0.7*(1-dz/HIST_SEC))*Math.max(0,Math.min(1,(HIST_SEC-age)/14));
 function drawHistory(now){
-  ctx.save();ctx.globalCompositeOperation='lighter';
+  ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.arc(CX,CY,R0*1.02,0,Math.PI*2,true);ctx.clip();   // keep the hub readout clean over the newest datactx.globalCompositeOperation='lighter';
   const stepH=Q===2?1:Q===1?2:3;
   for(let hi=history.length-1-((history.length-1)%stepH);hi>=0;hi-=stepH){const h=history[hi];if(!h)continue;
     const age=(now-h.t)/1000; if(age<0.5||age>HIST_SEC)continue;
-    const dz=depthOf(age), p=proj(dz), fade=Math.max(0,1-dz/HIST_SEC)*(INBOUND?Math.min(1,age/4):1);
+    const dz=depthOf(age), p=proj(dz), fade=INBOUND?limFade(age,dz):Math.max(0,1-dz/HIST_SEC);
     const sideDraw=(lv,side,c)=>{
       for(const [px,q] of lv){
         const r=rOf(px-dispMid)*p.s; if(r>RMAX*1.02*p.s)continue;
@@ -829,7 +832,7 @@ function drawBubbles(now){
   const keep=[];
   for(let i=0;i<bubbles.length;i++){
     const b=bubbles[i]; const age=(now-b.t)/1000; if(age>HIST_SEC)continue; keep.push(b);
-    const dz=depthOf(age), p=proj(dz), fade=Math.max(0,1-dz/HIST_SEC)*(INBOUND?Math.min(1,0.25+age/3):1);
+    const dz=depthOf(age), p=proj(dz), fade=INBOUND?limFade(age,dz):Math.max(0,1-dz/HIST_SEC);
     const c=b.side==='buy'?COL.bid:COL.ask;
     const r=Math.min(rOf(b.px-dispMid),RMAX*1.04)*p.s, a=baseAng(b.side)+b.ang*(1-0.0*age);
     const x=p.x+Math.cos(a)*r, y=p.y+Math.sin(a)*r;
@@ -1118,7 +1121,7 @@ function drawVolumeV(now,cs){
 function mixCol(r){ // r: -1 (sell) .. +1 (buy)
   const t=(r+1)/2; return [Math.round(COL.ask[0]+(COL.bid[0]-COL.ask[0])*t),Math.round(COL.ask[1]+(COL.bid[1]-COL.ask[1])*t),Math.round(COL.ask[2]+(COL.bid[2]-COL.ask[2])*t)];}
 // top-3 hottest points on the trail (distinct price levels, spread along it), labelled outside the clip
-let TRHOT=[];
+let TRHOT=[], TRHEAD={x:0,y:0};
 function drawTrailLabels(){
   if(!TRHOT.length)return;
   const pick=[];for(const h of [...TRHOT].sort((x,y)=>y.ht*y.u-x.ht*x.u)){if(pick.length>=3)break;
@@ -1146,14 +1149,16 @@ function drawTrail(now){
   const dn=Date.now(), lag=Math.max(0,Math.min(1.5,(dn-trailT)/1000/trailStep)), TURN=60, K=0.72, RAMP=10, tNow=dn/1000/trailStep;
   const ang=age=>-Math.PI/2+2*Math.PI*((tNow-age)%TURN)/TURN;   // age in trail samples (1 s live, window/120 otherwise)
   const pAt=f=>{const i=Math.floor(f),k=f-i,b0=trail[Math.min(i,trail.length-1)],b1=trail[Math.min(i+1,trail.length-1)];return b0.Ps*(1-k)+b1.Ps*k;};
-  // fitted to the dial: centred on the hub, coils outward with age so the oldest coil reaches ~88% of the ring;
-  // price vs current mid bulges each point outward (higher) / inward (lower) by up to ~40% of the coil gap so coils never cross
-  const AMAX=Math.max(RAMP,trail.length-1+lag), rIn=R0*0.85, rOut=RMAX*0.88, gap=(rOut-rIn)/Math.max(1,AMAX/TURN);
-  const pt=f=>{const age=f===0?0:f+lag,k=Math.min(1,age/AMAX),u=Math.max(0,1-0.82*k),s=u;
+  // INTO the tunnel: each sample sits on the tunnel ring at depth = its age (same proj() as the rails: trend-bent centre,
+  // radius RMAX*s). Newest (head) orbits near the mouth; older coils shrink with perspective, bunch up and fade into the vanishing point.
+  // price vs current mid bulges each point outward (higher) / inward (lower) by up to ~35% of the local coil gap so coils never cross
+  const AMAX=Math.max(RAMP,trail.length-1+lag), DZ=HIST_SEC/Math.max(1,trail.length-1), KO=0.80, sMin=FOCAL/(FOCAL+AMAX*DZ);
+  const pt=f=>{const age=f===0?0:f+lag,dz=age*DZ,p=proj(dz),s=p.s,sT=FOCAL/(FOCAL+dz+TURN*DZ);
+    const u=Math.max(0,Math.min(1,(s-sMin)/(1-sMin)))*Math.min(1,(AMAX-age)/6+0.0);
     const rel=Math.max(-1,Math.min(1,4.5*(pAt(f)-mid)/span));
-    const r=age===0?0:(rIn+(rOut-rIn)*Math.pow(k,0.92))*Math.min(1,age/1.5)+rel*gap*0.4*Math.min(1,age/RAMP), th=ang(age);
-    let x=CX+Math.cos(th)*r, y=CY+Math.sin(th)*r;
-    const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.96;if(d>m){x=CX+dx*m/d;y=CY+dy*m/d;}
+    const r=RMAX*KO*s+rel*RMAX*KO*(s-sT)*0.35, th=ang(age);
+    let x=p.x+Math.cos(th)*r, y=p.y+Math.sin(th)*r;
+    const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.93;if(d>m){x=CX+dx*m/d;y=CY+dy*m/d;}
     return {x,y,s,u};};
   const SUB=3, sub=a=>{const o=[];for(let j=0;j<=SUB;j++)o.push(pt(a+j/SUB));return o;};
   const P=[];for(let a=0;a<trail.length;a++)P.push(pt(a));
@@ -1185,12 +1190,17 @@ function drawTrail(now){
     if(Q>0&&ht>0.6&&a%2===0){const n=3,ph=now/300+a;ctx.strokeStyle=rgba([255,255,255],0.7*ht*p.u);ctx.lineWidth=1;ctx.beginPath();
       for(let k=0;k<n;k++){const th=ph*0.7+k*2.1,d0=R*0.35,d1=R*(0.6+0.35*Math.abs(Math.sin(ph+k)));ctx.moveTo(p.x+Math.cos(th)*d0,p.y+Math.sin(th)*d0);ctx.lineTo(p.x+Math.cos(th)*d1,p.y+Math.sin(th)*d1);}ctx.stroke();}
     TRHOT.push({a,x:p.x,y:p.y,ht,u:p.u,px:b.Ps,v:HT[a],c});}
+  // glowing head (NOW) near the tunnel mouth
+  {const h=P[0],c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260),R=RMAX*0.075*(0.85+0.3*pl);TRHEAD={x:h.x,y:h.y};
+    const g=ctx.createRadialGradient(h.x,h.y,0,h.x,h.y,R);g.addColorStop(0,rgba([255,255,255],0.55+0.3*pl));g.addColorStop(0.25,rgba(c,0.75));g.addColorStop(1,rgba(c,0));
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(h.x,h.y,R,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?16:6;ctx.beginPath();ctx.arc(h.x,h.y,2.5+1.5*pl,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
   // fresh prints burst as short sparks from the head (NOW)
   impacts=impacts.filter(m=>now-m.t<700);
   for(const m of impacts){const k=(now-m.t)/700,c=m.side==='buy'?COL.bid:COL.ask,big=Math.min(1,Math.sqrt(m.qty*(m.px||1)/whaleUSD));if(big<0.08)continue;
-    const th=(m.t*0.0137)%(Math.PI*2),d0=R0*(0.5+1.2*k),d1=d0+R0*(0.25+0.9*big)*(1-k);
+    const th=(m.t*0.0137)%(Math.PI*2),d0=R0*(0.15+0.9*k),d1=d0+R0*(0.25+0.8*big)*(1-k),HX=TRHEAD.x,HY=TRHEAD.y;
     ctx.strokeStyle=rgba(c,0.9*(1-k));ctx.lineWidth=1+2*big;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?10:0;
-    ctx.beginPath();ctx.moveTo(CX+Math.cos(th)*d0,CY+Math.sin(th)*d0);ctx.lineTo(CX+Math.cos(th)*d1,CY+Math.sin(th)*d1);ctx.stroke();}
+    ctx.beginPath();ctx.moveTo(HX+Math.cos(th)*d0,HY+Math.sin(th)*d0);ctx.lineTo(HX+Math.cos(th)*d1,HY+Math.sin(th)*d1);ctx.stroke();}
   ctx.shadowBlur=0;
   // whale nodes: small bright dots along the trail
   trail.forEach((b,a)=>{if(!b.wh)return;const p=P[a];if(p.u<=0.03)return;const c=b.wh.side==='buy'?COL.bid:COL.ask;
@@ -1202,16 +1212,10 @@ function drawTrail(now){
   ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
   ctx.restore();
 }
-// glowing head of the trail at the exact centre (NOW), drawn over the hub fill but under the price text
-function drawTrailHead(now){
+function drawTrailHead(now){   // hub accent: thin dominance-coloured ring (the glowing head itself sits at the tunnel mouth)
   const c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260);
-  ctx.save();ctx.globalCompositeOperation='lighter';
-  const g=ctx.createRadialGradient(CX,CY,0,CX,CY,R0*(0.75+0.2*pl));
-  g.addColorStop(0,rgba([255,255,255],0.35+0.25*pl));g.addColorStop(0.18,rgba(c,0.75));g.addColorStop(0.6,rgba(c,0.22+0.12*pl));g.addColorStop(1,rgba(c,0));
-  ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,CY,R0*(0.75+0.2*pl),0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle=rgba(c,0.5+0.4*pl);ctx.lineWidth=2;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?18:6;
-  ctx.beginPath();ctx.arc(CX,CY,R0+3+3*pl,0,Math.PI*2);ctx.stroke();
-  ctx.restore();
+  ctx.save();ctx.strokeStyle=rgba(c,0.35+0.3*pl);ctx.lineWidth=1.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?12:4;
+  ctx.beginPath();ctx.arc(CX,CY,R0+3+2*pl,0,Math.PI*2);ctx.stroke();ctx.restore();
 }
 
 
@@ -1363,7 +1367,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
