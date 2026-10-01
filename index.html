@@ -69,6 +69,12 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 #pages{display:none;position:absolute;z-index:20;left:6px;right:6px;bottom:calc(var(--sb) + 4px + 32px + 4px);max-height:55%;overflow:auto;
  background:rgba(8,14,28,.95);padding:10px 12px;box-shadow:0 -6px 30px rgba(0,0,0,.6),0 0 18px rgba(0,240,255,.25)}
 #app.sheet-open #pages{display:block}
+#srcBtns{display:flex;gap:4px;margin:4px 0 5px}
+#srcBtns button{flex:1;min-width:0;height:24px;padding:0;font-family:Orbitron,sans-serif;font-weight:700;font-size:9px;letter-spacing:.5px;background:rgba(5,3,12,.75);color:#7f9bb8;border:1px solid rgba(0,240,255,.3);cursor:pointer}
+#srcBtns button.on{color:var(--yl);border-color:rgba(255,230,0,.7);background:rgba(255,230,0,.1);box-shadow:0 0 8px rgba(255,230,0,.35)}
+#srcList .row .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle}
+#srcList .row .vt{display:inline-block;min-width:2.4em;font-weight:700}
+.srcNote{font-size:9px;color:#5f7a95;margin-top:3px}
 #pages .row{font-size:11px}
 #pages h3{margin-right:44px}
 #app.sheet-open #tabs button.on{background:rgba(255,230,0,.08)}
@@ -132,7 +138,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 <div id="sheet">
  <div id="win"><button id="zauto" class="tdir zauto" title="auto zoom on/off">ZOOM ▸ <b>AUTO</b></button><button id="tdir" class="tdir" title="view mode: limit orders / market orders">VIEW ▸ <b>LIMIT</b></button></div>
  <div class="panel">
-  <div id="tabs"><button data-p="0" class="on">FLOW</button><button data-p="1">DEPTH</button><button data-p="2">TECH</button><button data-p="3">LINK</button></div>
+  <div id="tabs"><button data-p="0" class="on">FLOW</button><button data-p="1">DEPTH</button><button data-p="2">TECH</button><button data-p="3">LINK</button><button data-p="4">SRC</button></div>
  </div>
   <div id="pages" class="panel"><button id="sheetClose" aria-label="close">✕</button>
    <div class="page on">
@@ -143,7 +149,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
     <div class="row"><span>LAST</span><span id="last">—</span></div>
    </div>
    <div class="page">
-    <h3>// DEPTH (100 LVL/SIDE)</h3>
+    <h3>// DEPTH (<span id="depLbl">ALL VENUES</span>)</h3>
     <div class="row"><span>BID / ASK</span><span><span class="gr" id="bbid">—</span> / <span class="mg" id="bask">—</span></span></div>
     <div class="row"><span>BID DEPTH</span><span class="gr" id="bdep">—</span></div>
     <div class="row"><span>ASK DEPTH</span><span class="mg" id="adep">—</span></div>
@@ -162,6 +168,12 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
     <div class="row"><span>TRADES · RECONNECTS</span><span><span id="tcount">0</span> · <span id="rc">0</span></span></div>
     <div class="row"><span>WHALE ≥</span><span class="yl" id="whale">—</span></div>
     <div class="row"><span>VIEW RANGE</span><span id="range">—</span></div>
+   </div>
+   <div class="page">
+    <h3>// SOURCES · <span class="yl" id="srcSel">ALL</span></h3>
+    <div id="srcBtns"></div>
+    <div id="srcList"></div>
+    <div class="srcNote">USDT quotes counted ≈ USD 1:1 · share = 5-min traded USD</div>
    </div>
   </div>
 </div>
@@ -213,9 +225,7 @@ async function seedREST(){
     const key=Object.keys(j.result).find(k=>k!=='last');const arr=j.result[key];
     if(arr.length){splitFrom=Math.min(splitFrom,minuteOf(arr[0][2]*1000)+60000);
       const dn=Date.now();
-      for(const t of arr){const ms=t[2]*1000,side=t[3]==='b'?'buy':'sell',qty=+t[1],px=+t[0];
-        if(addSplit(t[6],ms,side,qty,px)){trades.push({t:ms,side,qty,px});heatAdd(px,side,qty,(dn-ms)/1000);}}
-      trades.sort((x,y)=>x.t-y.t);trailDirty=true;}
+      addTrades(arr.map(t=>({v:'kraken',k:'kraken',id:t[6],ts:t[2]*1000,side:t[3]==='b'?'buy':'sell',qty:+t[1],px:+t[0]})));trailDirty=true;}
   }catch(e){console.warn('Trades seed failed',e);}
   computeIndicators();
 }
@@ -224,7 +234,8 @@ setInterval(()=>{computeIndicators();const cut=Date.now()-800*60000;for(const k 
 // ---------------- state ----------------
 let pricePrec=5, qtyPrec=8;
 const book={bids:new Map(), asks:new Map(), ready:false};
-let sortedB=[], sortedA=[];                 // [[p,q]] bids desc, asks asc
+let sortedB=[], sortedA=[];                 // COMBINED [[p,q]] bids desc, asks asc (all venues or the selected one)
+let kB=[], kA=[];                           // Kraken's own book (for its CRC32 checksum)
 let mid=0, dispMid=0, bestBid=0, bestAsk=0;
 let trades=[];                              // {t,side,qty,px}
 let bubbles=[];                             // {t,side,qty,px,ang,whale,usd}
@@ -251,20 +262,19 @@ function crc32(s){let c=0xFFFFFFFF;for(let i=0;i<s.length;i++)c=CRC[(c^s.charCod
 const fmtCk=(v,prec)=>v.toFixed(prec).replace('.','').replace(/^0+/,'');
 function bookChecksum(){
   let s='';
-  for(let i=0;i<10&&i<sortedA.length;i++)s+=fmtCk(sortedA[i][0],pricePrec)+fmtCk(sortedA[i][1],qtyPrec);
-  for(let i=0;i<10&&i<sortedB.length;i++)s+=fmtCk(sortedB[i][0],pricePrec)+fmtCk(sortedB[i][1],qtyPrec);
+  for(let i=0;i<10&&i<kA.length;i++)s+=fmtCk(kA[i][0],pricePrec)+fmtCk(kA[i][1],qtyPrec);
+  for(let i=0;i<10&&i<kB.length;i++)s+=fmtCk(kB[i][0],pricePrec)+fmtCk(kB[i][1],qtyPrec);
   return crc32(s);
 }
 
 // ---------------- book maintenance ----------------
 function resort(){
-  sortedB=[...book.bids.entries()].sort((x,y)=>y[0]-x[0]);
-  sortedA=[...book.asks.entries()].sort((x,y)=>x[0]-y[0]);
+  kB=[...book.bids.entries()].sort((x,y)=>y[0]-x[0]);
+  kA=[...book.asks.entries()].sort((x,y)=>x[0]-y[0]);
   // truncate to subscribed depth (levels that fall out of range are dropped, per Kraken spec)
-  if(sortedB.length>DEPTH){for(const [p] of sortedB.slice(DEPTH))book.bids.delete(p);sortedB.length=DEPTH;}
-  if(sortedA.length>DEPTH){for(const [p] of sortedA.slice(DEPTH))book.asks.delete(p);sortedA.length=DEPTH;}
-  bestBid=sortedB.length?sortedB[0][0]:0; bestAsk=sortedA.length?sortedA[0][0]:0;
-  if(bestBid&&bestAsk){mid=(bestBid+bestAsk)/2; if(!dispMid)dispMid=mid;}
+  if(kB.length>DEPTH){for(const [p] of kB.slice(DEPTH))book.bids.delete(p);kB.length=DEPTH;}
+  if(kA.length>DEPTH){for(const [p] of kA.slice(DEPTH))book.asks.delete(p);kA.length=DEPTH;}
+  combDirty=true;
 }
 function applyLevels(map,levels){for(const l of levels){if(+l.qty===0)map.delete(+l.price);else map.set(+l.price,+l.qty);}}
 function onBook(msg){
@@ -303,7 +313,7 @@ function buildTrail(){
   for(let a=0;a<=N;a++)bins.push({a,b:0,s:0,px:null,wh:null});
   for(let i=trades.length-1;i>=0;i--){const t=trades[i],a=Math.floor((dn-t.t)/1000);if(a>N)break;if(a<0)continue;
     const bn=bins[a];if(t.side==='buy')bn.b+=t.qty;else bn.s+=t.qty;if(bn.px==null)bn.px=t.px;
-    const usd=t.qty*t.px;if(usd>=whaleUSD&&(!bn.wh||usd>bn.wh.usd))bn.wh={usd,qty:t.qty,side:t.side,px:t.px};}
+    const usd=t.qty*t.px;if(usd>=whaleUSD&&(!bn.wh||usd>bn.wh.usd))bn.wh={usd,qty:t.qty,side:t.side,px:t.px,v:t.v};}
   // price path: book mid history where we have it, else last trade price, carried across gaps
   const oldest=history.length?(pn-history[0].t)/1000:0; let last=null;
   trailStep=1;
@@ -335,29 +345,49 @@ setInterval(()=>{if(VIEW==='market')buildTrail();},250);
 
 // ---------------- trades ----------------
 function hashAng(id){let x=(id*2654435761)>>>0;x^=x>>>15;x=(x*2246822519)>>>0;x^=x>>>13;return (x%10000)/10000;}
-function onTrades(msg){
-  if(splitFrom===Infinity&&msg.data.length)splitFrom=minuteOf(parseTs(msg.data[0].timestamp))+60000;
-  // snapshot = Kraken's last 50 real trades; placed at their true age
+function onTrades(msg){   // Kraken WS trades (snapshot = last 50, placed at true age)
+  addTrades(msg.data.map(t=>({v:'kraken',k:'kraken',id:t.trade_id,ts:t.timestamp?parseTs(t.timestamp):Date.now(),side:t.side,qty:+t.qty,px:+t.price})));
+}
+// RAW = every venue's trades (last 30 min) so the ALL / single-venue switch can rebuild trade-derived state
+let RAW=[];const rawSeen=new Set();
+const hashStr=s=>{let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
+function addTrades(list){
+  const ok=[];
+  for(const t of list){const key=t.v+':'+t.id;if(rawSeen.has(key)||!(t.qty>0)||!(t.px>0))continue;rawSeen.add(key);t.ts=Math.min(t.ts||Date.now(),Date.now());RAW.push(t);ok.push(t);}
+  if(!ok.length)return;
+  if(RAW.length>1&&ok.some(t=>t.ts<RAW[RAW.length-ok.length-1]?.ts))RAW.sort((x,y)=>x.ts-y.ts);
+  if(splitFrom===Infinity)splitFrom=minuteOf(ok[0].ts)+60000;
+  const mine=ok.filter(t=>SRC==='all'||t.v===SRC);if(mine.length)processTrades(mine);
+}
+setInterval(()=>{const cut=Date.now()-1800000;let i=0;while(i<RAW.length&&RAW[i].ts<cut)i++;if(i)RAW.splice(0,i);if(RAW.length>40000)RAW.splice(0,RAW.length-40000);
+  if(rawSeen.size>60000){rawSeen.clear();for(const t of RAW)rawSeen.add(t.v+':'+t.id);}},10000);
+function setSource(v){SRC=v;try{localStorage.setItem('ofc.src',v);}catch(e){}
+  // rebuild trade-derived state from RAW for the chosen source
+  trades=[];bubbles=[];sparks.length=0;shocks.length=0;impacts=[];HEATS[30].m.clear();seenTid.clear();volEase.clear();history=[];
+  if(RAW.length){const lo=minuteOf(RAW[0].ts);for(const c of candles.values())if(c.t>=lo){c.bv=0;c.sv=0;}splitFrom=lo+60000;}
+  const L=RAW.filter(t=>v==='all'||t.v===v);if(L.length)processTrades(L,true);
+  tradeCount=L.length;lastTrade=null;trailDirty=true;combDirty=true;combine();renderSources(true);
+}
+function processTrades(list,replay){
   const pnow=performance.now(), dnow=Date.now();
-  // aggregate fills of one message by side+price (Bookmap-style)
+  // aggregate fills of one batch by side+price (Bookmap-style)
   const agg=new Map();
-  for(const t of msg.data){
-    const side=t.side, px=+t.price, qty=+t.qty;
-    const ts=t.timestamp?parseTs(t.timestamp):dnow;
-    if(addSplit(t.trade_id,ts,side,qty,px)===false)continue;
-    trades.push({t:Math.min(ts,dnow),side,qty,px});
+  for(const t of list){
+    const side=t.side, px=t.px, qty=t.qty, ts=t.ts;
+    if(addSplit(t.v+':'+t.id,ts,side,qty,px)===false)continue;
+    trades.push({t:Math.min(ts,dnow),side,qty,px,v:t.v});
     heatAdd(px,side,qty,Math.max(0,(dnow-ts)/1000));
-    if(dnow-ts<3000){impacts.push({t:pnow,px,side,qty});if(impacts.length>60)impacts.shift();}
-    tradeCount++; lastTrade={side,px,qty};
+    if(!replay&&dnow-ts<3000){impacts.push({t:pnow,px,side,qty});if(impacts.length>60)impacts.shift();}
+    if(!replay){tradeCount++; lastTrade={side,px,qty,v:t.v};}
     const k=side+px; const a=agg.get(k);
-    if(a){a.qty+=qty;}else agg.set(k,{side,px,qty,id:t.trade_id||Math.random()*1e9,ts});
+    if(a){a.qty+=qty;}else agg.set(k,{side,px,qty,id:hashStr(t.v+t.id),ts,v:t.v});
   }
-  trades.sort((x,y)=>x.t-y.t);
+  if(trades.length>1&&trades[trades.length-1].t<trades[trades.length-2].t)trades.sort((x,y)=>x.t-y.t);
   for(const a of agg.values()){
     const now=pnow-Math.max(0,dnow-a.ts); if(pnow-now>HIST_SEC*1000)continue;
-    const fresh=pnow-now<3000;
+    const fresh=!replay&&pnow-now<3000;
     const usd=a.qty*a.px, whale=usd>=whaleUSD;
-    const ang=(hashAng(a.id|0)*2-1)*1.05;            // ±60° around horizontal axis
+    const ang=(hashAng(a.id)*2-1)*1.05;            // ±60° around horizontal axis
     bubbles.push({t:now,side:a.side,qty:a.qty,px:a.px,usd,ang,whale});
     // subtle spark accent from core outward
     const n=LOW?(whale?8:1):(whale?14:3);
@@ -377,10 +407,116 @@ function updateWhaleThreshold(){
   whaleUSD=Math.max(10000,p97);
 }
 
-// ---------------- websocket ----------------
+// ---------------- multi-venue: registry, books, combined book ----------------
+const VEN={
+  kraken:  {n:'KRAKEN',  t:'KR',col:'#8d6bff',pair:'XRP/USD'},
+  coinbase:{n:'COINBASE',t:'CB',col:'#3f8cff',pair:'XRP-USD'},
+  bitstamp:{n:'BITSTAMP',t:'BS',col:'#2bd96b',pair:'xrpusd'},
+  binanceus:{n:'BINANCE.US',t:'BN',col:'#f3ba2f',pair:'XRPUSD+USDT'},
+  bitfinex:{n:'BITFINEX',t:'BF',col:'#16b157',pair:'tXRPUSD'},
+};
+for(const v of Object.values(VEN)){v.st='INIT';v.last=0;v.share=0;v.usd5=0;v.rc=0;}
+// every book: {v, k, b:Map(price->qty), a:Map, ready}; Kraken's existing `book` is registered as one of them
+const BOOKS=[{v:'kraken',k:'kraken',b:book.bids,a:book.asks,get ready(){return book.ready;}}];
+function mkBook(v,k){const B={v,k,b:new Map(),a:new Map(),ready:false};BOOKS.push(B);return B;}
+let SRC=(()=>{try{const v=localStorage.getItem('ofc.src');return v&&(v==='all'||VEN[v])?v:'all';}catch(e){return 'all';}})();
+let BREADY=false, combDirty=true;
+const VDEPTH=150, BUCK=0.0001;   // top levels used per venue book; ALL view merges into 0.0001 price buckets
+function topLv(m,desc,n){const a=[...m.entries()];a.sort(desc?(x,y)=>y[0]-x[0]:(x,y)=>x[0]-y[0]);if(a.length>n)a.length=n;return a;}
+function combine(){
+  combDirty=false;const use=BOOKS.filter(B=>B.ready&&(SRC==='all'||B.v===SRC)&&VEN[B.v].st==='LIVE');
+  if(!use.length){BREADY=false;return;}
+  const per=[];let wsum=0,msum=0;
+  for(const B of use){const bb=topLv(B.b,true,VDEPTH),aa=topLv(B.a,false,VDEPTH);if(!bb.length||!aa.length)continue;
+    const m=(bb[0][0]+aa[0][0])/2;if(bb[0][0]>=aa[0][0]){B.ready=false;B.crossed=(B.crossed||0)+1;if(B.resync)B.resync();continue;}   // crossed own book = corrupt -> resnapshot
+    const w=1e-6+(BKVOL.get(B.k)||0);per.push({bb,aa});wsum+=w;msum+=m*w;}
+  if(!per.length){BREADY=false;return;}
+  const M=msum/wsum, one=per.length===1;
+  const bm=new Map(),am=new Map(),key=p=>one?p:Math.round(p/BUCK)*BUCK;
+  for(const {bb,aa} of per){for(const [p,q] of bb){const k=+key(p).toFixed(6);bm.set(k,(bm.get(k)||0)+q);}for(const [p,q] of aa){const k=+key(p).toFixed(6);am.set(k,(am.get(k)||0)+q);}}
+  // venues/USDT books can overlap slightly; levels on the wrong side of the volume-weighted mid are dropped
+  sortedB=[...bm.entries()].filter(x=>x[0]<M).sort((x,y)=>y[0]-x[0]);sortedA=[...am.entries()].filter(x=>x[0]>M).sort((x,y)=>x[0]-y[0]);
+  if(sortedB.length>200)sortedB.length=200;if(sortedA.length>200)sortedA.length=200;
+  if(!sortedB.length||!sortedA.length){BREADY=false;return;}
+  bestBid=sortedB[0][0];bestAsk=sortedA[0][0];mid=one?(bestBid+bestAsk)/2:M;if(!dispMid)dispMid=mid;BREADY=true;
+}
+setInterval(()=>{if(combDirty)combine();},LOWDEV()?250:150);
+function LOWDEV(){return matchMedia('(pointer:coarse)').matches;}
+// generic reconnecting websocket feed
+function feed(v,url,onOpen,onMsg,staleMs){
+  const F={ws:null,backoff:1000,last:0,timer:null};VEN[v].F=F;
+  F.send=o=>{if(F.ws&&F.ws.readyState===1)F.ws.send(JSON.stringify(o));};
+  F.resync=()=>{try{F.ws&&F.ws.close();}catch(e){}};
+  const open=()=>{clearTimeout(F.timer);VEN[v].st='CONN';
+    try{F.ws=new WebSocket(url);}catch(e){return retry();}
+    const ws=F.ws;
+    ws.onopen=()=>{VEN[v].st='LIVE';F.backoff=1000;F.last=performance.now();onOpen(F);};
+    ws.onmessage=ev=>{F.last=performance.now();VEN[v].last=Date.now();let m;try{m=JSON.parse(ev.data);}catch(e){return;}try{onMsg(m,F);}catch(e){console.warn(v,e);}};
+    ws.onclose=()=>{if(F.ws!==ws)return;for(const B of BOOKS)if(B.v===v){B.ready=false;}combDirty=true;VEN[v].st='DOWN';retry();};
+    ws.onerror=()=>{try{ws.close();}catch(e){}};};
+  const retry=()=>{clearTimeout(F.timer);VEN[v].rc++;F.timer=setTimeout(open,F.backoff);F.backoff=Math.min(F.backoff*2,30000);};
+  setInterval(()=>{if(F.ws&&F.ws.readyState===1&&performance.now()-F.last>staleMs){VEN[v].st='STALE';try{F.ws.close();}catch(e){}}},3000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!F.ws||F.ws.readyState>1)){F.backoff=1000;open();}});
+  open();return F;
+}
+const setLv=(m,p,q)=>{if(q>0)m.set(p,q);else m.delete(p);};
+// --- Coinbase Exchange (public, no auth): level2_batch + matches; 'side' on a match is the MAKER side
+{const B=mkBook('coinbase','coinbase');
+ feed('coinbase','wss://ws-feed.exchange.coinbase.com',F=>{B.ready=false;F.send({type:'subscribe',product_ids:['XRP-USD'],channels:['level2_batch','matches']});},m=>{
+  if(m.type==='snapshot'){B.b.clear();B.a.clear();const lo=(+m.bids[0][0])*0.9,hi=(+m.asks[0][0])*1.1;
+    for(const [p,q] of m.bids){const P=+p;if(P<lo)break;B.b.set(P,+q);}for(const [p,q] of m.asks){const P=+p;if(P>hi)break;B.a.set(P,+q);}B.ready=true;combDirty=true;}
+  else if(m.type==='l2update'&&B.ready){for(const [sd,p,q] of m.changes)setLv(sd==='buy'?B.b:B.a,+p,+q);combDirty=true;}
+  else if(m.type==='match'){addTrades([{v:'coinbase',k:'coinbase',id:m.trade_id,ts:Date.parse(m.time),side:m.side==='sell'?'buy':'sell',qty:+m.size,px:+m.price}]);}
+ },30000);
+ setInterval(()=>{if(B.ready&&B.b.size+B.a.size>4000){const m=mid||0;if(!m)return;for(const p of B.b.keys())if(p<m*0.9)B.b.delete(p);for(const p of B.a.keys())if(p>m*1.1)B.a.delete(p);}},15000);}
+// --- Bitstamp: order_book channel = full top-100 snapshot on every push (no sequencing needed); live_trades type 0=buy 1=sell taker
+{const B=mkBook('bitstamp','bitstamp');
+ feed('bitstamp','wss://ws.bitstamp.net',F=>{B.ready=false;F.send({event:'bts:subscribe',data:{channel:'order_book_xrpusd'}});F.send({event:'bts:subscribe',data:{channel:'live_trades_xrpusd'}});},(m,F)=>{
+  if(m.event==='bts:request_reconnect'){F.resync();return;}
+  if(m.event==='data'&&m.channel==='order_book_xrpusd'){B.b.clear();B.a.clear();for(const [p,q] of m.data.bids)B.b.set(+p,+q);for(const [p,q] of m.data.asks)B.a.set(+p,+q);B.ready=true;combDirty=true;}
+  else if(m.event==='trade'){const d=m.data;addTrades([{v:'bitstamp',k:'bitstamp',id:d.id,ts:+d.microtimestamp/1000,side:d.type===0?'buy':'sell',qty:+d.amount,px:+d.price}]);}
+ },45000);}
+// --- Binance.US: diff depth stream + REST snapshot (CORS ok), lastUpdateId sequencing; XRPUSD and XRPUSDT (USDT≈USD)
+{const SY={xrpusd:mkBook('binanceus','bn_usd'),xrpusdt:mkBook('binanceus','bn_usdt')};
+ for(const B of Object.values(SY)){B.buf=[];B.lid=0;B.u=0;}
+ const snap=async(sym,F)=>{const B=SY[sym];B.ready=false;B.buf=[];B.snapping=true;
+   try{const r=await fetch('https://api.binance.us/api/v3/depth?symbol='+sym.toUpperCase()+'&limit=500');const j=await r.json();
+     B.b.clear();B.a.clear();for(const [p,q] of j.bids)B.b.set(+p,+q);for(const [p,q] of j.asks)B.a.set(+p,+q);B.lid=j.lastUpdateId;B.u=0;
+     for(const e of B.buf)apply(B,e,F);B.buf=[];B.snapping=false;B.ready=B.u>0||true;combDirty=true;}catch(e){B.snapping=false;setTimeout(()=>F.ws&&F.ws.readyState===1&&snap(sym,F),5000);}};
+ const apply=(B,e,F)=>{if(e.u<=B.lid)return;
+   if(B.u&&e.U!==B.u+1){B.ready=false;B.resyncs=(B.resyncs||0)+1;snap(B.sym,F);return;}   // gap -> resnapshot
+   for(const [p,q] of e.b)setLv(B.b,+p,+q);for(const [p,q] of e.a)setLv(B.a,+p,+q);B.u=e.u;};
+ SY.xrpusd.sym='xrpusd';SY.xrpusdt.sym='xrpusdt';
+ for(const B of Object.values(SY))B.resync=()=>{B.ready=false;VEN.binanceus.F&&snap(B.sym,VEN.binanceus.F);};
+ feed('binanceus','wss://stream.binance.us:9443/stream?streams=xrpusd@depth@100ms/xrpusdt@depth@100ms/xrpusd@trade/xrpusdt@trade',F=>{for(const k in SY)snap(k,F);},(m,F)=>{
+  const st=m.stream||'',d=m.data;if(!d)return;const sym=st.split('@')[0],B=SY[sym];if(!B)return;
+  if(d.e==='depthUpdate'){if(B.snapping){B.buf.push(d);if(B.buf.length>600)B.buf.shift();return;}if(!B.lid)return;apply(B,d,F);combDirty=true;}
+  else if(d.e==='trade'){addTrades([{v:'binanceus',k:B.k,id:sym+d.t,ts:d.T,side:d.m?'sell':'buy',qty:+d.q,px:+d.p}]);}
+ },90000);}
+// --- Bitfinex: book P0 len 100 with CRC32 checksum (flag 131072), trades 'te'
+{const B=mkBook('bitfinex','bitfinex');const ch={};
+ const bfxCk=()=>{const bb=topLv(B.b,true,25),aa=topLv(B.a,false,25),o=[];for(let i=0;i<25;i++){if(bb[i])o.push(bb[i][0],bb[i][1]);if(aa[i])o.push(aa[i][0],-aa[i][1]);}return crc32(o.join(':'))|0;};
+ feed('bitfinex','wss://api-pub.bitfinex.com/ws/2',F=>{B.ready=false;F.send({event:'conf',flags:131072});F.send({event:'subscribe',channel:'book',symbol:'tXRPUSD',prec:'P0',len:'100'});F.send({event:'subscribe',channel:'trades',symbol:'tXRPUSD'});},(m,F)=>{
+  if(!Array.isArray(m)){if(m.event==='subscribed')ch[m.chanId]=m.channel;else if(m.event==='info'&&m.code===20051)F.resync();return;}
+  const c=ch[m[0]],d=m[1];if(d==='hb')return;
+  if(c==='book'){
+    if(d==='cs'){const ok=bfxCk()===m[2];B.ckOk=(B.ckOk||0)+(ok?1:0);if(!ok){B.ckBad=(B.ckBad||0)+1;B.ready=false;F.resync();}return;}
+    const lv=Array.isArray(d[0])?(B.b.clear(),B.a.clear(),d):[d];
+    for(const [p,cnt,amt] of lv){if(cnt===0){(amt>0?B.b:B.a).delete(p);}else if(amt>0)B.b.set(p,amt);else B.a.set(p,-amt);}
+    B.ready=true;combDirty=true;}
+  else if(c==='trades'){
+    if(Array.isArray(d)){const dn=Date.now();addTrades(d.filter(t=>dn-t[1]<HIST_SEC*1000).map(t=>({v:'bitfinex',k:'bitfinex',id:t[0],ts:t[1],side:t[2]>0?'buy':'sell',qty:Math.abs(t[2]),px:t[3]})));}
+    else if(d==='te'){const t=m[2];addTrades([{v:'bitfinex',k:'bitfinex',id:t[0],ts:t[1],side:t[2]>0?'buy':'sell',qty:Math.abs(t[2]),px:t[3]}]);}}
+ },30000);}
+// per-book / per-venue traded USD over the last 5 min (mid weights + SOURCES share)
+const BKVOL=new Map();
+setInterval(()=>{const cut=Date.now()-300000,bk=new Map(),vv={};let tot=0;
+  for(let i=RAW.length-1;i>=0;i--){const t=RAW[i];if(t.ts<cut)break;const u=t.qty*t.px;bk.set(t.k,(bk.get(t.k)||0)+u);vv[t.v]=(vv[t.v]||0)+u;tot+=u;}
+  BKVOL.clear();for(const [k,u] of bk)BKVOL.set(k,u);for(const [k,v] of Object.entries(VEN)){v.usd5=vv[k]||0;v.share=tot?v.usd5/tot:0;}},1000);
+// ---------------- websocket (Kraken) ----------------
 let seeded=false, ws=null, backoff=1000, lastMsg=0, reconnectTimer=null;
 function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));}
-function setConn(s){connState=s;}
+function setConn(s){connState=s;VEN.kraken.st=s==='LIVE'?'LIVE':/RECONNECT|DISCONNECTED/.test(s)?'DOWN':s==='STALE'?'STALE':s==='CONNECTING'?'CONN':s;combDirty=true;}
 function connect(){
   clearTimeout(reconnectTimer);
   setConn('CONNECTING');
@@ -394,7 +530,7 @@ function connect(){
     send({method:'subscribe',params:{channel:'ohlc',symbol:[SYMBOL],interval:1,snapshot:true}});
   };
   ws.onmessage=ev=>{
-    lastMsg=performance.now(); msgCount++;
+    lastMsg=performance.now(); msgCount++; VEN.kraken.last=Date.now();
     let m; try{m=JSON.parse(ev.data);}catch(e){return;}
     if(m.channel==='book')onBook(m);
     else if(m.channel==='trade')onTrades(m);
@@ -424,7 +560,7 @@ setInterval(()=>{mps=msgCount;msgCount=0;updateWhaleThreshold();
 // ---------------- history snapshots ----------------
 function topBySize(arr,n){return arr.slice().sort((x,y)=>y[1]-x[1]).slice(0,n);}
 setInterval(()=>{
-  if(!book.ready||!mid)return;
+  if(!BREADY||!mid)return;
   history.push({t:performance.now(),mid,b:topBySize(sortedB,LOW?14:22),a:topBySize(sortedA,LOW?14:22),maxq:Math.max(...sortedB.map(x=>x[1]),...sortedA.map(x=>x[1]))});
   const cut=performance.now()-HIST_SEC*1000; while(history.length&&history[0].t<cut)history.shift();
 },SNAP_MS);
@@ -541,6 +677,7 @@ function lblReset(){
   lblReserve(CX-135,CY-GR-25,270,18);                 // AGGRESSOR FLOW title
   lblReserve(CX-130,CY+GR+5,260,32);                  // RSI readout (big number + zone word + 14·1M)
   lblReserve(CX-R0-2,CY-R0-2,2*R0+4,2*R0+4);          // core
+  for(const Z of rsiZoneGeom())for(const ch of Z.ch){const x=CX+Math.cos(ch.a)*Z.r,y=CY+Math.sin(ch.a)*Z.r;lblReserve(x-7,y-9,14,14);}   // RSI zone labels
   if(WIDE){lblReserve(CX-GR*0.8-40,CY-GR*0.62-22,80,16);lblReserve(CX+GR*0.8-40,CY-GR*0.62-22,80,16);}
   else{const yt=topLblY()-13,yb=botLblY()-13;lblReserve(0,yt,84,18);lblReserve(W-88,yt,88,18);lblReserve(0,yb,70,18);lblReserve(W-70,yb,70,18);}
   const Z=zbarGeom();if(Z){lblReserve(Z.x-Z.lw-10,Z.y0-6,Z.lw+20,Z.y1-Z.y0+12);if(Z.pw)lblReserve(Z.px-2,Z.py-2,Z.pw+4,Z.ph+4);}
@@ -642,7 +779,7 @@ function drawHistory(now){
 
 let topWalls={bid:[],ask:[]};
 function drawBook(now){
-  if(!book.ready||!sortedB.length)return;
+  if(!BREADY||!sortedB.length)return;
   const maxq=Math.max(...sortedB.map(x=>x[1]),...sortedA.map(x=>x[1]));
   topWalls.bid=topBySize(sortedB,3); topWalls.ask=topBySize(sortedA,3);
   const isTop=(side,px)=>topWalls[side].some(x=>x[0]===px);
@@ -794,6 +931,17 @@ function drawGlitch(now){
 
 // ---------------- RSI arc gauge (bottom half) ----------------
 let rsiDisp=50;
+// curved OVERSOLD / OVERBOUGHT labels: inside the arc, centred on each zone (0-30 and 70-100), glyphs laid out along the arc
+let rzCache=null;
+function rsiZoneGeom(){
+  const key=CX+'|'+CY+'|'+RMAX+'|'+WIDE;if(rzCache&&rzCache.key===key)return rzCache.z;
+  const GR=RMAX+30,LW=WIDE?12:10,r=GR-LW/2-6,fs=WIDE?10:8.5,font=`700 ${fs}px Orbitron,sans-serif`,ang=x=>Math.PI-x/100*Math.PI,out=[];
+  ctx.save();ctx.font=font;
+  for(const [k,txt,c0] of [['os','OVERSOLD',15],['ob','OVERBOUGHT',85]]){
+    const ws=[...txt].map(ch=>ctx.measureText(ch).width+1.2),tot=ws.reduce((a,b)=>a+b,0);let a=ang(c0)+tot/2/r;const ch=[];
+    [...txt].forEach((c,i)=>{const a1=a-ws[i]/2/r;ch.push({c,a:a1});a-=ws[i]/r;});
+    out.push({k,r,font,ch});}
+  ctx.restore();rzCache={key,z:out};return out;}
 function drawRSI(now){
   const GR=RMAX+30, v=ind.rsi; if(v!=null)rsiDisp+=(v-rsiDisp)*0.08;
   const ang=x=>Math.PI-x/100*Math.PI, LW=WIDE?12:10;
@@ -827,6 +975,11 @@ function drawRSI(now){
     ctx.fillStyle=rgba(ob||os?zc:COL.yl,1);ctx.beginPath();ctx.arc(x,y,WIDE?8:7,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,WIDE?3.5:3,0,Math.PI*2);ctx.fill();
   }
+  // zone names curved along the inside of the arc; brighter when RSI sits in that zone
+  for(const Z of rsiZoneGeom()){const on=Z.k==='os'?os:ob,c=Z.k==='os'?COL.bid:COL.ask;
+    ctx.font=Z.font;ctx.fillStyle=rgba(c,on?1:0.6);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=on&&Q>0?10*p:0;ctx.textAlign='center';
+    for(const ch of Z.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*Z.r,CY+Math.sin(ch.a)*Z.r);ctx.rotate(ch.a-Math.PI/2);ctx.fillText(ch.c,0,0);ctx.restore();}}
+  ctx.shadowBlur=0;
   // big readout at bottom centre, coloured by zone
   const word=v==null?'':ob?'OVERBOUGHT':os?'OVERSOLD':'NEUTRAL', big=`RSI ${v==null?'—':v.toFixed(0)}`, yB=CY+GR+(WIDE?24:21);
   const fb=`900 ${WIDE?19:16}px Orbitron,sans-serif`, fw=`700 ${WIDE?11:9.5}px Orbitron,sans-serif`;
@@ -1005,7 +1158,8 @@ function drawTrail(now){
     const r=(1.8+Math.min(4,1.6*Math.sqrt(b.wh.usd/whaleUSD)))*(0.4+0.6*p.u);
     ctx.fillStyle=rgba([255,255,255],0.9*p.u);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:6;
     ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=rgba(c,0.8*p.u);ctx.beginPath();ctx.arc(p.x,p.y,r*1.9,0,Math.PI*2);ctx.globalAlpha=0.35;ctx.fill();ctx.globalAlpha=1;});
+    ctx.fillStyle=rgba(c,0.8*p.u);ctx.beginPath();ctx.arc(p.x,p.y,r*1.9,0,Math.PI*2);ctx.globalAlpha=0.35;ctx.fill();ctx.globalAlpha=1;
+    if(b.wh.v&&SRC==='all'&&p.u>0.35){ctx.shadowBlur=0;ctx.font=`700 ${WIDE?9:8}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle=VEN[b.wh.v].col;ctx.globalAlpha=Math.min(1,p.u*1.2);ctx.fillText(VEN[b.wh.v].t,p.x+r+3,p.y-r-1);ctx.globalAlpha=1;}});
   ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
   ctx.restore();
 }
@@ -1101,20 +1255,30 @@ function hud(now){
   }
   if(ind.rsi!=null){const r=ind.rsi,cl=r>=70?'mg':r<=30?'gr':'yl';
     setHTML('rsiTop',`<span class="${cl}">${r.toFixed(1)}</span>`);setHTML('rsi',`<span class="${cl}">${r.toFixed(1)} ${r>=70?'OVERBOUGHT':r<=30?'OVERSOLD':'NEUTRAL'}</span>`);}
-  if(lastTrade)setHTML('last',`<span class="${lastTrade.side==='buy'?'gr':'mg'}">${lastTrade.side.toUpperCase()} ${fmtQ(lastTrade.qty)} @ ${lastTrade.px.toFixed(5)}</span>`);
+  if(lastTrade)setHTML('last',`<span class="${lastTrade.side==='buy'?'gr':'mg'}">${lastTrade.side.toUpperCase()} ${fmtQ(lastTrade.qty)} @ ${lastTrade.px.toFixed(5)}</span>${lastTrade.v?` <span style="color:${VEN[lastTrade.v].col}">${VEN[lastTrade.v].t}</span>`:''}`);
   const f=flow(winSec);
   setHTML('bvol',fmtQ(f.b)+' XRP');setHTML('svol',fmtQ(f.s)+' XRP');
   setHTML('dlt',`<span class="${f.d>=0?'gr':'mg'}">${f.r>=0?'+':''}${(f.r*100).toFixed(0)}%</span>`);
   const db=$('dltbar');db.style.left=f.r>=0?'50%':(50+f.r*50)+'%';db.style.width=Math.abs(f.r*50)+'%';db.style.background=f.r>=0?'#2bff9a':'#ff2bd6';
   syncZA();
-  const live=connState==='LIVE'&&book.ready;
-  setHTML('conn',`<span class="dot" style="background:${live?'#2bff9a':connState==='LIVE'?'#ffe600':'#ff3b6b'};box-shadow:0 0 8px ${live?'#2bff9a':'#ff3b6b'}"></span>${live?'LIVE':connState}`);
+  const nLive=Object.values(VEN).filter(v=>v.st==='LIVE').length, live=BREADY&&nLive>0; renderSources();
+  setHTML('conn',`<span class="dot" style="background:${live?'#2bff9a':connState==='LIVE'?'#ffe600':'#ff3b6b'};box-shadow:0 0 8px ${live?'#2bff9a':'#ff3b6b'}"></span>${live?'LIVE':nLive?'SYNC':connState}`);
   setHTML('ck',`<span class="${ckLast==='OK'?'gr':ckLast==='—'?'':'rd'}">${ckLast}</span> <span style="color:#6f8aa5">${ckOk}✓ ${ckBad}✗</span>`);
   setHTML('mps',`${mps} · ${FPS.toFixed(0)} FPS · Q${Q}`);setHTML('tcount',String(tradeCount));setHTML('whale',fmtUSD(whaleUSD)+' / fill');setHTML('rc',String(Math.max(0,reconnects)));
 }
 
 // ---------------- main loop ----------------
 let Q=2, fpsN=0, fpsT=performance.now(), FPS=60;
+// SOURCES panel: status dot + 5-min volume share per venue, ALL / single-venue toggle
+let srcT=0;
+function renderSources(force){const n=performance.now();if(!force&&n-srcT<700)return;srcT=n;
+  const bt=$('srcBtns');if(bt&&!bt.childElementCount){bt.innerHTML=['all',...Object.keys(VEN)].map(k=>`<button data-s="${k}">${k==='all'?'ALL':VEN[k].t}</button>`).join('');
+    bt.querySelectorAll('button').forEach(b=>b.onclick=e=>{e.stopPropagation();setSource(b.dataset.s);});}
+  if(bt)bt.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.s===SRC));
+  setHTML('srcSel',SRC==='all'?'ALL':VEN[SRC].n);setHTML('depLbl',SRC==='all'?'ALL VENUES · 0.0001 BUCKETS':VEN[SRC].n);
+  setHTML('srcList',Object.entries(VEN).map(([k,v])=>{const up=v.st==='LIVE'&&BOOKS.some(B=>B.v===k&&B.ready),c=up?'#2bff9a':v.st==='LIVE'||v.st==='CONN'?'#ffe600':'#ff3b6b';
+    const dim=SRC!=='all'&&SRC!==k?' style="opacity:.45"':'';
+    return `<div class="row"${dim}><span><i class="dot" style="background:${c};box-shadow:0 0 6px ${c}"></i><span class="vt" style="color:${v.col}">${v.t}</span>${v.n}</span><span>${up?'':`<span class="rd">${v.st} </span>`}${(v.share*100).toFixed(0)}%</span></div>`;}).join(''));}
 function frame(){
   const now=performance.now();
   fpsN++; if(now-fpsT>2000){FPS=fpsN*1000/(now-fpsT);fpsN=0;fpsT=now;
@@ -1159,7 +1323,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
