@@ -75,7 +75,6 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 #pages .page{display:none}
 #pages .page.on{display:block}
 .swipehint{font-size:9.5px;color:#4f6a85;text-align:center;margin-top:3px}
-#legend .row span:first-child{color:#cfe9ff}
 /* ---------- LANDSCAPE: two columns (radar | HUD + controls) ---------- */
 @media (min-aspect-ratio:1/1){
  #app{flex-direction:row;gap:10px}
@@ -95,6 +94,23 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
  #pages .page{display:block !important;margin-top:8px}
  #pages{height:auto}
 }
+/* ---------- DESKTOP: single right panel, no page scroll, no panel scrollbars ---------- */
+@media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){
+ #app{overflow:hidden}
+ #colB{flex:0 0 clamp(360px,18vw,480px);overflow:hidden;gap:clamp(4px,.8vh,8px)}
+ #pages{overflow:hidden;flex:1 1 auto;min-height:0;padding:clamp(6px,1vh,12px) 12px}
+ #sheet{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+ #pages .page{margin-top:clamp(3px,.9vh,10px) !important}
+ #pages .page:first-of-type{margin-top:0 !important}
+ .row,#pages .row{font-size:clamp(10px,min(1.45vh,calc(.45vw + 4px)),15px);line-height:1.38}
+ #top .l1{flex-wrap:wrap;row-gap:0}
+ #top .l1 .big{font-size:clamp(22px,min(1.3vw,3.2vh),34px)}
+ #top .l2{font-size:clamp(10px,min(1.2vh,calc(.35vw + 3px)),13px)}
+ .panel h3{font-size:clamp(9px,min(1.2vh,calc(.3vw + 3px)),13px);margin-bottom:clamp(2px,.4vh,5px)}
+ .page .row>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+ #pages h3{margin-right:0}
+ .bar{margin:2px 0 3px}
+}
 #glitch{position:fixed;inset:0;z-index:7;pointer-events:none;opacity:0}
 </style>
 </head>
@@ -110,7 +126,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 <div id="sheet">
  <div id="win"><button data-w="30">30S</button><button data-w="60" class="on">1M</button><button data-w="300">5M</button><button id="tdir" class="tdir" title="view mode: limit orders / market orders">VIEW ▸ <b>LIMIT</b></button></div>
  <div class="panel">
-  <div id="tabs"><button data-p="0" class="on">FLOW</button><button data-p="1">DEPTH</button><button data-p="2">TECH</button><button data-p="3">LINK</button><button data-p="4">KEY</button></div>
+  <div id="tabs"><button data-p="0" class="on">FLOW</button><button data-p="1">DEPTH</button><button data-p="2">TECH</button><button data-p="3">LINK</button></div>
  </div>
   <div id="pages" class="panel"><button id="sheetClose" aria-label="close">✕</button>
    <div class="page on">
@@ -141,14 +157,6 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
     <div class="row"><span>TRADES · RECONNECTS</span><span><span id="tcount">0</span> · <span id="rc">0</span></span></div>
     <div class="row"><span>WHALE ≥</span><span class="yl" id="whale">—</span></div>
     <div class="row"><span>VIEW RANGE</span><span id="range">—</span></div>
-   </div>
-   <div class="page" id="legend">
-    <h3>// KEY</h3>
-    <div class="row"><span><span class="yl">LIMIT</span>: book walls, past → dial</span><span><span class="yl">MARKET</span>: trail + heat</span></div>
-    <div class="row"><span>MKT spiral: NOW = centre, 1 turn/60s back, wider = price was higher</span><span>rings = traded vol (7m ½-life)</span></div>
-    <div class="row"><span><span class="gr">green</span> buys dominate</span><span><span class="mg">magenta</span> sells dominate</span></div>
-    <div class="row"><span>radius = dist. from mid</span><span><span class="yl">YELLOW</span> = top walls / whales</span></div>
-    <div class="row"><span>needle = aggressor flow</span><span>bottom gauge = RSI 14</span></div>
    </div>
   </div>
 </div>
@@ -526,9 +534,11 @@ function triggerGlitch(ms){const n=performance.now();if(n-lastGlitch<700)return;
 function drawGrid(t){
   ctx.save();
   // perspective floor grid
+  ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.arc(CX,CY,RMAX+10,0,Math.PI*2,true);ctx.clip();   // grid = page background only, never inside the dial
   ctx.strokeStyle='rgba(0,240,255,0.05)';ctx.lineWidth=1;
   const step=48; for(let x=(CX%step);x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=(CY%step);y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.restore();
   ctx.save();ctx.beginPath();ctx.arc(CX,CY,RMAX+1,0,Math.PI*2);ctx.clip();   // safety net: tunnel never leaves the ring
   // tunnel rails: 10 smooth continuous rails following the trend path; width/alpha taper with depth; soft glow underlay
   const NR=10, NS=LOW?22:30, pts=[], TR=RMAX;   // tunnel mouth locked to the compass ring
@@ -591,7 +601,7 @@ function levelSpan(q,maxq){return 0.03+MAXSPAN*Math.pow(q/maxq,0.55);}
 function drawHistory(now){
   ctx.save();ctx.globalCompositeOperation='lighter';
   const stepH=Q===2?1:Q===1?2:3;
-  for(let hi=history.length-1-((history.length-1)%stepH);hi>=0;hi-=stepH){const h=history[hi];
+  for(let hi=history.length-1-((history.length-1)%stepH);hi>=0;hi-=stepH){const h=history[hi];if(!h)continue;
     const age=(now-h.t)/1000; if(age<0.5||age>HIST_SEC)continue;
     const dz=depthOf(age), p=proj(dz), fade=Math.max(0,1-dz/HIST_SEC)*(INBOUND?Math.min(1,age/4):1);
     const sideDraw=(lv,side,c)=>{
