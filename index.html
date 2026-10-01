@@ -58,8 +58,6 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 #win button{flex:1;height:34px;font-family:Orbitron,sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;background:rgba(5,3,12,.75);color:var(--cy);border:1px solid rgba(0,240,255,.5);cursor:pointer}
 #win button.tdir{flex:1.7;font-size:9px;letter-spacing:1px;line-height:1;white-space:nowrap;color:var(--yl);border-color:rgba(255,230,0,.55);background:rgba(255,230,0,.08)}
 #win button.tdir b{font-size:11px;letter-spacing:2px}
-#win button[data-w]{font-size:11px;letter-spacing:1px}
-#win button.locked{opacity:.28;filter:grayscale(1);cursor:not-allowed;box-shadow:none;pointer-events:none}
 #win button.zauto{flex:1.5}.zpill #win button.zauto{display:none !important}#win button.tdir#tdir{flex:1.6}
 #win button.zauto:not(.lit){color:rgba(0,240,255,.45);border-color:rgba(0,240,255,.25);background:rgba(5,3,12,.75)}
 #win button.zauto.lit{box-shadow:0 0 10px rgba(255,230,0,.35)}
@@ -88,7 +86,6 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
  #app{padding:calc(var(--st) + 6px) calc(env(safe-area-inset-right,0px) + 8px) calc(var(--sb) + 6px) calc(env(safe-area-inset-left,0px) + 8px)}
  #top,#vcv,#sheet{margin:0}
  #win{flex-wrap:wrap;row-gap:6px}
- #win button[data-w]{flex:1 1 20%}
  #win button.zauto,#win button.tdir#tdir{flex:1 1 40%}
  #vcv{flex-basis:56px;height:56px;width:100% !important}
  #pages{display:block;position:static;max-height:none;margin-top:6px}
@@ -132,7 +129,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 </div>
 
 <div id="sheet">
- <div id="win"><button data-w="30" class="on">LIVE</button><button data-w="900">15M</button><button data-w="3600">1H</button><button data-w="14400">4H</button><button id="zauto" class="tdir zauto" title="auto zoom on/off">ZOOM ▸ <b>AUTO</b></button><button id="tdir" class="tdir" title="view mode: limit orders / market orders">VIEW ▸ <b>LIMIT</b></button></div>
+ <div id="win"><button id="zauto" class="tdir zauto" title="auto zoom on/off">ZOOM ▸ <b>AUTO</b></button><button id="tdir" class="tdir" title="view mode: limit orders / market orders">VIEW ▸ <b>LIMIT</b></button></div>
  <div class="panel">
   <div id="tabs"><button data-p="0" class="on">FLOW</button><button data-p="1">DEPTH</button><button data-p="2">TECH</button><button data-p="3">LINK</button></div>
  </div>
@@ -142,7 +139,6 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
     <div class="row"><span>MKT BUY VOL</span><span class="gr" id="bvol">—</span></div>
     <div class="row"><span>MKT SELL VOL</span><span class="mg" id="svol">—</span></div>
     <div class="bar"><i id="dltbar"></i></div>
-    <div class="row"><span>LIVE / 15M / 1H / 4H</span><span id="all3">—</span></div>
     <div class="row"><span>LAST</span><span id="last">—</span></div>
    </div>
    <div class="page">
@@ -165,7 +161,6 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
     <div class="row"><span>TRADES · RECONNECTS</span><span><span id="tcount">0</span> · <span id="rc">0</span></span></div>
     <div class="row"><span>WHALE ≥</span><span class="yl" id="whale">—</span></div>
     <div class="row"><span>VIEW RANGE</span><span id="range">—</span></div>
-    <div class="row"><span>FLOW BACKFILL</span><span id="bfill">—</span></div>
    </div>
   </div>
 </div>
@@ -182,8 +177,6 @@ const parseTs=x=>{if(typeof x==='number')return x*1000;const m=String(x).match(/
 // ---------------- 1m candles / indicators ----------------
 const candles=new Map();   // minuteStart(ms) -> {t,o,h,l,c,v,bv,sv,split}
 let splitFrom=Infinity;    // first minute where buy/sell split is fully known (live+seed)
-const cachedMin=new Set(); // minutes whose split came complete from the local cache
-let seedFirstMs=Infinity;  // earliest trade time we hold exactly (REST seed / WS)
 const isEx=c=>c.ex||c.t>=splitFrom;
 const seenTid=new Set();
 let ind={rsi:null};
@@ -192,8 +185,7 @@ function candleAt(t){let c=candles.get(t);if(!c){c={t,o:0,h:0,l:0,c:0,v:0,bv:0,s
 function setOHLC(t,o,h,l,c,v){const k=candleAt(t);k.o=o;k.h=h;k.l=l;k.c=c;k.v=v;}
 function addSplit(tid,ms,side,qty,px){
   if(tid!=null){if(seenTid.has(tid))return false;seenTid.add(tid);if(seenTid.size>6000){const it=seenTid.values();for(let i=0;i<2000;i++)seenTid.delete(it.next().value);}}
-  seedFirstMs=Math.min(seedFirstMs,ms);
-  const k=candleAt(minuteOf(ms)); if(!cachedMin.has(k.t)){if(side==='buy')k.bv+=qty;else k.sv+=qty;}
+  const k=candleAt(minuteOf(ms)); if(side==='buy')k.bv+=qty;else k.sv+=qty;
   if(!k.o){k.o=k.h=k.l=k.c=px;} // provisional until OHLC arrives
   return true;
 }
@@ -225,7 +217,6 @@ async function seedREST(){
       trades.sort((x,y)=>x.t-y.t);trailDirty=true;}
   }catch(e){console.warn('Trades seed failed',e);}
   computeIndicators();
-  backfill();
 }
 setInterval(()=>{computeIndicators();const cut=Date.now()-800*60000;for(const k of candles.keys())if(k<cut)candles.delete(k);},500);
 
@@ -240,9 +231,9 @@ let sparks=[], shocks=[];
 let history=[];                             // {t,mid,b:[[p,q]],a:[[p,q]]}
 let lastTrade=null, tradeCount=0, msgCount=0, mps=0, reconnects=0;
 let ckOk=0, ckBad=0, ckConsecBad=0, ckLast='—';
-const WINS=[30,900,3600,14400];
-let winSec=(()=>{try{const v=+localStorage.getItem('ofc.win');return WINS.includes(v)?v:30;}catch(e){return 30;}})(), needle=0, needleV=0;
-let userWin=winSec;   // the window chosen for LIMIT (MARKET always runs LIVE)
+const winSec=30;   // flow is always LIVE (rolling 30s)
+let needle=0, needleV=0;
+try{localStorage.removeItem('ofc.win');localStorage.removeItem('ofc.flowCache.v1');}catch(e){}
 const WL=sec=>sec<=60?'LIVE':sec<3600?(sec/60)+'M':(sec/3600)+'H';
 let rangeAuto=(()=>{try{return localStorage.getItem('ofc.autoZoom')!=='0';}catch(e){return true;}})(), rangeFrac=0.006, dispRange=0.006;
 function setAuto(v){rangeAuto=!!v;try{localStorage.setItem('ofc.autoZoom',v?'1':'0');}catch(e){}}   // user-driven auto-zoom state (persisted)
@@ -298,9 +289,9 @@ function resyncBook(){
 // ---------------- MARKET view: impact heat (decaying volume profile) + price trail ----------------
 const HB=0.00005;                         // 0.00005 price buckets
 // one decaying volume profile per flow window (half-life scales with the window); the selected one is drawn
-const HEATS={30:{hl:120,m:new Map()},900:{hl:600,m:new Map()},3600:{hl:1800,m:new Map()},14400:{hl:5400,m:new Map()}};
+const HEATS={30:{hl:420,m:new Map()}};   // impact heat, ~7 min half-life
 let impacts=[], trail=[], trailDirty=true, trailT=0, trailStep=1;
-function heatAdd(px,side,qty,ageSec){if(cachedMin.size&&cachedMin.has(minuteOf(Date.now()-ageSec*1000)))return;   // already in the cached profile
+function heatAdd(px,side,qty,ageSec){
   const k=Math.round(px/HB);
   for(const H of Object.values(HEATS)){const w=qty*Math.pow(0.5,ageSec/H.hl);if(w<0.05)continue;let h=H.m.get(k);if(!h){h={p:k*HB,b:0,s:0};H.m.set(k,h);}
     if(side==='buy')h.b+=w;else h.s+=w;}}
@@ -375,60 +366,9 @@ function onTrades(msg){
   const BCAP=LOW?500:1500;if(bubbles.length>BCAP)bubbles.splice(0,bubbles.length-BCAP);
   const SCAP=LOW?80:250;if(sparks.length>SCAP)sparks.splice(0,sparks.length-SCAP);
 }
-const flowMemo=new Map();
-function flow(sec){
-  if(sec<=300){const cut=Date.now()-sec*1000;let b=0,s=0;
-    for(let i=trades.length-1;i>=0;i--){const t=trades[i];if(t.t<cut)break;if(t.side==='buy')b+=t.qty;else s+=t.qty;}
-    return {b,s,d:b-s,r:(b+s)?(b-s)/(b+s):0,cov:1};}
-  const now=Date.now(),m=flowMemo.get(sec); if(m&&now-m.at<250)return m;
-  const cut=now-sec*1000; let b=0,s=0,ex=0,tot=0;
-  for(const c of candles.values()){if(c.t+60000<=cut)continue;const fr=c.t<cut?(c.t+60000-cut)/60000:1;
-    if(isEx(c)){b+=c.bv*fr;s+=c.sv*fr;ex+=(c.bv+c.sv)*fr;tot+=(c.bv+c.sv)*fr;}
-    else if(c.v>0){const rg=c.h-c.l,sh=rg>0?0.5+0.5*Math.max(-1,Math.min(1,(c.c-c.o)/rg)):0.5;b+=c.v*sh*fr;s+=c.v*(1-sh)*fr;tot+=c.v*fr;}}
-  const r={b,s,d:b-s,r:(b+s)?(b-s)/(b+s):0,cov:tot?ex/tot:0,at:now};flowMemo.set(sec,r);return r;
-}
-// ---------------- REST backfill of exact buy/sell split for the 15M / 1H / 4H windows (+ localStorage cache) ----------------
-const BF_MS=14400000, CACHE_KEY='ofc.flowCache.v1';
-let bf={state:'—',req:0,done:0,need:0};
-(function loadCache(){try{const C=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(!C||!C.bins)return;const lo=Date.now()-BF_MS;
-  for(const [t,bv,sv] of C.bins){if(t<lo)continue;const k=candleAt(t);k.bv=bv;k.sv=sv;k.ex=true;cachedMin.add(t);}
-  if(C.heat&&C.at){const el=(Date.now()-C.at)/1000;for(const [w,arr] of Object.entries(C.heat)){const H=HEATS[w];if(!H)continue;const f=Math.pow(0.5,el/H.hl);
-    for(const [k,p,b,s2] of arr){if((b+s2)*f<0.5)continue;H.m.set(k,{p,b:b*f,s:s2*f});}}}
-}catch(e){}})();
-function saveCache(){try{const lo=Date.now()-BF_MS,cur=minuteOf(Date.now()),bins=[];
-  for(const c of candles.values())if(c.t>=lo&&c.t<cur&&isEx(c)&&(c.bv+c.sv)>0)bins.push([c.t,+c.bv.toFixed(3),+c.sv.toFixed(3)]);
-  const heat={};for(const [w,H] of Object.entries(HEATS)){const a=[];for(const [k,h] of H.m)if(h.b+h.s>=1)a.push([k,h.p,+h.b.toFixed(2),+h.s.toFixed(2)]);heat[w]=a;}
-  localStorage.setItem(CACHE_KEY,JSON.stringify({at:Date.now(),bins,heat}));}catch(e){}}
-setInterval(saveCache,60000);addEventListener('pagehide',saveCache);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function backfill(){
-  const now=Date.now(), lo=minuteOf(now-BF_MS), hi=Math.min(seedFirstMs,now);
-  // contiguous ranges still lacking an exact split (not cached); the last hour is fetched first
-  const ranges=[];let a=null;
-  for(let t=lo;t<hi;t+=60000){const miss=!cachedMin.has(t);if(miss&&a==null)a=t;if(!miss&&a!=null){ranges.push([a,t]);a=null;}}
-  if(a!=null)ranges.push([a,hi]);
-  if(!ranges.length){bf.state='CACHED';return;}
-  const cut1h=minuteOf(now-3600000), order=[];
-  for(const [x,y] of ranges){if(x<cut1h&&y>cut1h){order.unshift([cut1h,y]);order.push([x,cut1h]);}else if(x>=cut1h)order.unshift([x,y]);else order.push([x,y]);}
-  bf.need=order.reduce((q,[x,y])=>q+(y-x),0);bf.state='RUN';let doneBefore=0;
-  for(const [x,y] of order){let since=String(x)+'000000',lastMs=x,guard=0;
-    while(lastMs<y&&guard++<40){let j=null;
-      for(let tr=0;tr<3&&!j;tr++){try{const r=await fetch('https://api.kraken.com/0/public/Trades?pair=XRPUSD&since='+since);bf.req++;const jj=await r.json();
-        if(jj.error&&jj.error.length){await sleep(3000*(tr+1));continue;}j=jj;}catch(e){await sleep(2000*(tr+1));}}
-      if(!j){bf.state='ERR';return;}
-      const key=Object.keys(j.result).find(k=>k!=='last'),arr=j.result[key]||[],dn=Date.now();
-      for(const t of arr){const ms=t[2]*1000;if(ms<x)continue;if(ms>=y){lastMs=y;break;}lastMs=ms;
-        const mm=minuteOf(ms);if(cachedMin.has(mm)||seenTid.has(t[6]))continue;const side=t[3]==='b'?'buy':'sell',qty=+t[1],px=+t[0];
-        const k=candleAt(mm);if(side==='buy')k.bv+=qty;else k.sv+=qty;if(!k.o)k.o=k.h=k.l=k.c=px;heatAdd(px,side,qty,(dn-ms)/1000);}
-      for(let t=x;t<minuteOf(Math.min(lastMs,y));t+=60000){const k=candles.get(t);if(k)k.ex=true;}
-      bf.done=doneBefore+Math.max(0,Math.min(lastMs,y)-x);flowMemo.clear();trailDirty=true;
-      if(!arr.length||j.result.last===since)break;
-      since=j.result.last; if(lastMs<y)await sleep(1100);}   // ~1 req/s: well inside Kraken's public limits
-    for(let t=x;t<y;t+=60000){const k=candles.get(t);if(k)k.ex=true;}
-    doneBefore+=y-x;
-  }
-  bf.state='DONE';bf.done=bf.need;flowMemo.clear();saveCache();
-}
+function flow(sec){const cut=Date.now()-sec*1000;let b=0,s=0;
+  for(let i=trades.length-1;i>=0;i--){const t=trades[i];if(t.t<cut)break;if(t.side==='buy')b+=t.qty;else s+=t.qty;}
+  return {b,s,d:b-s,r:(b+s)?(b-s)/(b+s):0,cov:1};}
 function updateWhaleThreshold(){
   const recent=trades.slice(-600).map(t=>t.qty*t.px).sort((a,b)=>a-b);
   if(recent.length<30)return;
@@ -535,8 +475,6 @@ pg.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
 pg.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)setPage(page+(dx<0?1:-1));sx=null;},{passive:true});
 cv.addEventListener('wheel',e=>{e.preventDefault();setAuto(false);rangeFrac*=e.deltaY>0?1.15:1/1.15;rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac));},{passive:false});
 cv.addEventListener('dblclick',()=>{if(performance.now()-pillT<700)return;setAuto(true);});
-document.querySelectorAll('#win button[data-w]').forEach(b=>{b.classList.toggle('on',+b.dataset.w===winSec);b.onclick=()=>{if(b.disabled)return;winSec=userWin=+b.dataset.w;try{localStorage.setItem('ofc.win',String(winSec));}catch(e){}
-  document.querySelectorAll('#win button[data-w]').forEach(x=>x.classList.toggle('on',x===b));trailDirty=true;flowMemo.clear();};});
 // VIEW mode: LIMIT (default) = order book only, inbound time motion (past streams toward the dial)
 //            MARKET         = trades only, outbound time motion (recedes from the dial)
 let VIEW='limit';
@@ -544,11 +482,7 @@ try{let v=localStorage.getItem('ofc.view');
   if(!v){const old=localStorage.getItem('ofc.timeDir');v=old==='out'?'market':'limit';localStorage.setItem('ofc.view',v);localStorage.removeItem('ofc.timeDir');}
   VIEW=v==='market'?'market':'limit';}catch(e){}
 let INBOUND=VIEW==='limit';
-function syncDir(){INBOUND=VIEW==='limit';$('tdir').innerHTML=`VIEW ▸ <b>${VIEW==='limit'?'LIMIT':'MARKET'}</b>`;syncWinLock();}
-// MARKET is live-only: force LIVE and lock 15M/1H/4H; LIMIT restores the user's window choice
-function syncWinLock(){const mk=VIEW==='market';winSec=mk?30:userWin;
-  document.querySelectorAll('#win button[data-w]').forEach(x=>{const w=+x.dataset.w,lock=mk&&w!==30;x.disabled=lock;x.classList.toggle('locked',lock);x.classList.toggle('on',w===winSec);});
-  trailDirty=true;}
+function syncDir(){INBOUND=VIEW==='limit';$('tdir').innerHTML=`VIEW ▸ <b>${VIEW==='limit'?'LIMIT':'MARKET'}</b>`;trailDirty=true;}
 $('tdir').onclick=()=>{VIEW=VIEW==='limit'?'market':'limit';try{localStorage.setItem('ofc.view',VIEW);}catch(e){}syncDir();};syncDir();
 const depthOf=age=>INBOUND?Math.max(0,HIST_SEC-age):age;   // tunnel depth in seconds
 
@@ -1107,8 +1041,6 @@ function hud(now){
   setHTML('bvol',fmtQ(f.b)+' XRP');setHTML('svol',fmtQ(f.s)+' XRP');
   setHTML('dlt',`<span class="${f.d>=0?'gr':'mg'}">${f.r>=0?'+':''}${(f.r*100).toFixed(0)}%</span>`);
   const db=$('dltbar');db.style.left=f.r>=0?'50%':(50+f.r*50)+'%';db.style.width=Math.abs(f.r*50)+'%';db.style.background=f.r>=0?'#2bff9a':'#ff2bd6';
-  setHTML('all3',WINS.map(s=>{const r=flow(s).r;return `<span class="${r>=0?'gr':'mg'}">${r>=0?'+':''}${(r*100).toFixed(0)}%</span>`;}).join(' / '));
-  setHTML('bfill',bf.state==='RUN'?`<span class="yl">${Math.round(100*bf.done/Math.max(1,bf.need))}% · ${bf.req} req</span>`:bf.state==='DONE'?`<span class="gr">4H ✓ · ${bf.req} req</span>`:bf.state==='CACHED'?'<span class="gr">4H ✓ · cache</span>':bf.state);
   syncZA();
   const live=connState==='LIVE'&&book.ready;
   setHTML('conn',`<span class="dot" style="background:${live?'#2bff9a':connState==='LIVE'?'#ffe600':'#ff3b6b'};box-shadow:0 0 8px ${live?'#2bff9a':'#ff3b6b'}"></span>${live?'LIVE':connState}`);
@@ -1162,7 +1094,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={get flowAll(){return WINS.map(w=>{const f=flow(w);return {w,b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3),cov:+f.cov.toFixed(2)};})},get bf(){return bf},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
