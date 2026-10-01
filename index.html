@@ -677,9 +677,8 @@ function lblReset(){
   lblReserve(CX-135,CY-GR-25,270,18);                 // AGGRESSOR FLOW title
   lblReserve(CX-130,CY+GR+5,260,32);                  // RSI readout (big number + zone word + 14·1M)
   lblReserve(CX-R0-2,CY-R0-2,2*R0+4,2*R0+4);          // core
-  for(const Z of rsiZoneGeom())for(const ch of Z.ch){const x=CX+Math.cos(ch.a)*Z.r,y=CY+Math.sin(ch.a)*Z.r;lblReserve(x-7,y-9,14,14);}   // RSI zone labels
-  if(WIDE){lblReserve(CX-GR*0.8-40,CY-GR*0.62-22,80,16);lblReserve(CX+GR*0.8-40,CY-GR*0.62-22,80,16);}
-  else{const yt=topLblY()-13,yb=botLblY()-13;lblReserve(0,yt,84,18);lblReserve(W-88,yt,88,18);lblReserve(0,yb,70,18);lblReserve(W-70,yb,70,18);}
+  for(const L of ringLabels())for(const ch of L.ch){const h=L.fs+4,rr=L.top?L.r+L.fs*0.4:L.r-L.fs*0.4,x=CX+Math.cos(ch.a)*rr,y=CY+Math.sin(ch.a)*rr;lblReserve(x-h/2,y-h/2,h,h);}   // curved ring labels
+  if(!WIDE){const yb=botLblY()-13;lblReserve(0,yb,70,18);lblReserve(W-70,yb,70,18);}
   const Z=zbarGeom();if(Z){lblReserve(Z.x-Z.lw-10,Z.y0-6,Z.lw+20,Z.y1-Z.y0+12);if(Z.pw)lblReserve(Z.px-2,Z.py-2,Z.pw+4,Z.ph+4);}
 }
 // place a text box (left x, baseline y, width); shifts vertically (pref direction first) until free; returns {x,y} or null
@@ -896,10 +895,8 @@ function drawNeedle(now){
   const grd=ctx.createLinearGradient(CX-GR,0,CX+GR,0);grd.addColorStop(0,rgba(COL.bid,.9));grd.addColorStop(.5,'rgba(255,230,0,.6)');grd.addColorStop(1,rgba(COL.ask,.9));
   ctx.strokeStyle=grd;ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(CX,CY,GR,Math.PI,2*Math.PI);ctx.stroke();ctx.globalAlpha=1;
   ctx.font=`700 ${WIDE?10:9}px Orbitron,sans-serif`;ctx.textAlign='center';
-  if(WIDE){ctx.fillStyle=rgba(COL.bid,.9);ctx.fillText('BUYERS',CX-GR*0.80,CY-GR*0.62-10);
-  ctx.fillStyle=rgba(COL.ask,.9);ctx.fillText('SELLERS',CX+GR*0.80,CY-GR*0.62-10);}
-  else{ctx.textAlign='left';ctx.fillStyle=rgba(COL.bid,.9);ctx.fillText('◀ BUYERS',6,topLblY());
-  ctx.textAlign='right';ctx.fillStyle=rgba(COL.ask,.9);ctx.fillText('SELLERS ▶',W-6,topLblY());ctx.textAlign='center';}
+  {const f=flow(winSec).r;for(const L of ringLabels()){if(L.k==='buy')drawRingLabel(L,COL.bid,f>0.15,1);else if(L.k==='sell')drawRingLabel(L,COL.ask,f<-0.15,1);}}
+  ctx.font=`700 ${WIDE?10:9}px Orbitron,sans-serif`;ctx.textAlign='center';
   ctx.fillStyle='rgba(255,230,0,.9)';ctx.fillText('AGGRESSOR FLOW · '+WL(winSec)+(flow(winSec).cov<0.98?'~':'')+'  ',CX-22,CY-GR-12);{const f2=flow(winSec);ctx.textAlign='left';ctx.fillStyle=rgba(f2.r>0.05?COL.bid:f2.r<-0.05?COL.ask:COL.yl,1);ctx.fillText((f2.r>=0?'+':'')+(f2.r*100).toFixed(1)+'%',CX-22+ctx.measureText('AGGRESSOR FLOW · '+WL(winSec)+(flow(winSec).cov<0.98?'~':'')+'  ').width/2,CY-GR-12);ctx.textAlign='center';}
   // needle
   const a=-Math.PI/2+needle, L=GR-4, tipX=CX+Math.cos(a)*L, tipY=CY+Math.sin(a)*L;
@@ -931,17 +928,26 @@ function drawGlitch(now){
 
 // ---------------- RSI arc gauge (bottom half) ----------------
 let rsiDisp=50;
-// curved OVERSOLD / OVERBOUGHT labels: inside the arc, centred on each zone (0-30 and 70-100), glyphs laid out along the arc
+// curved ring labels: OVERSOLD / OVERBOUGHT just outside the RSI arc (bottom half), BUYERS / SELLERS just outside the flow-gauge arc (top half).
+// Glyphs are laid out along the circle; bottom-half text reads left->right with its top toward the centre, top-half text with its top outward.
 let rzCache=null;
-function rsiZoneGeom(){
-  const key=CX+'|'+CY+'|'+RMAX+'|'+WIDE;if(rzCache&&rzCache.key===key)return rzCache.z;
-  const GR=RMAX+30,LW=WIDE?12:10,r=GR-LW/2-6,fs=WIDE?10:8.5,font=`700 ${fs}px Orbitron,sans-serif`,ang=x=>Math.PI-x/100*Math.PI,out=[];
+function ringLabels(){
+  const key=CX+'|'+CY+'|'+RMAX+'|'+WIDE+'|'+W;if(rzCache&&rzCache.key===key)return rzCache.z;
+  const GR=RMAX+30,LW=WIDE?12:10,fs=WIDE?Math.round(Math.min(17,Math.max(12,RMAX/30))):8,font=`700 ${fs}px Orbitron,sans-serif`,ang=x=>Math.PI-x/100*Math.PI,out=[];
+  const dz=WIDE?15:18.5, dt=WIDE?0.62:0.72;                    // zone centres (RSI units) / top-label angle above the horizon (rad)
+  const spec=[['os','OVERSOLD',ang(dz),false,GR+LW/2+3+fs*0.8],['ob','OVERBOUGHT',ang(100-dz),false,GR+LW/2+3+fs*0.8],
+              ['buy','BUYERS',Math.PI+dt,true,GR+6],['sell','SELLERS',2*Math.PI-dt,true,GR+6]];
   ctx.save();ctx.font=font;
-  for(const [k,txt,c0] of [['os','OVERSOLD',15],['ob','OVERBOUGHT',85]]){
-    const ws=[...txt].map(ch=>ctx.measureText(ch).width+1.2),tot=ws.reduce((a,b)=>a+b,0);let a=ang(c0)+tot/2/r;const ch=[];
-    [...txt].forEach((c,i)=>{const a1=a-ws[i]/2/r;ch.push({c,a:a1});a-=ws[i]/r;});
-    out.push({k,r,font,ch});}
+  for(const [k,txt,th0,top,r] of spec){
+    const sp=WIDE?2:0.7,ws=[...txt].map(ch=>ctx.measureText(ch).width+sp),tot=ws.reduce((x,y)=>x+y,0),ch=[];
+    let a=top?th0-tot/2/r:th0+tot/2/r;
+    [...txt].forEach((c,i)=>{const d=ws[i]/r;const am=top?a+d/2:a-d/2;ch.push({c,a:am,rot:top?am+Math.PI/2:am-Math.PI/2});a+=top?d:-d;});
+    out.push({k,r,font,fs,ch,top});}
   ctx.restore();rzCache={key,z:out};return out;}
+function drawRingLabel(L,c,on,p){
+  ctx.font=L.font;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillStyle=rgba(c,on?1:0.7);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(on?12*p:4):0;
+  for(const ch of L.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*L.r,CY+Math.sin(ch.a)*L.r);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}
+  ctx.shadowBlur=0;}
 function drawRSI(now){
   const GR=RMAX+30, v=ind.rsi; if(v!=null)rsiDisp+=(v-rsiDisp)*0.08;
   const ang=x=>Math.PI-x/100*Math.PI, LW=WIDE?12:10;
@@ -975,11 +981,8 @@ function drawRSI(now){
     ctx.fillStyle=rgba(ob||os?zc:COL.yl,1);ctx.beginPath();ctx.arc(x,y,WIDE?8:7,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,WIDE?3.5:3,0,Math.PI*2);ctx.fill();
   }
-  // zone names curved along the inside of the arc; brighter when RSI sits in that zone
-  for(const Z of rsiZoneGeom()){const on=Z.k==='os'?os:ob,c=Z.k==='os'?COL.bid:COL.ask;
-    ctx.font=Z.font;ctx.fillStyle=rgba(c,on?1:0.6);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=on&&Q>0?10*p:0;ctx.textAlign='center';
-    for(const ch of Z.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*Z.r,CY+Math.sin(ch.a)*Z.r);ctx.rotate(ch.a-Math.PI/2);ctx.fillText(ch.c,0,0);ctx.restore();}}
-  ctx.shadowBlur=0;
+  // zone names curved along the outside of the arc; brighter when RSI sits in that zone
+  for(const L of ringLabels()){if(L.k==='os')drawRingLabel(L,COL.bid,os,p);else if(L.k==='ob')drawRingLabel(L,COL.ask,ob,p);}
   // big readout at bottom centre, coloured by zone
   const word=v==null?'':ob?'OVERBOUGHT':os?'OVERSOLD':'NEUTRAL', big=`RSI ${v==null?'—':v.toFixed(0)}`, yB=CY+GR+(WIDE?24:21);
   const fb=`900 ${WIDE?19:16}px Orbitron,sans-serif`, fw=`700 ${WIDE?11:9.5}px Orbitron,sans-serif`;
