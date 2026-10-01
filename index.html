@@ -729,10 +729,21 @@ function drawGrid(t){
     if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${0.03+0.06*fade})`;ctx.lineWidth=2+6*s;ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();}
     ctx.strokeStyle=`rgba(0,240,255,${0.05+(age%30===0?0.30:0.18)*fade})`;ctx.lineWidth=0.5+(age%30===0?1.4:0.9)*s;
     ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();
-    if(age%30===0){const lab=INBOUND?HIST_SEC-age:age,txt=lab?'-'+lab+'s':'0s',tx=p.x+Math.min(TR*s,W/2-30)+4;
+    if(age%30===0&&VIEW!=='market'){const lab=INBOUND?HIST_SEC-age:age,txt=lab?'-'+lab+'s':'0s',tx=p.x+Math.min(TR*s,W/2-30)+4;
       if(WIDE){ctx.fillStyle=`rgba(0,240,255,${0.25+0.4*s})`;ctx.fillText(txt,tx,p.y);}
       else TL.push({txt,x:tx,y:p.y,s});}
   }
+  if(VIEW==='market'){ // time labels at the top of each tunnel ring: NOW at the mouth (newest trade), older inward to the vanishing point
+    const fmtAge=a=>a===0?'NOW':a<60?'-'+a+'s':'-'+Math.floor(a/60)+'m'+(a%60?String(a%60).padStart(2,'0'):'');
+    const fsT=WIDE?11:9,put=[];ctx.font=`700 ${fsT}px "Share Tech Mono",monospace`;ctx.textAlign='center';
+    for(const age of [0,10,20,30,60,90,120]){if(age>HIST_SEC)continue;const p=proj(age),s=p.s,txt=fmtAge(age),w=ctx.measureText(txt).width+6;
+      const x=p.x,y=p.y-TR*s+fsT+3,bx=x-w/2,by=y-fsT,bw=w,bh=fsT+4;
+      if(Math.hypot(Math.max(bx-CX,0,CX-(bx+bw)),Math.max(by-CY,0,CY-(by+bh)))<R0+4)continue;
+      if(put.some(q=>bx<q.x+q.w&&bx+bw>q.x&&by<q.y+q.h&&by+bh>q.y)||lblHit(bx,by,bw,bh))continue;
+      put.push({x:bx,y:by,w:bw,h:bh,t:txt});lblReserve(bx,by,bw,bh);
+      ctx.fillStyle='rgba(5,3,12,.6)';ctx.fillRect(bx,by,bw,bh);
+      ctx.fillStyle=age===0?'rgba(255,230,0,.9)':`rgba(0,240,255,${0.4+0.45*s})`;ctx.fillText(txt,x,y);}
+    window.__ofcTL=put.map(q=>q.t);ctx.textAlign='left';ctx.font='10px "Share Tech Mono",monospace';}
   // phone: place time labels nearest-first; skip any that would collide with an earlier one, the hub, or a reserved label
   if(!WIDE){const put=[];TL.sort((u,v)=>v.s-u.s);
     for(const L of TL){const w=ctx.measureText(L.txt).width,bx=L.x-2,by=L.y-9,bw=w+4,bh=12;
@@ -749,7 +760,7 @@ function drawPriceRings(){
   const span=dispMid*dispRange; // price distance at RMAX
   const raw=span/5, mag=Math.pow(10,Math.floor(Math.log10(raw))); const nice=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=raw)||raw;
   ctx.font=`${WIDE?10:9}px "Share Tech Mono",monospace`;ctx.textAlign='center';let ri=0;
-  for(let d=nice;d<=span*1.001;d+=nice){ri++;
+  if(VIEW!=='market')for(let d=nice;d<=span*1.001;d+=nice){ri++;
     const r=rOf(d);
     ctx.strokeStyle='rgba(120,200,255,0.13)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);ctx.stroke();
     ctx.fillStyle='rgba(0,240,255,0.55)';ctx.fillText('+'+(d/dispMid*100).toFixed(2)+'%',CX,CY-r-3);
@@ -899,8 +910,8 @@ function drawCore(now){
   ctx.shadowBlur=0;
   if(VIEW==='market'&&trail.length)drawTrailHead(now);
   ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font=`900 ${Math.round(R0*0.30)}px Orbitron,sans-serif`;ctx.shadowColor=VIEW==='market'?'rgba(0,0,0,.95)':'#00f0ff';ctx.shadowBlur=12;
-  ctx.fillText(mid?mid.toFixed(5):'· · ·',CX,CY+R0*0.10);ctx.shadowBlur=0;
-  ctx.font=`${Math.round(R0*0.17)}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(0,240,255,.8)';ctx.fillText('MID · NOW',CX,CY+R0*0.42);
+  ctx.fillText(mid?hubTxt():'· · ·',CX,CY+R0*0.10);ctx.shadowBlur=0;
+  ctx.font=`${Math.round(R0*0.17)}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(0,240,255,.8)';ctx.fillText(VIEW==='market'?'LAST · NOW':'MID · NOW',CX,CY+R0*0.42);
   ctx.restore();
 }
 
@@ -1218,12 +1229,21 @@ function drawTrail(now){
   ctx.restore();
 }
 // glowing head (NOW) riding the compass's outer ring; drawn outside the dial clip, glow capped below the gauge arcs/ring labels
+// MARKET: hub + head tag both show the LAST trade (current source filter) so they always match; LIMIT hub = MID
+const hubPx=()=>VIEW==='market'&&trades.length?trades[trades.length-1].px:mid;
+const hubTxt=()=>{const P=hubPx();return P.toFixed(5);};
 function drawMouthHead(now){
   if(!trail.length||!TRHEAD.x)return;const h=TRHEAD,c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260),R=Math.min(RMAX*0.05,18)*(0.85+0.3*pl);
   ctx.save();ctx.globalCompositeOperation='lighter';
   const g=ctx.createRadialGradient(h.x,h.y,0,h.x,h.y,R);g.addColorStop(0,rgba([255,255,255],0.6+0.3*pl));g.addColorStop(0.3,rgba(c,0.75));g.addColorStop(1,rgba(c,0));
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(h.x,h.y,R,0,Math.PI*2);ctx.fill();
-  ctx.globalCompositeOperation='source-over';ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:5;ctx.beginPath();ctx.arc(h.x,h.y,(WIDE?3:2.2)+1.2*pl,0,Math.PI*2);ctx.fill();
+  ctx.globalCompositeOperation='source-over';ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:5;ctx.beginPath();ctx.arc(h.x,h.y,(WIDE?3:2.2)+1.2*pl,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  if(mid){const txt=hubTxt(),fs=WIDE?12:9.5;ctx.font=`700 ${fs}px "Share Tech Mono",monospace`;const tw=ctx.measureText(txt).width+10,th=fs+6;
+    const dx=h.x-CX,dy=h.y-CY,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,off=R+Math.abs(ux)*tw/2+Math.abs(uy)*th/2+2;
+    let bx=h.x-ux*off-tw/2,by=h.y-uy*off-th/2;bx=Math.max(2,Math.min(W-2-tw,bx));
+    lblReserve(bx,by,tw,th);
+    ctx.fillStyle='rgba(5,3,12,.85)';ctx.fillRect(bx,by,tw,th);ctx.strokeStyle=rgba(c,.9);ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,tw-1,th-1);
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,bx+tw/2,by+th/2+.5);ctx.textBaseline='alphabetic';}
   ctx.restore();}
 function drawTrailHead(now){   // hub accent: thin dominance-coloured ring (the glowing head itself sits at the tunnel mouth)
   const c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260);
@@ -1380,7 +1400,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
