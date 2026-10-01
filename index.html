@@ -254,7 +254,7 @@ const winSec=30;   // flow is always LIVE (rolling 30s)
 let needle=0, needleV=0;
 try{localStorage.removeItem('ofc.win');localStorage.removeItem('ofc.flowCache.v1');}catch(e){}
 const WL=sec=>sec<=60?'LIVE':sec<3600?(sec/60)+'M':(sec/3600)+'H';
-let rangeAuto=(()=>{try{return localStorage.getItem('ofc.autoZoom')!=='0';}catch(e){return true;}})(), rangeFrac=0.006, dispRange=0.006;
+let rangeAuto=(()=>{try{return localStorage.getItem('ofc.autoZoom')!=='0';}catch(e){return true;}})(), rangeFrac=0.006, dispRange=0.006, PRANGE=0.006, PFIT=0.006;   // dispRange = zoom-bar state; PRANGE = price range actually drawn
 function setAuto(v){rangeAuto=!!v;try{localStorage.setItem('ofc.autoZoom',v?'1':'0');}catch(e){}}   // user-driven auto-zoom state (persisted)
 // intro: max zoom-in -> max zoom-out over INTRO_MS (ease-in-out), then stays; any user zoom cancels it
 const INTRO_MS=2600; let intro={t0:0,set:null};
@@ -645,15 +645,16 @@ try{let v=localStorage.getItem('ofc.view');
 let INBOUND=VIEW==='limit';
 function syncDir(){INBOUND=VIEW==='limit';$('tdir').innerHTML=`VIEW ▸ <b>${VIEW==='limit'?'LIMIT':'MARKET'}</b>`;trailDirty=true;}
 $('tdir').onclick=()=>{VIEW=VIEW==='limit'?'market':'limit';try{localStorage.setItem('ofc.view',VIEW);}catch(e){}syncDir();};syncDir();
-const depthOf=age=>INBOUND?Math.max(0,HIST_SEC-age):age;   // tunnel depth in seconds
+const depthOf=age=>INBOUND?Math.max(0,(LWIN-age)*HIST_SEC/LWIN):age;   // LIMIT: newest at the vanishing point, LWIN-old at the ring   // tunnel depth in seconds
 
 const COL={bid:[43,255,154],ask:[255,43,214],cy:[0,240,255],yl:[255,230,0]};
 const rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
 // price offset -> radius
-const rOf=dp=>R0+(RMAX-R0)*Math.abs(dp)/(dispMid*dispRange);
+const PR_=()=>VIEW==='limit'?PRANGE:dispRange;   // LIMIT: auto-fit price range; MARKET: zoom state
+const rOf=dp=>R0+(RMAX-R0)*Math.abs(dp)/(dispMid*PR_());
 // perspective: age (s) -> scale & center (vanishing point up/behind)
 let FOCAL=26, fitFrac=0;                 // FOCAL = tunnel depth/perspective; driven by zoom each frame
-function updateFocal(){const z=fitFrac&&dispRange?fitFrac/dispRange:1;          // >1 zoomed in, <1 zoomed out
+function updateFocal(){const z=fitFrac&&PR_()?fitFrac/PR_():1;          // >1 zoomed in, <1 zoomed out
   const target=VIEW==='market'?32:Math.max(6,Math.min(90,26/Math.pow(z,0.9)));   // MARKET: fixed deep tunnel so the spiral recedes into the vanishing point
  FOCAL+=(target-FOCAL)*0.12;}
 // Trend-following tunnel: the tunnel centre at each depth sits at the vertical offset of the (smoothed) mid price
@@ -675,7 +676,7 @@ let pathRef=0;
 function updatePath(now){
   if(!mid||!dispMid)return;
   if(!pathRef)pathRef=mid; const dm=mid-pathRef; if(Math.abs(dm)>0.000015)pathRef+=dm*0.04;
-  const span=dispMid*dispRange, lim=RMAX*0.9, oldest=history.length?(now-history[0].t)/1000:0;
+  const span=dispMid*PR_(), lim=RMAX*0.9, oldest=history.length?(now-history[0].t)/1000:0;
   for(let a=0;a<=HIST_SEC;a++){const m=a===0?pathRef:midAtAge(Math.min(a,oldest),now);pathRaw[a]=(pathRef-m)/span*(RMAX-R0);}
   for(let a=0;a<=HIST_SEC;a++){ // gaussian smooth over ±6s, then soft-clamp, then temporal ease
     let sum=0,w=0;for(let d=-10;d<=10;d++){const i=a+d;if(i<0||i>HIST_SEC)continue;const g=Math.exp(-d*d/32);sum+=pathRaw[i]*g;w+=g;}
@@ -687,10 +688,13 @@ function updatePath(now){
 function offAtAge(age){const a=Math.max(0,Math.min(HIST_SEC,age)),i=Math.floor(a),f=a-i;return i>=HIST_SEC?pathOff[HIST_SEC]:pathOff[i]*(1-f)+pathOff[i+1]*f;}
 // MARKET: zoom sets the tunnel time window (zoom out = 120 s, zoom in = 15 s); tunnel depth always spans the window
 let MWIN=HIST_SEC;
-const mWinOf=r=>Math.max(15,Math.min(HIST_SEC,HIST_SEC*Math.pow(1/8,zT(r))));
-const mRingAges=()=>[5,10,15,20,30,45,60,90,120].filter(a=>a<=MWIN+0.5);
+const MWMAX=60, LWMAX=HIST_SEC, WMIN=15;   // MARKET window 15-60 s (1 spiral turn = window); LIMIT depth 15-120 s
+const mWinOf=r=>Math.max(WMIN,Math.min(MWMAX,MWMAX*Math.pow(WMIN/MWMAX,zT(r))));
+const lWinOf=r=>Math.max(WMIN,Math.min(LWMAX,LWMAX*Math.pow(WMIN/LWMAX,zT(r))));
+let LWIN=HIST_SEC;
+const mRingAges=()=>[5,10,15,20,30,45,60].filter(a=>a<=MWIN+0.5);
 const fmtAge=a=>a===0?'NOW':a<60?'-'+a+'s':'-'+Math.floor(a/60)+'m'+(a%60?String(a%60).padStart(2,'0'):'');
-function proj(dz){const s=FOCAL/(FOCAL+dz);const age=INBOUND?HIST_SEC-dz:dz*MWIN/HIST_SEC;const lim=Math.max(0,RMAX*(0.97-s));
+function proj(dz){const s=FOCAL/(FOCAL+dz);const age=INBOUND?(HIST_SEC-dz)*LWIN/HIST_SEC:dz*MWIN/HIST_SEC;const lim=Math.max(0,RMAX*(0.97-s));
   const off=Math.max(-lim,Math.min(lim,offAtAge(age)*Math.min(1,dz/12)));return {s,x:CX,y:CY+off};}
 // side half-plane: bids LEFT (angle π), asks RIGHT (angle 0)
 const baseAng=side=>side==='bid'||side==='buy'?Math.PI:0;
@@ -761,7 +765,7 @@ function drawGrid(t){
     ctx.restore();}
   // time labels at the top of each ring, nearest-first, skipped on collision (hub / earlier label / reserved)
   // MARKET: NOW at the mouth (newest trade) -> older inward.  LIMIT: NOW at the vanishing point -> older outward to the ring.
-  {const L=MK?[0,...mRingAges()].map(a=>({a,d:a*HIST_SEC/MWIN})):[0,30,60,90,120].map(a=>({a,d:HIST_SEC-a})).sort((x,y)=>x.d-y.d);
+  {const L=MK?[0,...mRingAges()].map(a=>({a,d:a*HIST_SEC/MWIN})):[0,1,2,3,4].map(k=>({a:Math.round(k*LWIN/4),d:HIST_SEC-k*HIST_SEC/4})).sort((x,y)=>x.d-y.d);
     const fsT=WIDE?11:9,put=[];ctx.font=`700 ${fsT}px "Share Tech Mono",monospace`;ctx.textAlign='center';
     for(const {a,d} of L){const p=proj(d),s=p.s,txt=fmtAge(a),w=ctx.measureText(txt).width+6;
       const x=p.x,y=p.y-TR*s+fsT+3,bx=x-w/2,by=y-fsT,bw=w,bh=fsT+4;
@@ -786,7 +790,7 @@ function drawPriceLabels(){   // LIMIT: ring prices on the horizontal axis, over
 function drawPriceRings(){
   if(!dispMid)return;
   ctx.save();
-  const span=dispMid*dispRange; // price distance at RMAX
+  const span=dispMid*PR_(); // price distance at RMAX
   const raw=span/5, mag=Math.pow(10,Math.floor(Math.log10(raw))); const nice=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=raw)||raw;
   ctx.font=`${WIDE?10:9}px "Share Tech Mono",monospace`;ctx.textAlign='center';let ri=0;PLBL=[];
   if(VIEW!=='market')for(let d=nice;d<=span*1.001;d+=nice){ri++;
@@ -815,12 +819,12 @@ const MAXSPAN=1.2; // radians each way from the horizontal axis
 function levelSpan(q,maxq){return 0.03+MAXSPAN*Math.pow(q/maxq,0.55);}
 
 // LIMIT fade: newest (at the vanishing point) dim-but-visible, brighter as they rush toward you, fade out as they exit past the ring
-const limFade=(age,dz)=>Math.min(1,0.3+age/5)*(0.3+0.7*(1-dz/HIST_SEC))*Math.max(0,Math.min(1,(HIST_SEC-age)/14));
+const limFade=(age,dz)=>Math.min(1,0.3+age/Math.min(5,LWIN/8))*(0.3+0.7*(1-dz/HIST_SEC))*Math.max(0,Math.min(1,(LWIN-age)/(LWIN*0.12)));
 function drawHistory(now){
   ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.arc(CX,CY,R0*1.02,0,Math.PI*2,true);ctx.clip();   // keep the hub readout clean over the newest datactx.globalCompositeOperation='lighter';
   const stepH=Q===2?1:Q===1?2:3;
   for(let hi=history.length-1-((history.length-1)%stepH);hi>=0;hi-=stepH){const h=history[hi];if(!h)continue;
-    const age=(now-h.t)/1000; if(age<0.5||age>HIST_SEC)continue;
+    const age=(now-h.t)/1000; if(age<0.5||age>LWIN)continue;
     const dz=depthOf(age), p=proj(dz), fade=INBOUND?limFade(age,dz):Math.max(0,1-dz/HIST_SEC);
     const sideDraw=(lv,side,c)=>{
       for(const [px,q] of lv){
@@ -879,7 +883,7 @@ function drawBubbles(now){
   ctx.save();
   const keep=[];
   for(let i=0;i<bubbles.length;i++){
-    const b=bubbles[i]; const age=(now-b.t)/1000; if(age>HIST_SEC)continue; keep.push(b);
+    const b=bubbles[i]; const age=(now-b.t)/1000; if(age>HIST_SEC)continue; keep.push(b); if(INBOUND&&age>LWIN)continue;
     const dz=depthOf(age), p=proj(dz), fade=INBOUND?limFade(age,dz):Math.max(0,1-dz/HIST_SEC);
     const c=b.side==='buy'?COL.bid:COL.ask;
     const r=Math.min(rOf(b.px-dispMid),RMAX*1.04)*p.s, a=baseAng(b.side)+b.ang*(1-0.0*age);
@@ -1194,8 +1198,8 @@ function drawTrail(now){
   // SPIRAL: each sample sits on its tunnel ring centre (trend bend) and orbits the tunnel axis.
   // Angle is locked to the sample's timestamp (1 turn / 60 s), so the coil turns smoothly as time advances.
   // Orbit radius = fixed fraction of that ring's radius, modulated by price vs current mid (above = wider, below = tighter).
-  const dn=Date.now(), lag=Math.max(0,Math.min(1.5,(dn-trailT)/1000/trailStep)), TURN=Math.max(8,MWIN/2), K=0.72, RAMP=10, tNow=dn/1000/trailStep;
-  const ang=age=>-Math.PI/2+2*Math.PI*((tNow%60)/60-age/TURN);   // head: 1 turn/60 s real time; coil: 2 turns per window (=1 turn/60 s at 120 s)   // age in trail samples (1 s live, window/120 otherwise)
+  const dn=Date.now(), lag=Math.max(0,Math.min(1.5,(dn-trailT)/1000/trailStep)), TURN=MWIN, K=0.72, RAMP=10, tNow=dn/1000/trailStep;
+  const ang=age=>-Math.PI/2+2*Math.PI*((tNow%60)/60-age/TURN);   // head: 1 turn/60 s real time; coil: 1 turn per window (= 60 s at max zoom-out)   // age in trail samples (1 s live, window/120 otherwise)
   const pAt=f=>{const i=Math.floor(f),k=f-i,b0=trail[Math.min(i,trail.length-1)],b1=trail[Math.min(i+1,trail.length-1)];return b0.Ps*(1-k)+b1.Ps*k;};
   // INTO the tunnel: each sample sits on the tunnel ring at depth = its age (same proj() as the rails: trend-bent centre,
   // radius RMAX*s). Newest (head) orbits near the mouth; older coils shrink with perspective, bunch up and fade into the vanishing point.
@@ -1315,7 +1319,7 @@ function drawZoomBar(now){
   ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,ty);ctx.stroke();                                                        // fill from max-out
   ctx.fillStyle=`rgb(${col})`;ctx.beginPath();ctx.moveTo(x-6,ty);ctx.lineTo(x+1,ty-4);ctx.lineTo(x+1,ty+4);ctx.closePath();ctx.fill();  // marker
   ctx.fillRect(x-1.5,ty-1,4,2);ctx.shadowBlur=0;
-  const z=fitFrac&&dispRange?fitFrac/dispRange:1, lab=(z>=10?z.toFixed(0):z>=0.95?z.toFixed(1):z.toFixed(2))+'x';
+  const lab=fmtAge(Math.round(VIEW==='limit'?LWIN:MWIN)).replace('-','');   // zoom = time: LIMIT depth / MARKET window
   ctx.font=`700 ${WIDE?10:8.5}px Orbitron,sans-serif`;ctx.textAlign='right';ctx.fillStyle=`rgba(${col},.95)`;
   ctx.fillText(lab,x-8,y0+7);
   ctx.font=`${WIDE?9:7.5}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(0,240,255,.5)';ctx.fillText('ZOOM',x-8,y1);
@@ -1365,7 +1369,7 @@ function hud(now){
     if(VIEW==='limit'&&bw&&wallsPrev.bid&&bw[0]!==wallsPrev.bid&&bw[1]>wallsPrev.bidq*1.2)triggerGlitch(200);
     if(VIEW==='limit'&&aw&&wallsPrev.ask&&aw[0]!==wallsPrev.ask&&aw[1]>wallsPrev.askq*1.2)triggerGlitch(200);
     if(bw){wallsPrev.bid=bw[0];wallsPrev.bidq=bw[1];} if(aw){wallsPrev.ask=aw[0];wallsPrev.askq=aw[1];}
-    setHTML('range',VIEW==='market'?`${Math.round(MWIN)}s WINDOW ${rangeAuto?(burst.on?'(AUTO · BURST)':'(AUTO)'):'(MANUAL)'}`:`±${(dispRange*100).toFixed(2)}% ${rangeAuto?'(AUTO)':'(MANUAL)'}`);
+    setHTML('range',VIEW==='market'?`${Math.round(MWIN)}s WINDOW ${rangeAuto?(burst.on?'(AUTO · BURST)':'(AUTO)'):'(MANUAL)'}`:`${Math.round(LWIN)}s DEPTH ${rangeAuto?'(AUTO)':'(MANUAL)'} · ±${(PRANGE*100).toFixed(2)}%`);
   }
   if(ind.rsi!=null){const r=ind.rsi,cl=r>=70?'mg':r<=30?'gr':'yl';
     setHTML('rsiTop',`<span class="${cl}">${r.toFixed(1)}</span>`);setHTML('rsi',`<span class="${cl}">${r.toFixed(1)} ${r>=70?'OVERBOUGHT':r<=30?'OVERSOLD':'NEUTRAL'}</span>`);}
@@ -1402,11 +1406,14 @@ function frame(){
     {const db=mid-sortedB[Math.floor(sortedB.length*0.7)][0], da=sortedA[Math.floor(sortedA.length*0.7)][0]-mid;let f;
       if(VIEW==='market'){ // fit the recent trade price range so bubbles spread across the dial
         const dev=Wn=>{let mx=0;for(let a=0;a<=Math.min(trail.length-1,Wn);a++)if(trail[a].Ps!=null)mx=Math.max(mx,Math.abs(trail[a].Ps-mid));return mx;};
-        const full=dev(HIST_SEC);let Wsel=HIST_SEC;if(full>mid*0.00003)for(const Wn of [15,20,30,45,60,90,120]){if(dev(Wn)>=0.7*full){Wsel=Wn;break;}}
+        const full=dev(MWMAX);let Wsel=MWMAX;if(full>mid*0.00003)for(const Wn of [15,20,30,45,60]){if(dev(Wn)>=0.7*full){Wsel=Wn;break;}}
         if(burst.on)Wsel=BURST_WIN;   // volume burst -> tight vortex
-        f=zR(Math.log(HIST_SEC/Wsel)/Math.log(8));
+        f=zR(Math.log(MWMAX/Wsel)/Math.log(MWMAX/WMIN));
       }else{f=Math.max(db,da)/mid;}
-      f=Math.max(0.0005,f); fitFrac=f; if(rangeAuto)rangeFrac=f;}
+      f=Math.min(ZMAX,Math.max(ZMIN,f)); fitFrac=f;
+      if(VIEW==='limit'){PFIT=f;if(rangeAuto)rangeFrac=ZMAX;}   // LIMIT: price always auto-fits; AUTO time depth = full 2 min
+      else if(rangeAuto)rangeFrac=f;}
+    if(VIEW==='limit')PRANGE+=(PFIT-PRANGE)*0.05;
     if(intro){
       if(intro.set!=null&&(rangeAuto||rangeFrac!==intro.set))intro=null;          // user zoomed (pinch/wheel/bar/double-tap) -> cancel
       else{if(!intro.t0)intro.t0=now; const p=Math.min(1,(now-intro.t0)/INTRO_MS), e=p<0.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
@@ -1415,7 +1422,7 @@ function frame(){
   }
   ctx.fillStyle='rgba(5,3,12,1)';ctx.fillRect(0,0,W,H);
   const bg=ctx.createRadialGradient(CX,CY,0,CX,CY,RMAX*1.6);bg.addColorStop(0,'rgba(30,10,60,.55)');bg.addColorStop(1,'rgba(5,3,12,0)');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  updateFocal(); MWIN=VIEW==='market'?mWinOf(dispRange):HIST_SEC;
+  updateFocal(); MWIN=VIEW==='market'?mWinOf(dispRange):MWMAX; LWIN=VIEW==='limit'?lWinOf(dispRange):HIST_SEC;
   updatePath(now);
   lblReset();
   drawGrid(now);
@@ -1439,7 +1446,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
