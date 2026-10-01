@@ -308,7 +308,7 @@ function resyncBook(){
 const HB=0.00005;                         // 0.00005 price buckets
 // one decaying volume profile per flow window (half-life scales with the window); the selected one is drawn
 const HEATS={30:{hl:420,m:new Map()}};   // impact heat, ~7 min half-life
-let impacts=[], trail=[], trailDirty=true, trailT=0, trailStep=1;
+let PR=new Float64Array(0), impacts=[], trail=[], trailDirty=true, trailT=0, trailStep=1;
 function heatAdd(px,side,qty,ageSec){
   const k=Math.round(px/HB);
   for(const H of Object.values(HEATS)){const w=qty*Math.pow(0.5,ageSec/H.hl);if(w<0.05)continue;let h=H.m.get(k);if(!h){h={p:k*HB,b:0,s:0};H.m.set(k,h);}
@@ -346,6 +346,13 @@ function buildTrail(){
     for(let d=-4;d<=4;d++){const i=a+d;if(i<0||i>N)continue;if(P[i]!=null&&Math.abs(d)<=3){const g=Math.exp(-d*d/6);sp+=P[i]*g;ws+=g;}
       {const gv=Math.exp(-d*d/8);sb+=V[i][0]*gv;ss+=V[i][1]*gv;wv+=gv;}}
     bins[a].Ps=a===0?P[0]:(ws?sp/ws:P[a]);bins[a].bs=sb/wv;bins[a].ss=ss/wv;}
+  // raw last-trade price every 100 ms (step-held, no smoothing) for the spiral's per-trade wiggle
+  {const n=HIST_SEC*10;let i=trades.length-1;const PRn=new Float64Array(n+1);let first=null;
+    for(let k=0;k<=n;k++){const tk=dn-k*100;while(i>=0&&trades[i].t>tk)i--;PRn[k]=i>=0?trades[i].px:NaN;}
+    for(let k=n;k>=0;k--){if(!isNaN(PRn[k])){first=PRn[k];break;}}
+    let c=first;for(let k=n;k>=0;k--){if(isNaN(PRn[k]))PRn[k]=c;else c=PRn[k];}
+    for(let k=0;k<=n;k++)if(PRn[k]==null||isNaN(PRn[k]))PRn[k]=mid||0;
+    PR=PRn;}
   trail=bins;trailDirty=false;trailT=Date.now();
 }
 setInterval(()=>{if(VIEW==='market')buildTrail();},250);
@@ -1178,17 +1185,25 @@ function drawTrail(now){
   // radius RMAX*s). Newest (head) orbits near the mouth; older coils shrink with perspective, bunch up and fade into the vanishing point.
   // price vs current mid bulges each point outward (higher) / inward (lower) by up to ~35% of the local coil gap so coils never cross
   const NW=Math.min(trail.length-1,Math.ceil(MWIN)+1);
-  let BSP=span/4.5; if(rangeAuto){let mx=0;for(let a=0;a<=NW;a++)if(trail[a].Ps!=null)mx=Math.max(mx,Math.abs(trail[a].Ps-mid));BSP=Math.max(mid*0.00004,mx*1.05);}
+  const prAt=f=>{const k=Math.max(0,Math.min(PR.length-1,Math.round(f*10)));return PR.length?PR[k]:mid;}, P0=PR.length?PR[0]:mid;   // raw last-trade price at sample age f (s)
+  let BSP=span/4.5; {const dv=[];for(let k=0;k<=Math.min(PR.length-1,NW*10);k+=2)dv.push(Math.abs(PR[k]-P0));dv.sort((a,b)=>a-b);
+    BSP=Math.max(mid*0.00002,0.6*(dv[Math.floor(dv.length*0.9)]||0));}   // AUTO: ~90th-pct move maps to ~1.6x amplitude (tanh softens outliers)
+  const WIG=[];
   const AMAX=Math.max(1,Math.min(trail.length-1+lag,MWIN)), DZ=HIST_SEC/MWIN, KO=0.985, sMin=FOCAL/(FOCAL+AMAX*DZ);
   const pt=f=>{const age=f===0?0:f+lag,dz=age*DZ,p=proj(dz),s=p.s,sT=FOCAL/(FOCAL+dz+TURN*DZ);
     const u=Math.max(0,Math.min(1,(s-sMin)/(1-sMin)))*Math.min(1,(AMAX-age)/6+0.0);
-    const rel=Math.max(-1,Math.min(1,(pAt(f)-mid)/BSP));
-    const r=RMAX*KO*s+rel*RMAX*KO*(s-sT)*0.35*Math.min(1,age/RAMP), th=ang(age);   // head rides the outer ring (bulge eases in)
+    // radial wiggle = (trade price - newest trade) / bulge scale, amplitude scales with perspective; soft (tanh) limit ~0.55 coil gap
+    const raw=(prAt(f)-P0)/BSP*RMAX*KO*s*0.22, L=Math.max(2,0.55*RMAX*KO*(s-sT)), off=L*Math.tanh(raw/L);
+    const r=RMAX*KO*s+off, th=ang(age);   // head (f=0) = newest trade -> off 0 -> rides the outer ring
     let x=p.x+Math.cos(th)*r, y=p.y+Math.sin(th)*r;
-    const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.99;if(d>m){x=CX+dx*m/d;y=CY+dy*m/d;}
+    {const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.995,k0=0.9*m;if(d>k0){const dd=k0+(m-k0)*Math.tanh((d-k0)/(m-k0));x=CX+dx*dd/d;y=CY+dy*dd/d;}}   // soft outer edge
+    if(WIG.length<4000)WIG.push(off);
     return {x,y,s,u};};
-  const SUB=3, sub=a=>{const o=[];for(let j=0;j<=SUB;j++)o.push(pt(a+j/SUB));return o;};
+  const SUB=MWIN<=20?10:MWIN<=45?6:MWIN<=90?4:3, sub=a=>{const o=[];for(let j=0;j<=SUB;j++)o.push(pt(a+j/SUB));return o;};
   const P=[];for(let a=0;a<=NW;a++)P.push(pt(a));
+  if((window.__wf=(window.__wf||0)+1)%30===0){const S2=[];for(let a=0;a<NW;a++)for(let j=0;j<SUB;j++)S2.push(a+j/SUB);WIG.length=0;for(const f of S2)pt(f);
+    let ss=0,fl=0;for(let i=0;i<WIG.length;i++){ss+=WIG[i]*WIG[i];if(i>1&&(WIG[i]-WIG[i-1])*(WIG[i-1]-WIG[i-2])<0)fl++;}
+    window.__ofcWig={rms:+Math.sqrt(ss/Math.max(1,WIG.length)).toFixed(2),flips:fl,n:WIG.length,bsp:BSP};}
   // 'where volume traded': heat (7-min decayed volume) at each sample's price, normalised 0..1 along the trail
   const HM=HEATS[30].m, heatAt=p=>{const k=Math.round(p/HB);let v=0;for(let d=-2;d<=2;d++){const h=HM.get(k+d);if(h)v+=(h.b+h.s)*(1-Math.abs(d)*0.3);}return v;};
   const HT=trail.map(b=>heatAt(b.Ps));let hmx=1e-9;for(const v of HT)hmx=Math.max(hmx,v);
