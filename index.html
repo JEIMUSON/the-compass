@@ -45,11 +45,13 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 .note{font-size:10.5px;color:#6f8aa5;line-height:1.35;margin-top:4px;white-space:normal}
 /* ---------- MOBILE FIRST ---------- */
 #top .logo{flex:0 0 auto;width:22px;height:22px;margin-right:-2px;align-self:center;filter:drop-shadow(0 0 3px rgba(0,240,255,.85)) drop-shadow(0 0 8px rgba(0,240,255,.35))}
-@media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{display:none}}   /* desktop: logo sits by the compass instead */
+@media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{display:none} #top .l1::after{display:none}}   /* desktop: logo sits by the compass instead */
 #top{order:1;flex:0 0 auto;position:relative;z-index:6}
 #top{padding:4px 10px 3px}
 #top .l1{display:flex;align-items:center;gap:8px;white-space:nowrap}
-#top .l1 .conn{margin-left:auto}
+#top .l1{justify-content:center}
+#top .l1 .conn{position:absolute;right:10px;top:6px}
+#top .l1::after{content:'';flex:0 0 20px}   /* balances the phone logo so the title itself is centred */
 #top .lp{text-align:center;white-space:nowrap;overflow:hidden;margin:1px 0 2px}
 #top .lp .big{display:inline-block;font-size:26px;line-height:1.1}
 #top .l2{font-size:10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#7f9bb8;margin-top:1px}
@@ -957,14 +959,21 @@ let lgCache=null;
 function logoGeom(){
   if(!WIDE)return null;
   const key=CX+'|'+CY+'|'+RMAX+'|'+W+'|'+H;if(lgCache&&lgCache.key===key)return lgCache.g;
-  const S=Math.round(Math.max(70,Math.min(110,RMAX*0.22))),GR=RMAX+30,L=ringLabels().find(l=>l.k==='ob');
-  const r=GR+16+S*0.62, Z=zbarGeom(), boxes=[];
-  if(Z){boxes.push([Z.x-Z.lw-10,Z.y0-6,Z.lw+20,Z.y1-Z.y0+12]);if(Z.pw)boxes.push([Z.px-2,Z.py-2,Z.pw+4,Z.ph+4]);}
-  const hit=(x,y)=>x<4||y<4||x+S>W-4||y+S>H-4||boxes.some(b=>x<b[0]+b[2]&&x+S>b[0]&&y<b[1]+b[3]&&y+S>b[1]);
-  const a0=L?Math.min(...L.ch.map(c=>c.a)):0.3;   // OVERBOUGHT starts near the horizon; its lower end has the larger angle
-  const aEnd=L?Math.max(...L.ch.map(c=>c.a)):0.6;
+  const GR=RMAX+30,L=ringLabels().find(l=>l.k==='ob'),lab=GR+(WIDE?12:10)/2+4+(L?L.fs:12);   // outer edge of the OVERBOUGHT label band
+  const Z=zbarGeom(), boxes=[];
+  if(Z){boxes.push([Z.x-Z.lw-14,Z.y0-10,Z.lw+28,Z.y1-Z.y0+20]);if(Z.pw)boxes.push([Z.px-6,Z.py-6,Z.pw+12,Z.ph+12]);}
+  const GAP=40, aEnd=L?Math.max(...L.ch.map(c=>c.a)):0.6;
   let g=null;
-  for(let k=0;k<30&&!g;k++){const a=aEnd+0.06+k*0.03;if(a>Math.PI*0.5)break;const cx=CX+Math.cos(a)*r,cy=CY+Math.sin(a)*r,x=cx-S/2,y=cy-S/2;if(!hit(x,y))g={x,y,S};}
+  // big logo out in the lower-right empty space: every point of its box >= GAP px beyond the ring/label band; shrink only if nothing fits
+  const need=lab+GAP;
+  for(let S=Math.round(Math.min(185,60+RMAX*0.24));S>=70&&!g;S=Math.round(S*0.94)){
+    let best=null;
+    for(let x=CX;x<=W-8-S;x+=6)for(let y=CY;y<=H-8-S;y+=6){
+      if(boxes.some(b=>x<b[0]+b[2]&&x+S>b[0]&&y<b[1]+b[3]&&y+S>b[1]))continue;
+      const dx=Math.max(x-CX,0,CX-(x+S)),dy=Math.max(y-CY,0,CY-(y+S)),d=Math.hypot(dx,dy);if(d<need)continue;
+      const a=Math.atan2(y+S/2-CY,x+S/2-CX),sc=(d-need)+Math.abs(a-0.8)*120;   // hug the ring, near the OVERBOUGHT end
+      if(!best||sc<best.sc)best={x,y,S,sc};}
+    g=best;}
   lgCache={key,g};return g;}
 function drawLogo(){const g=logoGeom();if(!g||!LOGO.complete||!LOGO.naturalWidth)return;
   ctx.save();ctx.shadowColor='rgba(0,240,255,.85)';ctx.shadowBlur=Q>0?18:8;ctx.drawImage(LOGO,g.x,g.y,g.S,g.S);
