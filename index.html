@@ -724,12 +724,21 @@ function drawGrid(t){
   }
   // time rings: smooth, same soft style, tapered with depth
   ctx.font='10px "Share Tech Mono",monospace';ctx.textAlign='left';
+  const TL=[];
   for(let age=10;age<=HIST_SEC;age+=10){const p=proj(age),s=p.s,fade=Math.pow(s,0.8);
     if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${0.03+0.06*fade})`;ctx.lineWidth=2+6*s;ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();}
     ctx.strokeStyle=`rgba(0,240,255,${0.05+(age%30===0?0.30:0.18)*fade})`;ctx.lineWidth=0.5+(age%30===0?1.4:0.9)*s;
     ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();
-    if(age%30===0){const lab=INBOUND?HIST_SEC-age:age;ctx.fillStyle=`rgba(0,240,255,${0.25+0.4*s})`;ctx.fillText(lab?'-'+lab+'s':'0s',p.x+Math.min(TR*s,W/2-30)+4,p.y);}
+    if(age%30===0){const lab=INBOUND?HIST_SEC-age:age,txt=lab?'-'+lab+'s':'0s',tx=p.x+Math.min(TR*s,W/2-30)+4;
+      if(WIDE){ctx.fillStyle=`rgba(0,240,255,${0.25+0.4*s})`;ctx.fillText(txt,tx,p.y);}
+      else TL.push({txt,x:tx,y:p.y,s});}
   }
+  // phone: place time labels nearest-first; skip any that would collide with an earlier one, the hub, or a reserved label
+  if(!WIDE){const put=[];TL.sort((u,v)=>v.s-u.s);
+    for(const L of TL){const w=ctx.measureText(L.txt).width,bx=L.x-2,by=L.y-9,bw=w+4,bh=12;
+      if(Math.hypot(Math.max(bx-CX,0,CX-(bx+bw)),Math.max(by-CY,0,CY-(by+bh)))<R0+4)continue;
+      if(bx+bw>CX+RMAX-2||put.some(q=>bx<q.x+q.w&&bx+bw>q.x&&by<q.y+q.h&&by+bh>q.y)||lblHit(bx,by,bw,bh))continue;
+      put.push({x:bx,y:by,w:bw,h:bh});ctx.fillStyle=`rgba(0,240,255,${0.35+0.4*L.s})`;ctx.fillText(L.txt,L.x,L.y);}}
   ctx.restore();
   ctx.restore();
 }
@@ -1152,13 +1161,13 @@ function drawTrail(now){
   // INTO the tunnel: each sample sits on the tunnel ring at depth = its age (same proj() as the rails: trend-bent centre,
   // radius RMAX*s). Newest (head) orbits near the mouth; older coils shrink with perspective, bunch up and fade into the vanishing point.
   // price vs current mid bulges each point outward (higher) / inward (lower) by up to ~35% of the local coil gap so coils never cross
-  const AMAX=Math.max(RAMP,trail.length-1+lag), DZ=HIST_SEC/Math.max(1,trail.length-1), KO=0.80, sMin=FOCAL/(FOCAL+AMAX*DZ);
+  const AMAX=Math.max(RAMP,trail.length-1+lag), DZ=HIST_SEC/Math.max(1,trail.length-1), KO=0.985, sMin=FOCAL/(FOCAL+AMAX*DZ);
   const pt=f=>{const age=f===0?0:f+lag,dz=age*DZ,p=proj(dz),s=p.s,sT=FOCAL/(FOCAL+dz+TURN*DZ);
     const u=Math.max(0,Math.min(1,(s-sMin)/(1-sMin)))*Math.min(1,(AMAX-age)/6+0.0);
     const rel=Math.max(-1,Math.min(1,4.5*(pAt(f)-mid)/span));
-    const r=RMAX*KO*s+rel*RMAX*KO*(s-sT)*0.35, th=ang(age);
+    const r=RMAX*KO*s+rel*RMAX*KO*(s-sT)*0.35*Math.min(1,age/RAMP), th=ang(age);   // head rides the outer ring (bulge eases in)
     let x=p.x+Math.cos(th)*r, y=p.y+Math.sin(th)*r;
-    const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.93;if(d>m){x=CX+dx*m/d;y=CY+dy*m/d;}
+    const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.99;if(d>m){x=CX+dx*m/d;y=CY+dy*m/d;}
     return {x,y,s,u};};
   const SUB=3, sub=a=>{const o=[];for(let j=0;j<=SUB;j++)o.push(pt(a+j/SUB));return o;};
   const P=[];for(let a=0;a<trail.length;a++)P.push(pt(a));
@@ -1190,11 +1199,7 @@ function drawTrail(now){
     if(Q>0&&ht>0.6&&a%2===0){const n=3,ph=now/300+a;ctx.strokeStyle=rgba([255,255,255],0.7*ht*p.u);ctx.lineWidth=1;ctx.beginPath();
       for(let k=0;k<n;k++){const th=ph*0.7+k*2.1,d0=R*0.35,d1=R*(0.6+0.35*Math.abs(Math.sin(ph+k)));ctx.moveTo(p.x+Math.cos(th)*d0,p.y+Math.sin(th)*d0);ctx.lineTo(p.x+Math.cos(th)*d1,p.y+Math.sin(th)*d1);}ctx.stroke();}
     TRHOT.push({a,x:p.x,y:p.y,ht,u:p.u,px:b.Ps,v:HT[a],c});}
-  // glowing head (NOW) near the tunnel mouth
-  {const h=P[0],c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260),R=RMAX*0.075*(0.85+0.3*pl);TRHEAD={x:h.x,y:h.y};
-    const g=ctx.createRadialGradient(h.x,h.y,0,h.x,h.y,R);g.addColorStop(0,rgba([255,255,255],0.55+0.3*pl));g.addColorStop(0.25,rgba(c,0.75));g.addColorStop(1,rgba(c,0));
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(h.x,h.y,R,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?16:6;ctx.beginPath();ctx.arc(h.x,h.y,2.5+1.5*pl,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+  TRHEAD={x:P[0].x,y:P[0].y};
   // fresh prints burst as short sparks from the head (NOW)
   impacts=impacts.filter(m=>now-m.t<700);
   for(const m of impacts){const k=(now-m.t)/700,c=m.side==='buy'?COL.bid:COL.ask,big=Math.min(1,Math.sqrt(m.qty*(m.px||1)/whaleUSD));if(big<0.08)continue;
@@ -1212,6 +1217,14 @@ function drawTrail(now){
   ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
   ctx.restore();
 }
+// glowing head (NOW) riding the compass's outer ring; drawn outside the dial clip, glow capped below the gauge arcs/ring labels
+function drawMouthHead(now){
+  if(!trail.length||!TRHEAD.x)return;const h=TRHEAD,c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260),R=Math.min(RMAX*0.05,18)*(0.85+0.3*pl);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const g=ctx.createRadialGradient(h.x,h.y,0,h.x,h.y,R);g.addColorStop(0,rgba([255,255,255],0.6+0.3*pl));g.addColorStop(0.3,rgba(c,0.75));g.addColorStop(1,rgba(c,0));
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(h.x,h.y,R,0,Math.PI*2);ctx.fill();
+  ctx.globalCompositeOperation='source-over';ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:5;ctx.beginPath();ctx.arc(h.x,h.y,(WIDE?3:2.2)+1.2*pl,0,Math.PI*2);ctx.fill();
+  ctx.restore();}
 function drawTrailHead(now){   // hub accent: thin dominance-coloured ring (the glowing head itself sits at the tunnel mouth)
   const c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260);
   ctx.save();ctx.strokeStyle=rgba(c,0.35+0.3*pl);ctx.lineWidth=1.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?12:4;
@@ -1352,7 +1365,7 @@ function frame(){
   if(LIM){clipC();drawHistory(now);ctx.restore();} else {if(trailDirty)buildTrail();}
   drawPriceRings();
   if(LIM)drawBook(now);
-  if(!LIM){clipC();drawTrail(now);ctx.restore();drawTrailLabels();}sparks.length=0;shocks.length=0;
+  if(!LIM){clipC();drawTrail(now);ctx.restore();drawMouthHead(now);drawTrailLabels();}sparks.length=0;shocks.length=0;
   drawNeedle(now);
   drawRSI(now);
   drawLogo();
