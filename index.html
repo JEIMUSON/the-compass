@@ -965,18 +965,17 @@ function logoGeom(){
   let g=null;
   // big logo in the lower-right, horizontally beyond the zoom bar (between it and the right panel), upper part of that space;
   // every point of its box >= GAP px beyond the ring/label band; shrink only if nothing fits
-  const need=lab+GAP, yT=CY+RMAX*0.55, S0=Math.round(Math.min(185,60+RMAX*0.24));
-  // preferred: left edge past the zoom bar; if that column is too narrow (logo < 75% size), use the open lower-right area instead
-  for(const xMin of (Z?[Z.x+18,CX]:[CX])){g=null;
+  // target: centred in the column right of the zoom bar, nudged left (~40px at 1920x950, scaled by dial size), top at CY+0.55*RMAX.
+  // may share the zoom bar's x-range (it sits below it) but never overlaps the bar/AUTO boxes; >=GAP px beyond the ring labels; shrink only if needed
+  const need=lab+GAP, yT=CY+RMAX*0.55, S0=Math.round(Math.min(185,60+RMAX*0.24)), xT=(Z?(Z.x+18+W-8)/2:CX+RMAX)-40*RMAX/408;
   for(let S=S0;S>=60&&!g;S=Math.round(S*0.96)){
-    let best=null;const xC=(xMin+W-8)/2;
-    for(let x=xMin;x<=W-8-S;x+=3)for(let y=CY;y<=H-8-S;y+=4){
+    let best=null;
+    for(let x=CX;x<=W-8-S;x+=3)for(let y=CY;y<=H-8-S;y+=3){
       if(boxes.some(b=>x<b[0]+b[2]&&x+S>b[0]&&y<b[1]+b[3]&&y+S>b[1]))continue;
       const dx=Math.max(x-CX,0,CX-(x+S)),dy=Math.max(y-CY,0,CY-(y+S)),d=Math.hypot(dx,dy);if(d<need)continue;
-      const sc=Math.abs(y-yT)+Math.abs(x+S/2-xC)*0.5;
+      const sc=Math.abs(y-yT)+Math.abs(x+S/2-xT);
       if(!best||sc<best.sc)best={x,y,S,sc};}
-    g=best;}
-  if(g&&g.S>=S0*0.75)break;}
+    if(best&&best.sc<S*0.6)g=best;else if(best&&S<=Math.max(60,S0*0.6))g=best;}
   lgCache={key,g};return g;}
 function drawLogo(){const g=logoGeom();if(!g||!LOGO.complete||!LOGO.naturalWidth)return;
   ctx.save();ctx.shadowColor='rgba(0,240,255,.85)';ctx.shadowBlur=Q>0?18:8;ctx.drawImage(LOGO,g.x,g.y,g.S,g.S);
