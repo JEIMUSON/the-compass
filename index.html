@@ -954,10 +954,13 @@ function drawTrail(now){
   const dn=Date.now(), lag=Math.max(0,Math.min(1.5,(dn-trailT)/1000/trailStep)), TURN=60, K=0.72, RAMP=10, tNow=dn/1000/trailStep;
   const ang=age=>-Math.PI/2+2*Math.PI*((tNow-age)%TURN)/TURN;   // age in trail samples (1 s live, window/120 otherwise)
   const pAt=f=>{const i=Math.floor(f),k=f-i,b0=trail[Math.min(i,trail.length-1)],b1=trail[Math.min(i+1,trail.length-1)];return b0.Ps*(1-k)+b1.Ps*k;};
-  const pt=f=>{const age=f===0?0:f+lag,T=proj(age),s=T.s,u=Math.max(0,(s-sEnd)/(1-sEnd));
-    const rel=Math.max(-0.35,Math.min(0.35,1.6*(pAt(f)-mid)/span));
-    const r=K*RMAX*s*Math.min(1,age/RAMP)*(1+rel), th=ang(age);
-    let x=T.x+Math.cos(th)*r, y=T.y+Math.sin(th)*r;
+  // fitted to the dial: centred on the hub, coils outward with age so the oldest coil reaches ~88% of the ring;
+  // price vs current mid bulges each point outward (higher) / inward (lower) by up to ~40% of the coil gap so coils never cross
+  const AMAX=Math.max(RAMP,trail.length-1+lag), rIn=R0*0.85, rOut=RMAX*0.88, gap=(rOut-rIn)/Math.max(1,AMAX/TURN);
+  const pt=f=>{const age=f===0?0:f+lag,k=Math.min(1,age/AMAX),u=Math.max(0,1-0.82*k),s=u;
+    const rel=Math.max(-1,Math.min(1,4.5*(pAt(f)-mid)/span));
+    const r=age===0?0:(rIn+(rOut-rIn)*Math.pow(k,0.92))*Math.min(1,age/1.5)+rel*gap*0.4*Math.min(1,age/RAMP), th=ang(age);
+    let x=CX+Math.cos(th)*r, y=CY+Math.sin(th)*r;
     const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.96;if(d>m){x=CX+dx*m/d;y=CY+dy*m/d;}
     return {x,y,s,u};};
   const SUB=3, sub=a=>{const o=[];for(let j=0;j<=SUB;j++)o.push(pt(a+j/SUB));return o;};
