@@ -356,6 +356,16 @@ function buildTrail(){
   trail=bins;trailDirty=false;trailT=Date.now();
 }
 setInterval(()=>{if(VIEW==='market')buildTrail();},250);
+// MARKET + AUTO: volume-burst vortex. Burst = USD traded in the last 3 s at >= 3x the 60 s baseline rate (and >= BURST_MIN_USD).
+// While it lasts (+ hold) AUTO snaps the window to 15 s (tight vortex), then eases back to the price-move window.
+const BURST_X=3, BURST_MIN_USD=25000, BURST_HOLD=6500, BURST_WIN=15;
+let burst={on:false,until:0,rel:0,r3:0,base:0,usd3:0};
+setInterval(()=>{if(VIEW!=='market'||!trades.length)return;const n=Date.now();let u3=0,u60=0,old=n;
+  for(let i=trades.length-1;i>=0;i--){const t=trades[i],ag=n-t.t;if(ag>63000)break;const u=t.qty*t.px;if(ag<=3000)u3+=u;else u60+=u;old=Math.min(old,t.t);}
+  const bspan=Math.min(60,(n-old)/1000-3), base=bspan>=20?u60/bspan:0, r3=u3/3;
+  burst.r3=r3;burst.base=base;burst.usd3=u3;
+  if(base>0&&r3>=BURST_X*base&&u3>=BURST_MIN_USD)burst.until=n+BURST_HOLD;
+  const was=burst.on;burst.on=n<burst.until;if(was&&!burst.on)burst.rel=n;},250);
 
 // ---------------- trades ----------------
 function hashAng(id){let x=(id*2654435761)>>>0;x^=x>>>15;x=(x*2246822519)>>>0;x^=x>>>13;return (x%10000)/10000;}
@@ -743,6 +753,12 @@ function drawGrid(t){
     ctx.strokeStyle=`rgba(0,240,255,${0.05+(RG.maj?0.30:0.18)*fade})`;ctx.lineWidth=0.5+(RG.maj?1.4:0.9)*s;
     ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();
   }
+  if(MK&&RINGS.length){ // vortex: innermost ring (nearest the vanishing point) brighter with a soft glow; extra at 15 s / during a burst
+    const RG=RINGS[RINGS.length-1],p=proj(RG.d),rr=TR*p.s,tight=burst.on||MWIN<=16.5,k=(tight?1:0.6)*(0.85+0.15*Math.sin(t/300));
+    ctx.save();ctx.shadowColor='rgba(0,240,255,1)';ctx.shadowBlur=Q>0?(tight?22:14):0;
+    ctx.strokeStyle=`rgba(0,240,255,${(0.10*k).toFixed(3)})`;ctx.lineWidth=tight?9:6;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle=`rgba(170,250,255,${(0.75*k).toFixed(3)})`;ctx.lineWidth=tight?2.4:1.8;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,Math.PI*2);ctx.stroke();
+    ctx.restore();}
   // time labels at the top of each ring, nearest-first, skipped on collision (hub / earlier label / reserved)
   // MARKET: NOW at the mouth (newest trade) -> older inward.  LIMIT: NOW at the vanishing point -> older outward to the ring.
   {const L=MK?[0,...mRingAges()].map(a=>({a,d:a*HIST_SEC/MWIN})):[0,30,60,90,120].map(a=>({a,d:HIST_SEC-a})).sort((x,y)=>x.d-y.d);
@@ -1349,7 +1365,7 @@ function hud(now){
     if(VIEW==='limit'&&bw&&wallsPrev.bid&&bw[0]!==wallsPrev.bid&&bw[1]>wallsPrev.bidq*1.2)triggerGlitch(200);
     if(VIEW==='limit'&&aw&&wallsPrev.ask&&aw[0]!==wallsPrev.ask&&aw[1]>wallsPrev.askq*1.2)triggerGlitch(200);
     if(bw){wallsPrev.bid=bw[0];wallsPrev.bidq=bw[1];} if(aw){wallsPrev.ask=aw[0];wallsPrev.askq=aw[1];}
-    setHTML('range',VIEW==='market'?`${Math.round(MWIN)}s WINDOW ${rangeAuto?'(AUTO)':'(MANUAL)'}`:`±${(dispRange*100).toFixed(2)}% ${rangeAuto?'(AUTO)':'(MANUAL)'}`);
+    setHTML('range',VIEW==='market'?`${Math.round(MWIN)}s WINDOW ${rangeAuto?(burst.on?'(AUTO · BURST)':'(AUTO)'):'(MANUAL)'}`:`±${(dispRange*100).toFixed(2)}% ${rangeAuto?'(AUTO)':'(MANUAL)'}`);
   }
   if(ind.rsi!=null){const r=ind.rsi,cl=r>=70?'mg':r<=30?'gr':'yl';
     setHTML('rsiTop',`<span class="${cl}">${r.toFixed(1)}</span>`);setHTML('rsi',`<span class="${cl}">${r.toFixed(1)} ${r>=70?'OVERBOUGHT':r<=30?'OVERSOLD':'NEUTRAL'}</span>`);}
@@ -1387,6 +1403,7 @@ function frame(){
       if(VIEW==='market'){ // fit the recent trade price range so bubbles spread across the dial
         const dev=Wn=>{let mx=0;for(let a=0;a<=Math.min(trail.length-1,Wn);a++)if(trail[a].Ps!=null)mx=Math.max(mx,Math.abs(trail[a].Ps-mid));return mx;};
         const full=dev(HIST_SEC);let Wsel=HIST_SEC;if(full>mid*0.00003)for(const Wn of [15,20,30,45,60,90,120]){if(dev(Wn)>=0.7*full){Wsel=Wn;break;}}
+        if(burst.on)Wsel=BURST_WIN;   // volume burst -> tight vortex
         f=zR(Math.log(HIST_SEC/Wsel)/Math.log(8));
       }else{f=Math.max(db,da)/mid;}
       f=Math.max(0.0005,f); fitFrac=f; if(rangeAuto)rangeFrac=f;}
@@ -1394,7 +1411,7 @@ function frame(){
       if(intro.set!=null&&(rangeAuto||rangeFrac!==intro.set))intro=null;          // user zoomed (pinch/wheel/bar/double-tap) -> cancel
       else{if(!intro.t0)intro.t0=now; const p=Math.min(1,(now-intro.t0)/INTRO_MS), e=p<0.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
         rangeAuto=false; rangeFrac=ZMIN*Math.pow(ZMAX/ZMIN,e); dispRange=rangeFrac; intro.set=rangeFrac; if(p>=1)intro=null;}}
-    if(!intro)dispRange+=(rangeFrac-dispRange)*0.05; dispMid+=(mid-dispMid)*0.2;
+    if(!intro){if(VIEW==='market'&&rangeAuto){const ZE=burst.on?0.08:(Date.now()-burst.rel<7000?0.022:0.05);dispRange*=Math.exp(Math.log(rangeFrac/dispRange)*ZE);}else dispRange+=(rangeFrac-dispRange)*0.05;}   // MARKET AUTO: log-space ease (burst: quick snap in; release: slow ease out)   // burst: fast smooth snap in; release: slow ease out dispMid+=(mid-dispMid)*0.2;
   }
   ctx.fillStyle='rgba(5,3,12,1)';ctx.fillRect(0,0,W,H);
   const bg=ctx.createRadialGradient(CX,CY,0,CX,CY,RMAX*1.6);bg.addColorStop(0,'rgba(30,10,60,.55)');bg.addColorStop(1,'rgba(5,3,12,0)');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
@@ -1422,7 +1439,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
