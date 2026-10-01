@@ -58,6 +58,11 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 #win button{flex:1;height:34px;font-family:Orbitron,sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;background:rgba(5,3,12,.75);color:var(--cy);border:1px solid rgba(0,240,255,.5);cursor:pointer}
 #win button.tdir{flex:1.7;font-size:9px;letter-spacing:1px;line-height:1;white-space:nowrap;color:var(--yl);border-color:rgba(255,230,0,.55);background:rgba(255,230,0,.08)}
 #win button.tdir b{font-size:11px;letter-spacing:2px}
+#win button[data-w]{font-size:11px;letter-spacing:1px}
+#win button.locked{opacity:.28;filter:grayscale(1);cursor:not-allowed;box-shadow:none;pointer-events:none}
+#win button.zauto{flex:1.5}.zpill #win button.zauto{display:none !important}#win button.tdir#tdir{flex:1.6}
+#win button.zauto:not(.lit){color:rgba(0,240,255,.45);border-color:rgba(0,240,255,.25);background:rgba(5,3,12,.75)}
+#win button.zauto.lit{box-shadow:0 0 10px rgba(255,230,0,.35)}
 #win button.on{background:rgba(0,240,255,.22);color:#fff;box-shadow:0 0 12px var(--cy),inset 0 0 10px rgba(0,240,255,.4)}
 #sheet>.panel{padding:0 6px}
 #tabs{display:flex;gap:4px;margin:0}
@@ -82,6 +87,9 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
  #colB{display:flex;flex-direction:column;gap:6px;flex:0 0 310px;min-height:0;overflow-y:auto}
  #app{padding:calc(var(--st) + 6px) calc(env(safe-area-inset-right,0px) + 8px) calc(var(--sb) + 6px) calc(env(safe-area-inset-left,0px) + 8px)}
  #top,#vcv,#sheet{margin:0}
+ #win{flex-wrap:wrap;row-gap:6px}
+ #win button[data-w]{flex:1 1 20%}
+ #win button.zauto,#win button.tdir#tdir{flex:1 1 40%}
  #vcv{flex-basis:56px;height:56px;width:100% !important}
  #pages{display:block;position:static;max-height:none;margin-top:6px}
  #sheetClose{display:none}
@@ -124,7 +132,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 </div>
 
 <div id="sheet">
- <div id="win"><button data-w="30">30S</button><button data-w="60" class="on">1M</button><button data-w="300">5M</button><button id="tdir" class="tdir" title="view mode: limit orders / market orders">VIEW ▸ <b>LIMIT</b></button></div>
+ <div id="win"><button data-w="30" class="on">LIVE</button><button data-w="900">15M</button><button data-w="3600">1H</button><button data-w="14400">4H</button><button id="zauto" class="tdir zauto" title="auto zoom on/off">ZOOM ▸ <b>AUTO</b></button><button id="tdir" class="tdir" title="view mode: limit orders / market orders">VIEW ▸ <b>LIMIT</b></button></div>
  <div class="panel">
   <div id="tabs"><button data-p="0" class="on">FLOW</button><button data-p="1">DEPTH</button><button data-p="2">TECH</button><button data-p="3">LINK</button></div>
  </div>
@@ -134,7 +142,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
     <div class="row"><span>MKT BUY VOL</span><span class="gr" id="bvol">—</span></div>
     <div class="row"><span>MKT SELL VOL</span><span class="mg" id="svol">—</span></div>
     <div class="bar"><i id="dltbar"></i></div>
-    <div class="row"><span>30S / 1M / 5M</span><span id="all3">—</span></div>
+    <div class="row"><span>LIVE / 15M / 1H / 4H</span><span id="all3">—</span></div>
     <div class="row"><span>LAST</span><span id="last">—</span></div>
    </div>
    <div class="page">
@@ -157,6 +165,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
     <div class="row"><span>TRADES · RECONNECTS</span><span><span id="tcount">0</span> · <span id="rc">0</span></span></div>
     <div class="row"><span>WHALE ≥</span><span class="yl" id="whale">—</span></div>
     <div class="row"><span>VIEW RANGE</span><span id="range">—</span></div>
+    <div class="row"><span>FLOW BACKFILL</span><span id="bfill">—</span></div>
    </div>
   </div>
 </div>
@@ -172,7 +181,10 @@ const $=id=>document.getElementById(id);
 const parseTs=x=>{if(typeof x==='number')return x*1000;const m=String(x).match(/^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\.\d+)?Z?$/);if(!m)return Date.now();return Date.parse(m[1]+(m[2]?m[2].slice(0,4):'')+'Z');};
 // ---------------- 1m candles / indicators ----------------
 const candles=new Map();   // minuteStart(ms) -> {t,o,h,l,c,v,bv,sv,split}
-let splitFrom=Infinity;    // first minute where buy/sell split is fully known
+let splitFrom=Infinity;    // first minute where buy/sell split is fully known (live+seed)
+const cachedMin=new Set(); // minutes whose split came complete from the local cache
+let seedFirstMs=Infinity;  // earliest trade time we hold exactly (REST seed / WS)
+const isEx=c=>c.ex||c.t>=splitFrom;
 const seenTid=new Set();
 let ind={rsi:null};
 const minuteOf=ms=>Math.floor(ms/60000)*60000;
@@ -180,7 +192,8 @@ function candleAt(t){let c=candles.get(t);if(!c){c={t,o:0,h:0,l:0,c:0,v:0,bv:0,s
 function setOHLC(t,o,h,l,c,v){const k=candleAt(t);k.o=o;k.h=h;k.l=l;k.c=c;k.v=v;}
 function addSplit(tid,ms,side,qty,px){
   if(tid!=null){if(seenTid.has(tid))return false;seenTid.add(tid);if(seenTid.size>6000){const it=seenTid.values();for(let i=0;i<2000;i++)seenTid.delete(it.next().value);}}
-  const k=candleAt(minuteOf(ms)); if(side==='buy')k.bv+=qty;else k.sv+=qty;
+  seedFirstMs=Math.min(seedFirstMs,ms);
+  const k=candleAt(minuteOf(ms)); if(!cachedMin.has(k.t)){if(side==='buy')k.bv+=qty;else k.sv+=qty;}
   if(!k.o){k.o=k.h=k.l=k.c=px;} // provisional until OHLC arrives
   return true;
 }
@@ -212,6 +225,7 @@ async function seedREST(){
       trades.sort((x,y)=>x.t-y.t);trailDirty=true;}
   }catch(e){console.warn('Trades seed failed',e);}
   computeIndicators();
+  backfill();
 }
 setInterval(()=>{computeIndicators();const cut=Date.now()-800*60000;for(const k of candles.keys())if(k<cut)candles.delete(k);},500);
 
@@ -226,7 +240,10 @@ let sparks=[], shocks=[];
 let history=[];                             // {t,mid,b:[[p,q]],a:[[p,q]]}
 let lastTrade=null, tradeCount=0, msgCount=0, mps=0, reconnects=0;
 let ckOk=0, ckBad=0, ckConsecBad=0, ckLast='—';
-let winSec=60, needle=0, needleV=0;
+const WINS=[30,900,3600,14400];
+let winSec=(()=>{try{const v=+localStorage.getItem('ofc.win');return WINS.includes(v)?v:30;}catch(e){return 30;}})(), needle=0, needleV=0;
+let userWin=winSec;   // the window chosen for LIMIT (MARKET always runs LIVE)
+const WL=sec=>sec<=60?'LIVE':sec<3600?(sec/60)+'M':(sec/3600)+'H';
 let rangeAuto=(()=>{try{return localStorage.getItem('ofc.autoZoom')!=='0';}catch(e){return true;}})(), rangeFrac=0.006, dispRange=0.006;
 function setAuto(v){rangeAuto=!!v;try{localStorage.setItem('ofc.autoZoom',v?'1':'0');}catch(e){}}   // user-driven auto-zoom state (persisted)
 // intro: max zoom-in -> max zoom-out over INTRO_MS (ease-in-out), then stays; any user zoom cancels it
@@ -279,12 +296,15 @@ function resyncBook(){
 }
 
 // ---------------- MARKET view: impact heat (decaying volume profile) + price trail ----------------
-const HEAT_HL=420, HB=0.00005;            // 7 min half-life, 0.00005 price buckets
-const heat=new Map();                     // bucket -> {p,b,s}
-let impacts=[], trail=[], trailDirty=true, trailT=0;
-function heatAdd(px,side,qty,ageSec){const k=Math.round(px/HB);let h=heat.get(k);if(!h){h={p:k*HB,b:0,s:0};heat.set(k,h);}
-  const w=qty*Math.pow(0.5,ageSec/HEAT_HL); if(side==='buy')h.b+=w;else h.s+=w;}
-setInterval(()=>{const f=Math.pow(0.5,1/HEAT_HL);for(const [k,h] of heat){h.b*=f;h.s*=f;if(h.b+h.s<0.5)heat.delete(k);}},1000);
+const HB=0.00005;                         // 0.00005 price buckets
+// one decaying volume profile per flow window (half-life scales with the window); the selected one is drawn
+const HEATS={30:{hl:120,m:new Map()},900:{hl:600,m:new Map()},3600:{hl:1800,m:new Map()},14400:{hl:5400,m:new Map()}};
+let impacts=[], trail=[], trailDirty=true, trailT=0, trailStep=1;
+function heatAdd(px,side,qty,ageSec){if(cachedMin.size&&cachedMin.has(minuteOf(Date.now()-ageSec*1000)))return;   // already in the cached profile
+  const k=Math.round(px/HB);
+  for(const H of Object.values(HEATS)){const w=qty*Math.pow(0.5,ageSec/H.hl);if(w<0.05)continue;let h=H.m.get(k);if(!h){h={p:k*HB,b:0,s:0};H.m.set(k,h);}
+    if(side==='buy')h.b+=w;else h.s+=w;}}
+setInterval(()=>{for(const H of Object.values(HEATS)){const f=Math.pow(0.5,1/H.hl);for(const [k,h] of H.m){h.b*=f;h.s*=f;if(h.b+h.s<0.5)H.m.delete(k);}}},1000);
 // per-second trail samples over the last HIST_SEC: path price + aggressor volume
 function buildTrail(){
   const dn=Date.now(), pn=performance.now(), N=HIST_SEC, bins=[];
@@ -294,6 +314,17 @@ function buildTrail(){
     const usd=t.qty*t.px;if(usd>=whaleUSD&&(!bn.wh||usd>bn.wh.usd))bn.wh={usd,qty:t.qty,side:t.side,px:t.px};}
   // price path: book mid history where we have it, else last trade price, carried across gaps
   const oldest=history.length?(pn-history[0].t)/1000:0; let last=null;
+  trailStep=1;
+  if(winSec>HIST_SEC){ // 15M / 1H / 4H: resample the selected window from 1m candles into the same 121 trail samples
+    const step=winSec/N; trailStep=step;
+    for(let a=0;a<=N;a++){const bn=bins[a],tA=dn-a*step*1000,c=candles.get(minuteOf(tA));bn.wh=null;bn.b=0;bn.s=0;bn.px=null;
+      if(a===0&&mid){bn.P=mid;}
+      else if(c&&c.c>0){const fr=(tA-c.t)/60000;bn.P=c.o+(c.c-c.o)*Math.max(0,Math.min(1,fr));}
+      else bn.P=null;
+      if(c){const k=Math.min(1,step/60);
+        if(isEx(c)){bn.b=c.bv*k;bn.s=c.sv*k;}
+        else if(c.v>0){const rg=c.h-c.l,sh=rg>0?0.5+0.5*Math.max(-1,Math.min(1,(c.c-c.o)/rg)):0.5;bn.b=c.v*sh*k;bn.s=c.v*(1-sh)*k;}}}
+  } else
   for(let a=N;a>=0;a--){const bn=bins[a];
     if(a===0&&mid)bn.P=mid; else if(history.length&&a<=oldest)bn.P=midAtAge(a,pn);
     else{if(bn.px!=null)last=bn.px; bn.P=last;}}
@@ -344,10 +375,59 @@ function onTrades(msg){
   const BCAP=LOW?500:1500;if(bubbles.length>BCAP)bubbles.splice(0,bubbles.length-BCAP);
   const SCAP=LOW?80:250;if(sparks.length>SCAP)sparks.splice(0,sparks.length-SCAP);
 }
+const flowMemo=new Map();
 function flow(sec){
-  const cut=Date.now()-sec*1000;let b=0,s=0;
-  for(let i=trades.length-1;i>=0;i--){const t=trades[i];if(t.t<cut)break;if(t.side==='buy')b+=t.qty;else s+=t.qty;}
-  return {b,s,d:b-s,r:(b+s)?(b-s)/(b+s):0};
+  if(sec<=300){const cut=Date.now()-sec*1000;let b=0,s=0;
+    for(let i=trades.length-1;i>=0;i--){const t=trades[i];if(t.t<cut)break;if(t.side==='buy')b+=t.qty;else s+=t.qty;}
+    return {b,s,d:b-s,r:(b+s)?(b-s)/(b+s):0,cov:1};}
+  const now=Date.now(),m=flowMemo.get(sec); if(m&&now-m.at<250)return m;
+  const cut=now-sec*1000; let b=0,s=0,ex=0,tot=0;
+  for(const c of candles.values()){if(c.t+60000<=cut)continue;const fr=c.t<cut?(c.t+60000-cut)/60000:1;
+    if(isEx(c)){b+=c.bv*fr;s+=c.sv*fr;ex+=(c.bv+c.sv)*fr;tot+=(c.bv+c.sv)*fr;}
+    else if(c.v>0){const rg=c.h-c.l,sh=rg>0?0.5+0.5*Math.max(-1,Math.min(1,(c.c-c.o)/rg)):0.5;b+=c.v*sh*fr;s+=c.v*(1-sh)*fr;tot+=c.v*fr;}}
+  const r={b,s,d:b-s,r:(b+s)?(b-s)/(b+s):0,cov:tot?ex/tot:0,at:now};flowMemo.set(sec,r);return r;
+}
+// ---------------- REST backfill of exact buy/sell split for the 15M / 1H / 4H windows (+ localStorage cache) ----------------
+const BF_MS=14400000, CACHE_KEY='ofc.flowCache.v1';
+let bf={state:'—',req:0,done:0,need:0};
+(function loadCache(){try{const C=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(!C||!C.bins)return;const lo=Date.now()-BF_MS;
+  for(const [t,bv,sv] of C.bins){if(t<lo)continue;const k=candleAt(t);k.bv=bv;k.sv=sv;k.ex=true;cachedMin.add(t);}
+  if(C.heat&&C.at){const el=(Date.now()-C.at)/1000;for(const [w,arr] of Object.entries(C.heat)){const H=HEATS[w];if(!H)continue;const f=Math.pow(0.5,el/H.hl);
+    for(const [k,p,b,s2] of arr){if((b+s2)*f<0.5)continue;H.m.set(k,{p,b:b*f,s:s2*f});}}}
+}catch(e){}})();
+function saveCache(){try{const lo=Date.now()-BF_MS,cur=minuteOf(Date.now()),bins=[];
+  for(const c of candles.values())if(c.t>=lo&&c.t<cur&&isEx(c)&&(c.bv+c.sv)>0)bins.push([c.t,+c.bv.toFixed(3),+c.sv.toFixed(3)]);
+  const heat={};for(const [w,H] of Object.entries(HEATS)){const a=[];for(const [k,h] of H.m)if(h.b+h.s>=1)a.push([k,h.p,+h.b.toFixed(2),+h.s.toFixed(2)]);heat[w]=a;}
+  localStorage.setItem(CACHE_KEY,JSON.stringify({at:Date.now(),bins,heat}));}catch(e){}}
+setInterval(saveCache,60000);addEventListener('pagehide',saveCache);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function backfill(){
+  const now=Date.now(), lo=minuteOf(now-BF_MS), hi=Math.min(seedFirstMs,now);
+  // contiguous ranges still lacking an exact split (not cached); the last hour is fetched first
+  const ranges=[];let a=null;
+  for(let t=lo;t<hi;t+=60000){const miss=!cachedMin.has(t);if(miss&&a==null)a=t;if(!miss&&a!=null){ranges.push([a,t]);a=null;}}
+  if(a!=null)ranges.push([a,hi]);
+  if(!ranges.length){bf.state='CACHED';return;}
+  const cut1h=minuteOf(now-3600000), order=[];
+  for(const [x,y] of ranges){if(x<cut1h&&y>cut1h){order.unshift([cut1h,y]);order.push([x,cut1h]);}else if(x>=cut1h)order.unshift([x,y]);else order.push([x,y]);}
+  bf.need=order.reduce((q,[x,y])=>q+(y-x),0);bf.state='RUN';let doneBefore=0;
+  for(const [x,y] of order){let since=String(x)+'000000',lastMs=x,guard=0;
+    while(lastMs<y&&guard++<40){let j=null;
+      for(let tr=0;tr<3&&!j;tr++){try{const r=await fetch('https://api.kraken.com/0/public/Trades?pair=XRPUSD&since='+since);bf.req++;const jj=await r.json();
+        if(jj.error&&jj.error.length){await sleep(3000*(tr+1));continue;}j=jj;}catch(e){await sleep(2000*(tr+1));}}
+      if(!j){bf.state='ERR';return;}
+      const key=Object.keys(j.result).find(k=>k!=='last'),arr=j.result[key]||[],dn=Date.now();
+      for(const t of arr){const ms=t[2]*1000;if(ms<x)continue;if(ms>=y){lastMs=y;break;}lastMs=ms;
+        const mm=minuteOf(ms);if(cachedMin.has(mm)||seenTid.has(t[6]))continue;const side=t[3]==='b'?'buy':'sell',qty=+t[1],px=+t[0];
+        const k=candleAt(mm);if(side==='buy')k.bv+=qty;else k.sv+=qty;if(!k.o)k.o=k.h=k.l=k.c=px;heatAdd(px,side,qty,(dn-ms)/1000);}
+      for(let t=x;t<minuteOf(Math.min(lastMs,y));t+=60000){const k=candles.get(t);if(k)k.ex=true;}
+      bf.done=doneBefore+Math.max(0,Math.min(lastMs,y)-x);flowMemo.clear();trailDirty=true;
+      if(!arr.length||j.result.last===since)break;
+      since=j.result.last; if(lastMs<y)await sleep(1100);}   // ~1 req/s: well inside Kraken's public limits
+    for(let t=x;t<y;t+=60000){const k=candles.get(t);if(k)k.ex=true;}
+    doneBefore+=y-x;
+  }
+  bf.state='DONE';bf.done=bf.need;flowMemo.clear();saveCache();
 }
 function updateWhaleThreshold(){
   const recent=trades.slice(-600).map(t=>t.qty*t.px).sort((a,b)=>a-b);
@@ -413,6 +493,7 @@ const cv=$('cv'), ctx=cv.getContext('2d');
 let W=0,H=0,DPR=1,CX=0,CY=0,R0=0,RMAX=0;
 let LOW=false, WIDE=false, FS=1;
 const vcv=$('vcv'), vx=vcv.getContext('2d'); let VW=0,VH=0;
+const WIDE_GUESS=()=>matchMedia('(min-aspect-ratio:1/1)').matches&&innerWidth>=700&&innerHeight>=420;
 function resize(){
   const st=$('stage').getBoundingClientRect(); W=Math.max(100,Math.round(st.width)); H=Math.max(100,Math.round(st.height));
   const land=matchMedia('(min-aspect-ratio:1/1)').matches;
@@ -423,7 +504,7 @@ function resize(){
   const vr=vcv.getBoundingClientRect();VW=Math.max(50,Math.round(vr.width));VH=Math.max(20,Math.round(vr.height));
   vcv.width=Math.round(VW*DPR);vcv.height=Math.round(VH*DPR);vx.setTransform(DPR,0,0,DPR,0,0);
   FS=WIDE?1:0.85;
-  const TOPM=56, BOTM=52;                                  // flow-gauge title above, RSI gauge + label below
+  const TOPM=56, BOTM=WIDE_GUESS()?66:62;                                  // flow-gauge title above, RSI gauge + label below
   RMAX=Math.min(W/2-(WIDE?175:(land?40:35)),(H-TOPM-BOTM)/2,520); RMAX=Math.max(RMAX,60);
   CX=W/2; CY=TOPM+RMAX+Math.max(0,(H-TOPM-BOTM-2*RMAX)/2);
   R0=Math.max(26,RMAX*0.16);
@@ -454,7 +535,8 @@ pg.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
 pg.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)setPage(page+(dx<0?1:-1));sx=null;},{passive:true});
 cv.addEventListener('wheel',e=>{e.preventDefault();setAuto(false);rangeFrac*=e.deltaY>0?1.15:1/1.15;rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac));},{passive:false});
 cv.addEventListener('dblclick',()=>{if(performance.now()-pillT<700)return;setAuto(true);});
-document.querySelectorAll('#win button[data-w]').forEach(b=>b.onclick=()=>{winSec=+b.dataset.w;document.querySelectorAll('#win button[data-w]').forEach(x=>x.classList.toggle('on',x===b));});
+document.querySelectorAll('#win button[data-w]').forEach(b=>{b.classList.toggle('on',+b.dataset.w===winSec);b.onclick=()=>{if(b.disabled)return;winSec=userWin=+b.dataset.w;try{localStorage.setItem('ofc.win',String(winSec));}catch(e){}
+  document.querySelectorAll('#win button[data-w]').forEach(x=>x.classList.toggle('on',x===b));trailDirty=true;flowMemo.clear();};});
 // VIEW mode: LIMIT (default) = order book only, inbound time motion (past streams toward the dial)
 //            MARKET         = trades only, outbound time motion (recedes from the dial)
 let VIEW='limit';
@@ -462,7 +544,11 @@ try{let v=localStorage.getItem('ofc.view');
   if(!v){const old=localStorage.getItem('ofc.timeDir');v=old==='out'?'market':'limit';localStorage.setItem('ofc.view',v);localStorage.removeItem('ofc.timeDir');}
   VIEW=v==='market'?'market':'limit';}catch(e){}
 let INBOUND=VIEW==='limit';
-function syncDir(){INBOUND=VIEW==='limit';$('tdir').innerHTML=`VIEW ▸ <b>${VIEW==='limit'?'LIMIT':'MARKET'}</b>`;}
+function syncDir(){INBOUND=VIEW==='limit';$('tdir').innerHTML=`VIEW ▸ <b>${VIEW==='limit'?'LIMIT':'MARKET'}</b>`;syncWinLock();}
+// MARKET is live-only: force LIVE and lock 15M/1H/4H; LIMIT restores the user's window choice
+function syncWinLock(){const mk=VIEW==='market';winSec=mk?30:userWin;
+  document.querySelectorAll('#win button[data-w]').forEach(x=>{const w=+x.dataset.w,lock=mk&&w!==30;x.disabled=lock;x.classList.toggle('locked',lock);x.classList.toggle('on',w===winSec);});
+  trailDirty=true;}
 $('tdir').onclick=()=>{VIEW=VIEW==='limit'?'market':'limit';try{localStorage.setItem('ofc.view',VIEW);}catch(e){}syncDir();};syncDir();
 const depthOf=age=>INBOUND?Math.max(0,HIST_SEC-age):age;   // tunnel depth in seconds
 
@@ -478,6 +564,8 @@ function updateFocal(){const z=fitFrac&&dispRange?fitFrac/dispRange:1;          
 // at that moment relative to the current mid, in the radar's own price scale. Rising price -> past trails DOWN.
 const pathOff=new Float32Array(HIST_SEC+1), pathRaw=new Float32Array(HIST_SEC+1);
 let trendFrac=0;
+function closeAt(ms){const k=minuteOf(ms);for(let d=0;d<=5;d++){const c=candles.get(k-d*60000)||candles.get(k+d*60000);if(c&&c.c>0)return c.c;}return 0;}
+function trendWin(){if(winSec<=60)return trendFrac;const p=closeAt(Date.now()-winSec*1000);return p&&mid?(mid-p)/p:0;}   // label trend over the selected window
 function midAtAge(age,now){ // interpolate snapshot mids by time; age 0 = live mid
   if(age<=0||!history.length)return mid;
   const t=now-age*1000; let hi=history.length-1;
@@ -516,11 +604,11 @@ function lblReserve(x,y,w,h){LBL.push({x,y,w,h});}
 function lblReset(){
   LBL=[];const GR=RMAX+30;
   lblReserve(CX-135,CY-GR-25,270,18);                 // AGGRESSOR FLOW title
-  lblReserve(CX-125,CY+GR+3,250,18);                  // RSI label
+  lblReserve(CX-130,CY+GR+5,260,32);                  // RSI readout (big number + zone word + 14·1M)
   lblReserve(CX-R0-2,CY-R0-2,2*R0+4,2*R0+4);          // core
   if(WIDE){lblReserve(CX-GR*0.8-40,CY-GR*0.62-22,80,16);lblReserve(CX+GR*0.8-40,CY-GR*0.62-22,80,16);}
   else{const yt=topLblY()-13,yb=botLblY()-13;lblReserve(0,yt,84,18);lblReserve(W-88,yt,88,18);lblReserve(0,yb,70,18);lblReserve(W-70,yb,70,18);}
-  const Z=zbarGeom();if(Z){lblReserve(Z.x-Z.lw-10,Z.y0-6,Z.lw+20,Z.y1-Z.y0+12);lblReserve(Z.px-2,Z.py-2,Z.pw+4,Z.ph+4);}
+  const Z=zbarGeom();if(Z){lblReserve(Z.x-Z.lw-10,Z.y0-6,Z.lw+20,Z.y1-Z.y0+12);if(Z.pw)lblReserve(Z.px-2,Z.py-2,Z.pw+4,Z.ph+4);}
 }
 // place a text box (left x, baseline y, width); shifts vertically (pref direction first) until free; returns {x,y} or null
 function lblPlace(x,y,w,pref){
@@ -740,7 +828,7 @@ function drawNeedle(now){
   ctx.fillStyle=rgba(COL.ask,.9);ctx.fillText('SELLERS',CX+GR*0.80,CY-GR*0.62-10);}
   else{ctx.textAlign='left';ctx.fillStyle=rgba(COL.bid,.9);ctx.fillText('◀ BUYERS',6,topLblY());
   ctx.textAlign='right';ctx.fillStyle=rgba(COL.ask,.9);ctx.fillText('SELLERS ▶',W-6,topLblY());ctx.textAlign='center';}
-  ctx.fillStyle='rgba(255,230,0,.9)';ctx.fillText('AGGRESSOR FLOW · '+(winSec>=60?winSec/60+'M':winSec+'S')+'  ',CX-22,CY-GR-12);{const f2=flow(winSec);ctx.textAlign='left';ctx.fillStyle=rgba(f2.r>0.05?COL.bid:f2.r<-0.05?COL.ask:COL.yl,1);ctx.fillText((f2.r>=0?'+':'')+(f2.r*100).toFixed(1)+'%',CX-22+ctx.measureText('AGGRESSOR FLOW · '+(winSec>=60?winSec/60+'M':winSec+'S')+'  ').width/2,CY-GR-12);ctx.textAlign='center';}
+  ctx.fillStyle='rgba(255,230,0,.9)';ctx.fillText('AGGRESSOR FLOW · '+WL(winSec)+(flow(winSec).cov<0.98?'~':'')+'  ',CX-22,CY-GR-12);{const f2=flow(winSec);ctx.textAlign='left';ctx.fillStyle=rgba(f2.r>0.05?COL.bid:f2.r<-0.05?COL.ask:COL.yl,1);ctx.fillText((f2.r>=0?'+':'')+(f2.r*100).toFixed(1)+'%',CX-22+ctx.measureText('AGGRESSOR FLOW · '+WL(winSec)+(flow(winSec).cov<0.98?'~':'')+'  ').width/2,CY-GR-12);ctx.textAlign='center';}
   // needle
   const a=-Math.PI/2+needle, L=GR-4, tipX=CX+Math.cos(a)*L, tipY=CY+Math.sin(a)*L;
   const col=f.r>0.05?COL.bid:f.r<-0.05?COL.ask:COL.yl;
@@ -773,25 +861,36 @@ function drawGlitch(now){
 let rsiDisp=50;
 function drawRSI(now){
   const GR=RMAX+30, v=ind.rsi; if(v!=null)rsiDisp+=(v-rsiDisp)*0.08;
-  const ang=x=>Math.PI-x/100*Math.PI;
+  const ang=x=>Math.PI-x/100*Math.PI, LW=WIDE?12:10;
+  const os=v!=null&&v<30, ob=v!=null&&v>70, p=0.65+0.35*Math.sin(now/220), zc=ob?COL.ask:os?COL.bid:[205,220,240];
   ctx.save();ctx.lineCap='butt';
-  ctx.lineWidth=6;ctx.strokeStyle='rgba(120,160,200,.18)';ctx.beginPath();ctx.arc(CX,CY,GR,0,Math.PI);ctx.stroke();
-  const os=v!=null&&v<=30, ob=v!=null&&v>=70, p=0.6+0.4*Math.sin(now/200);
-  ctx.strokeStyle=rgba(COL.bid,os?0.95*p:0.4);ctx.shadowColor=rgba(COL.bid,1);ctx.shadowBlur=os?22:(Q>0?6:0);
+  // three zones: oversold (green) · neutral (dim) · overbought (magenta); the active zone glows
+  ctx.lineWidth=LW;ctx.strokeStyle='rgba(150,175,205,.22)';ctx.beginPath();ctx.arc(CX,CY,GR,ang(70),ang(30));ctx.stroke();
+  ctx.strokeStyle=rgba(COL.bid,os?0.95*p:0.55);ctx.shadowColor=rgba(COL.bid,1);ctx.shadowBlur=os?22:(Q>0?8:0);
   ctx.beginPath();ctx.arc(CX,CY,GR,ang(30),ang(0));ctx.stroke();
-  ctx.strokeStyle=rgba(COL.ask,ob?0.95*p:0.4);ctx.shadowColor=rgba(COL.ask,1);ctx.shadowBlur=ob?22:(Q>0?6:0);
+  ctx.strokeStyle=rgba(COL.ask,ob?0.95*p:0.55);ctx.shadowColor=rgba(COL.ask,1);ctx.shadowBlur=ob?22:(Q>0?8:0);
   ctx.beginPath();ctx.arc(CX,CY,GR,ang(100),ang(70));ctx.stroke();ctx.shadowBlur=0;
-  ctx.font=`${WIDE?10:8.5}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(180,210,240,.6)';ctx.textAlign='center';
-  for(const t of [30,50,70]){const a=ang(t);ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(CX+Math.cos(a)*(GR-5),CY+Math.sin(a)*(GR-5));ctx.lineTo(CX+Math.cos(a)*(GR+5),CY+Math.sin(a)*(GR+5));ctx.stroke();
-    ctx.fillText(String(t),CX+Math.cos(a)*(GR+13),CY+Math.sin(a)*(GR+13)+3);}
+  // zone boundary ticks + labels just outside the arc
+  ctx.font=`700 ${WIDE?11:9.5}px "Share Tech Mono",monospace`;ctx.textAlign='center';
+  for(const t of [30,70]){const a=ang(t),c=Math.cos(a),sn=Math.sin(a);ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(CX+c*(GR-LW/2-2),CY+sn*(GR-LW/2-2));ctx.lineTo(CX+c*(GR+LW/2+3),CY+sn*(GR+LW/2+3));ctx.stroke();
+    ctx.fillStyle=t===30?rgba(COL.bid,.95):rgba(COL.ask,.95);ctx.fillText(String(t),CX+c*(GR+LW/2+11),CY+sn*(GR+LW/2+11)+4);}
+  // pointer at the current value: radial needle across the arc + bright white-cored marker
   if(v!=null){
-    const a=ang(rsiDisp), x=CX+Math.cos(a)*GR, y=CY+Math.sin(a)*GR, c=ob?COL.ask:os?COL.bid:COL.yl;
-    ctx.fillStyle=rgba(c,1);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=16;ctx.beginPath();ctx.arc(x,y,5.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-    ctx.strokeStyle=rgba(c,.6);ctx.beginPath();ctx.moveTo(CX+Math.cos(a)*(GR-12),CY+Math.sin(a)*(GR-12));ctx.lineTo(CX+Math.cos(a)*(GR-6),CY+Math.sin(a)*(GR-6));ctx.stroke();
+    const a=ang(rsiDisp), c=Math.cos(a), sn=Math.sin(a), x=CX+c*GR, y=CY+sn*GR;
+    ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.shadowColor=rgba(ob||os?zc:COL.yl,1);ctx.shadowBlur=14;
+    ctx.beginPath();ctx.moveTo(CX+c*(GR-LW/2-9),CY+sn*(GR-LW/2-9));ctx.lineTo(CX+c*(GR+LW/2+5),CY+sn*(GR+LW/2+5));ctx.stroke();
+    ctx.fillStyle=rgba(ob||os?zc:COL.yl,1);ctx.beginPath();ctx.arc(x,y,WIDE?8:7,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,WIDE?3.5:3,0,Math.PI*2);ctx.fill();
   }
-  ctx.font=`700 ${WIDE?11:9.5}px Orbitron,sans-serif`;ctx.fillStyle=rgba(v==null?[150,170,190]:ob?COL.ask:os?COL.bid:COL.yl,1);
-  ctx.fillText(`RSI 14 · 1M  ${v==null?'—':v.toFixed(1)}${ob?' OVERBOUGHT':os?' OVERSOLD':''}`,CX,CY+GR+16);
+  // big readout at bottom centre, coloured by zone
+  const word=v==null?'':ob?'OVERBOUGHT':os?'OVERSOLD':'NEUTRAL', big=`RSI ${v==null?'—':v.toFixed(0)}`, yB=CY+GR+(WIDE?24:21);
+  const fb=`900 ${WIDE?19:16}px Orbitron,sans-serif`, fw=`700 ${WIDE?11:9.5}px Orbitron,sans-serif`;
+  ctx.font=fb;const w1=ctx.measureText(big).width;ctx.font=fw;const w2=word?ctx.measureText('  '+word).width:0;
+  const x0=CX-(w1+w2)/2;ctx.textAlign='left';
+  ctx.font=fb;ctx.fillStyle=rgba(v==null?[150,170,190]:ob||os?zc:COL.yl,1);ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=Q>0?10:0;ctx.fillText(big,x0,yB);
+  ctx.shadowBlur=0;if(word){ctx.font=fw;ctx.fillStyle=rgba(ob||os?zc:[205,220,240],.9);ctx.fillText('  '+word,x0+w1,yB);}
+  ctx.font=`${WIDE?9:8}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.fillStyle='rgba(160,190,220,.55)';ctx.fillText('14 · 1M',CX,yB+(WIDE?12:10));
   ctx.restore();
 }
 // ---------------- 1m aggressor volume histogram strip ----------------
@@ -800,7 +899,7 @@ function drawVolume(now){
   vx.clearRect(0,0,VW,VH);const cs=sortedCandles(); if(!cs.length)return;
   const top=2, h=VH-4, w=VW-4, x0=2, mid0=top+h/2;
   const bw=VW>700?7:5, n=Math.floor(w/bw), bars=cs.slice(-n);
-  let vmax=1e-9;for(const c of bars){vmax=Math.max(vmax,c.split?0:0,c.t>=splitFrom?Math.max(c.bv,c.sv):c.v/2);}
+  let vmax=1e-9;for(const c of bars){vmax=Math.max(vmax,isEx(c)?Math.max(c.bv,c.sv):c.v/2);}
   vx.save();
   vx.fillStyle='rgba(5,3,12,.55)';vx.fillRect(x0-2,top-2,w+4,h+4);
   vx.strokeStyle='rgba(0,240,255,.25)';vx.lineWidth=1;vx.strokeRect(x0-2,top-2,w+4,h+4);
@@ -808,7 +907,7 @@ function drawVolume(now){
   const half=h/2-3, curT=minuteOf(Date.now());
   bars.forEach((c,i)=>{
     const x=x0+w-(bars.length-i)*bw;
-    let bv,sv,unk=0; if(c.t>=splitFrom){bv=c.bv;sv=c.sv;}else{bv=0;sv=0;unk=c.v/2;}
+    let bv,sv,unk=0; if(isEx(c)){bv=c.bv;sv=c.sv;}else{bv=0;sv=0;unk=c.v/2;}
     const e=volEase.get(c.t)||{b:0,s:0,u:0};e.b+=(bv-e.b)*0.2;e.s+=(sv-e.s)*0.2;e.u+=(unk-e.u)*0.2;volEase.set(c.t,e);
     const hb=Math.min(half,half*e.b/vmax), hs=Math.min(half,half*e.s/vmax), hu=Math.min(half,half*e.u/vmax);
     const live=c.t===curT, a=live?0.75+0.25*Math.sin(now/120):0.8;
@@ -823,15 +922,16 @@ function drawVolume(now){
   vx.fillStyle=rgba(COL.bid,.85);vx.fillText('▲ MKT BUY VOL / 1M',x0+3,top+9);
   vx.fillStyle=rgba(COL.ask,.85);vx.fillText('▼ SELL',x0+3,top+h-3);
   vx.textAlign='right';vx.fillStyle='rgba(255,230,0,.8)';vx.fillText(`${bars.length} BARS · MAX ${fmtQ(vmax)}`,x0+w-3,top+9);
-  if(history.length>10){const tf=trendFrac,up=tf>0.0004,dn=tf<-0.0004,c=up?COL.bid:dn?COL.ask:[150,180,210];
+  if(history.length>10){const tf=trendWin(),up=tf>0.0004,dn=tf<-0.0004,c=up?COL.bid:dn?COL.ask:[150,180,210];
     vx.font=`700 ${WIDE?10:8}px Orbitron,sans-serif`;vx.textAlign='center';vx.fillStyle=rgba(c,.9);
-    vx.fillText(`${up?'TREND ▲ UPHILL':dn?'TREND ▼ DOWNHILL':'TREND ◆ FLAT'} ${(tf>=0?'+':'')+(tf*100).toFixed(2)}%`,VW/2,top+h-3);}
+    vx.fillText(`${up?'TREND ▲ UPHILL':dn?'TREND ▼ DOWNHILL':'TREND ◆ FLAT'} ${(tf>=0?'+':'')+(tf*100).toFixed(2)}% · ${WL(winSec)}`,VW/2,top+h-3);}
   vx.restore();
 }
 
 function mixCol(r){ // r: -1 (sell) .. +1 (buy)
   const t=(r+1)/2; return [Math.round(COL.ask[0]+(COL.bid[0]-COL.ask[0])*t),Math.round(COL.ask[1]+(COL.bid[1]-COL.ask[1])*t),Math.round(COL.ask[2]+(COL.bid[2]-COL.ask[2])*t)];}
 function drawHeat(now){
+  const heat=(HEATS[winSec]||HEATS[30]).m;
   if(!dispMid||!heat.size)return;
   const span=dispMid*dispRange, px2=(RMAX-R0)/span, binPx=3, binW=binPx/px2;
   const bins=new Map(); let mx=0;
@@ -875,8 +975,8 @@ function drawTrail(now){
   // SPIRAL: each sample sits on its tunnel ring centre (trend bend) and orbits the tunnel axis.
   // Angle is locked to the sample's timestamp (1 turn / 60 s), so the coil turns smoothly as time advances.
   // Orbit radius = fixed fraction of that ring's radius, modulated by price vs current mid (above = wider, below = tighter).
-  const dn=Date.now(), lag=Math.max(0,Math.min(1.5,(dn-trailT)/1000)), TURN=60, K=0.72, RAMP=10;
-  const ang=age=>-Math.PI/2+2*Math.PI*((dn/1000-age)%TURN)/TURN;
+  const dn=Date.now(), lag=Math.max(0,Math.min(1.5,(dn-trailT)/1000/trailStep)), TURN=60, K=0.72, RAMP=10, tNow=dn/1000/trailStep;
+  const ang=age=>-Math.PI/2+2*Math.PI*((tNow-age)%TURN)/TURN;   // age in trail samples (1 s live, window/120 otherwise)
   const pAt=f=>{const i=Math.floor(f),k=f-i,b0=trail[Math.min(i,trail.length-1)],b1=trail[Math.min(i+1,trail.length-1)];return b0.Ps*(1-k)+b1.Ps*k;};
   const pt=f=>{const age=f===0?0:f+lag,T=proj(age),s=T.s,u=Math.max(0,(s-sEnd)/(1-sEnd));
     const rel=Math.max(-0.35,Math.min(0.35,1.6*(pAt(f)-mid)/span));
@@ -928,15 +1028,17 @@ const ZMIN=0.0005, ZMAX=0.08, ZL=Math.log(ZMAX/ZMIN);
 const zT=r=>Math.max(0,Math.min(1,Math.log(ZMAX/r)/ZL));            // range fraction -> 0..1 (1 = max zoom-in)
 const zR=t=>ZMAX*Math.exp(-Math.max(0,Math.min(1,t))*ZL);
 function zbarGeom(){
-  if(!RMAX)return null; const GR=RMAX+36, pw=WIDE?42:36, ph=WIDE?18:16;
-  if(CX+GR+44<W-8){const x=Math.min(W-24,CX+GR+48),h=Math.min(RMAX*0.9,260),y0=CY-h/2+ph+10;   // roomy: beside the dial
-    return {x,y0,y1:CY+h/2,lw:34,px:x-pw/2,py:y0-ph-10,pw,ph};}
-  const x=W-8, pl=W-3-pw, dx=pl-2-CX, dy=dx<GR?Math.sqrt(GR*GR-dx*dx):0;   // tight portrait: lower-right corner, clear of the gauge arcs
-  const py=CY+dy+4, y0=py+ph+12, y1=(WIDE?CY+RMAX:botLblY()-20);
-  return y1-y0>=40?{x,y0,y1,lw:30,px:pl,py,pw,ph}:null;
+  if(!RMAX)return null; const GR=RMAX+36;
+  if(CX+GR+44<W-8){const x=Math.min(W-24,CX+GR+48),h=Math.min(RMAX*0.9,260),pw=112,ph=32,y0=CY-h/2+ph+12;   // roomy (desktop): beside the dial, AUTO toggle above
+    let px=x-pw/2;const py=y0-ph-12,dyc=Math.min(Math.abs(py+ph-CY),Math.abs(py-CY)),xa=CX+Math.sqrt(Math.max(0,GR*GR-dyc*dyc))+6;
+    if(px<xa)px=Math.min(xa,W-4-pw);return {x,y0,y1:CY+h/2,lw:34,px,py,pw,ph};}
+  const x=W-8, dx=x-40-CX, dy=dx<GR?Math.sqrt(GR*GR-dx*dx):0;   // tight portrait: lower-right corner, clear of the gauge arcs (incl. value label)
+  const y0=CY+dy+14, y1=(WIDE?CY+RMAX:botLblY()-20);
+  return y1-y0>=40?{x,y0,y1,lw:30}:null;
 }
 function drawZoomBar(now){
-  const Z=zbarGeom(); if(!Z)return; const {x,y0,y1}=Z, t=zT(dispRange), ty=y1-(y1-y0)*t;
+  const Z=zbarGeom(); {const pill=!!(Z&&Z.pw);if(document.body.classList.contains('zpill')!==pill)document.body.classList.toggle('zpill',pill);}
+  if(!Z)return; const {x,y0,y1}=Z, t=zT(dispRange), ty=y1-(y1-y0)*t;
   ctx.save();ctx.lineCap='round';
   ctx.strokeStyle='rgba(0,240,255,.18)';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke();   // track
   ctx.strokeStyle='rgba(0,240,255,.45)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke();
@@ -950,19 +1052,22 @@ function drawZoomBar(now){
   ctx.font=`700 ${WIDE?10:8.5}px Orbitron,sans-serif`;ctx.textAlign='right';ctx.fillStyle=`rgba(${col},.95)`;
   ctx.fillText(lab,x-8,y0+7);
   ctx.font=`${WIDE?9:7.5}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(0,240,255,.5)';ctx.fillText('ZOOM',x-8,y1);
-  // AUTO toggle pill (on = lit cyan, off = dim)
-  const {px,py,pw,ph}=Z, on=rangeAuto;
-  ctx.beginPath();ctx.moveTo(px+5,py);ctx.lineTo(px+pw,py);ctx.lineTo(px+pw,py+ph-5);ctx.lineTo(px+pw-5,py+ph);ctx.lineTo(px,py+ph);ctx.lineTo(px,py+5);ctx.closePath();
-  ctx.fillStyle=on?'rgba(0,240,255,.22)':'rgba(5,3,12,.75)';ctx.fill();
-  ctx.strokeStyle=on?'rgba(0,240,255,.95)':'rgba(0,240,255,.3)';ctx.lineWidth=1;if(on&&Q>0){ctx.shadowColor='#00f0ff';ctx.shadowBlur=10;}ctx.stroke();ctx.shadowBlur=0;
-  ctx.font=`700 ${WIDE?9.5:8.5}px Orbitron,sans-serif`;ctx.textAlign='center';ctx.fillStyle=on?'#bffcff':'rgba(0,240,255,.4)';
-  if(on&&Q>0){ctx.shadowColor='#00f0ff';ctx.shadowBlur=8;}ctx.fillText('AUTO',px+pw/2,py+ph/2+3.5);ctx.shadowBlur=0;
+  if(Z.pw){const {px,py,pw,ph}=Z,on=rangeAuto;   // big AUTO toggle: yellow like the VIEW button when on, dim when off
+    ctx.beginPath();ctx.moveTo(px+7,py);ctx.lineTo(px+pw,py);ctx.lineTo(px+pw,py+ph-7);ctx.lineTo(px+pw-7,py+ph);ctx.lineTo(px,py+ph);ctx.lineTo(px,py+7);ctx.closePath();
+    ctx.fillStyle=on?'rgba(255,230,0,.10)':'rgba(5,3,12,.75)';ctx.fill();
+    ctx.strokeStyle=on?'rgba(255,230,0,.75)':'rgba(0,240,255,.25)';ctx.lineWidth=1;if(on&&Q>0){ctx.shadowColor='rgba(255,230,0,.6)';ctx.shadowBlur=10;}ctx.stroke();ctx.shadowBlur=0;
+    ctx.textAlign='center';const col2=on?'#ffe600':'rgba(0,240,255,.45)';ctx.fillStyle=col2;
+    ctx.font='700 9px Orbitron,sans-serif';const t1='ZOOM ▸ ',w1=ctx.measureText(t1).width;ctx.font='700 12px Orbitron,sans-serif';const w2=ctx.measureText('AUTO').width;
+    const tx=px+pw/2-(w1+w2)/2;ctx.textAlign='left';ctx.font='700 9px Orbitron,sans-serif';ctx.fillText(t1,tx,py+ph/2+4);
+    ctx.font='700 12px Orbitron,sans-serif';if(on&&Q>0){ctx.shadowColor='#ffe600';ctx.shadowBlur=8;}ctx.fillText('AUTO',tx+w1,py+ph/2+4.5);ctx.shadowBlur=0;}
   ctx.restore();
 }
 // tap/drag the bar to set zoom (touch + mouse); stays out of pinch / double-tap handling
 let zDrag=false, pillT=0;
-function pillHit(px,py){const Z=zbarGeom();return Z&&px>Z.px-8&&px<Z.px+Z.pw+6&&py>Z.py-8&&py<Z.py+Z.ph+6;}
-function pillTap(){const n=performance.now();if(n-pillT<450)return;pillT=n;intro=null;if(rangeAuto)rangeFrac=dispRange;setAuto(!rangeAuto);}  // ON snaps back to auto-fit
+function pillHit(px,py){const Z=zbarGeom();return !!(Z&&Z.pw&&px>Z.px-6&&px<Z.px+Z.pw+6&&py>Z.py-6&&py<Z.py+Z.ph+6);}
+function pillTap(){const n=performance.now();if(n-pillT<450)return;pillT=n;intro=null;if(rangeAuto)rangeFrac=dispRange;setAuto(!rangeAuto);syncZA();}
+function syncZA(){const b=$('zauto');if(b&&b.classList.contains('lit')!==rangeAuto)b.classList.toggle('lit',rangeAuto);}
+$('zauto').onclick=()=>{pillTap();};  // ON snaps back to auto-fit
 function zHit(px,py){const Z=zbarGeom();return Z&&Math.abs(px-Z.x)<18&&py>Z.y0-14&&py<Z.y1+8?Z:null;}
 function zSet(py,Z){setAuto(false);rangeFrac=zR((Z.y1-py)/(Z.y1-Z.y0));}
 function zLocal(e){const r=cv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
@@ -1002,7 +1107,9 @@ function hud(now){
   setHTML('bvol',fmtQ(f.b)+' XRP');setHTML('svol',fmtQ(f.s)+' XRP');
   setHTML('dlt',`<span class="${f.d>=0?'gr':'mg'}">${f.r>=0?'+':''}${(f.r*100).toFixed(0)}%</span>`);
   const db=$('dltbar');db.style.left=f.r>=0?'50%':(50+f.r*50)+'%';db.style.width=Math.abs(f.r*50)+'%';db.style.background=f.r>=0?'#2bff9a':'#ff2bd6';
-  setHTML('all3',[30,60,300].map(s=>{const r=flow(s).r;return `<span class="${r>=0?'gr':'mg'}">${r>=0?'+':''}${(r*100).toFixed(0)}%</span>`;}).join(' / '));
+  setHTML('all3',WINS.map(s=>{const r=flow(s).r;return `<span class="${r>=0?'gr':'mg'}">${r>=0?'+':''}${(r*100).toFixed(0)}%</span>`;}).join(' / '));
+  setHTML('bfill',bf.state==='RUN'?`<span class="yl">${Math.round(100*bf.done/Math.max(1,bf.need))}% · ${bf.req} req</span>`:bf.state==='DONE'?`<span class="gr">4H ✓ · ${bf.req} req</span>`:bf.state==='CACHED'?'<span class="gr">4H ✓ · cache</span>':bf.state);
+  syncZA();
   const live=connState==='LIVE'&&book.ready;
   setHTML('conn',`<span class="dot" style="background:${live?'#2bff9a':connState==='LIVE'?'#ffe600':'#ff3b6b'};box-shadow:0 0 8px ${live?'#2bff9a':'#ff3b6b'}"></span>${live?'LIVE':connState}`);
   setHTML('ck',`<span class="${ckLast==='OK'?'gr':ckLast==='—'?'':'rd'}">${ckLast}</span> <span style="color:#6f8aa5">${ckOk}✓ ${ckBad}✗</span>`);
@@ -1055,7 +1162,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={get flowAll(){return WINS.map(w=>{const f=flow(w);return {w,b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3),cov:+f.cov.toFixed(2)};})},get bf(){return bf},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
