@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261002-1341';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261002-1352';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05030c">
 <meta name="color-scheme" content="dark">
@@ -33,6 +33,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #vcv{order:3;flex:0 0 40px;width:100%;height:40px;display:block}
 #scan{position:absolute;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0px,rgba(0,0,0,.28) 1px,transparent 1px,transparent 3px)}
+#lcv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:9}   /* logos: always the very foreground */
 #vig{position:absolute;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.5) 100%)}
 .panel{background:var(--pn);border:1px solid rgba(0,240,255,.35);padding:8px 10px;box-shadow:0 0 18px rgba(0,240,255,.15),inset 0 0 22px rgba(0,240,255,.06);
  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
@@ -49,7 +50,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 #top .logo{flex:0 0 auto;width:22px;height:22px;margin-right:-2px;align-self:center;filter:drop-shadow(0 0 3px rgba(0,240,255,.85)) drop-shadow(0 0 8px rgba(0,240,255,.35))}
 @media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{display:none}}   /* desktop: logo sits by the compass instead */
 body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub instead */
-#top{order:1;flex:0 0 auto;position:relative;z-index:6}
+#top{order:1;flex:0 0 auto;position:relative;z-index:8}   /* above #scan/#vig/#glitch so the header logo is never overlaid */
 #top{padding:4px 10px 3px}
 #top .l1{display:flex;align-items:center;gap:8px;white-space:nowrap}
 #top .l1{justify-content:center}
@@ -137,7 +138,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 </head>
 <body>
 <div id="app">
-<div id="colA"><div id="stage"><canvas id="cv"></canvas><div id="vig"></div><div id="scan"></div></div><canvas id="vcv"></canvas></div>
+<div id="colA"><div id="stage"><canvas id="cv"></canvas><div id="vig"></div><div id="scan"></div><canvas id="lcv"></canvas></div><canvas id="vcv"></canvas></div>
 <div id="colB">
 <div class="panel" id="top">
  <div class="l1"><img class="logo" src="logo-64.png" srcset="logo-64.png 1x, logo-128.png 2x, logo.png 3x" alt="" width="22" height="22"><div class="t1">XRP&nbsp;COMPASS</div><div class="conn" id="conn"><span class="dot" style="background:#555"></span>INIT</div></div>
@@ -600,7 +601,7 @@ setInterval(()=>{
 },SNAP_MS);
 
 // ---------------- canvas ----------------
-const cv=$('cv'), ctx=cv.getContext('2d');
+const cv=$('cv'), ctx=cv.getContext('2d'), lcv=$('lcv'), lx=lcv.getContext('2d');
 let W=0,H=0,DPR=1,CX=0,CY=0,R0=0,RMAX=0;
 let LOW=false, WIDE=false, FS=1;
 const vcv=$('vcv'), vx=vcv.getContext('2d'); let VW=0,VH=0;
@@ -611,7 +612,7 @@ function resize(){
   WIDE=land&&W>=700&&H>=420; document.body.classList.toggle('hublogo',!WIDE);
   LOW=!WIDE||matchMedia('(pointer:coarse)').matches;
   DPR=Math.min(window.devicePixelRatio||1,LOW?1.75:2);
-  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);lcv.width=cv.width;lcv.height=cv.height;lx.setTransform(DPR,0,0,DPR,0,0);
   const vr=vcv.getBoundingClientRect();VW=Math.max(50,Math.round(vr.width));VH=Math.max(20,Math.round(vr.height));
   vcv.width=Math.round(VW*DPR);vcv.height=Math.round(VH*DPR);vx.setTransform(DPR,0,0,DPR,0,0);
   FS=WIDE?1:0.85;
@@ -877,17 +878,24 @@ function drawKeyWalls(now,maxq){   // SUPPORT (bid) / RESISTANCE (ask): highligh
     const pl=0.85+0.15*Math.sin(now/650),cc=[Math.min(255,c[0]+45),Math.min(255,c[1]+45),Math.min(255,c[2]+45)];
     ctx.save();ctx.globalCompositeOperation='source-over';ctx.strokeStyle=rgba(cc,(0.95*pl).toFixed(3));ctx.lineWidth=lw+2.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(LOW?16:28):0;
     ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();ctx.restore();
-    // text: centre in the upper part of the arc (30-57 deg above the horizon) so it stays upright; title outside, price · size just outside the wall
-    const dl=Math.max(0.55,Math.min(1.0,sp*0.7)),th=side==='bid'?Math.PI+dl:2*Math.PI-dl;
-    const fs1=WIDE?Math.round(Math.max(12,Math.min(16,RMAX/27))):10,fs2=fs1-1,R1=r+lw/2+4,R2=R1+fs2+3;
+    // text: centred on the arc's upper portion nearest the vertical centre line (SUPPORT: right/top part of its arc around 9 o'clock,
+    // RESISTANCE: left/top part of its arc around 3 o'clock), upright and fully above the horizon; font shrinks with the arc, fades when too small
+    const base1=WIDE?Math.round(Math.max(12,Math.min(16,RMAX/27))):10, sc=Math.max(0.62,Math.min(1,(r-R0)/(RMAX*0.28)));
+    const fs1=Math.max(7,Math.round(base1*sc)), fs2=Math.max(7,fs1-1), R1=r+lw/2+4, R2=R1+fs2+3;
     const L1=`${PF(px)} · ${fmtQ(q)} ${UNIT}`,L2=side==='bid'?'SUPPORT':'RESISTANCE';
-    ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    for(const [txt,R,font,col,glow] of [[L1,R1,`700 ${fs2}px "Share Tech Mono",monospace`,'#f2fbff',0],[L2,R2,`900 ${fs1}px Orbitron,sans-serif`,rgba(cc,1),10]]){
-      ctx.font=font;const T=arcText(txt,R,th),fz=parseFloat(font.split(' ')[1]);
+    const F1=`700 ${fs2}px "Share Tech Mono",monospace`,F2=`900 ${fs1}px Orbitron,sans-serif`;
+    ctx.font=F1;const w1=ctx.measureText(L1).width/R1;ctx.font=F2;const w2=ctx.measureText(L2).width/R2,totM=Math.max(w1,w2);
+    let al=Math.max(0,Math.min(1,(r-R0*1.12)/(R0*0.45)))*Math.max(0,Math.min(1,(1.45-totM)/0.3));   // too close to the hub / too long for the arc -> fade
+    if(al<=0.03)continue;
+    const H=Math.PI/2, th0=side==='bid'?Math.PI+sp/2:2*Math.PI-sp/2;
+    const thFor=tot=>side==='bid'?Math.min(Math.PI+H-tot/2-0.03,Math.max(Math.PI+tot/2+0.06,th0)):Math.max(Math.PI+H+tot/2+0.03,Math.min(2*Math.PI-tot/2-0.06,th0));
+    ctx.save();ctx.globalAlpha=al;ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    for(const [txt,R,font,col,glow] of [[L1,R1,F1,'#f2fbff',0],[L2,R2,F2,rgba(cc,1),10]]){
+      ctx.font=font;const fz=parseFloat(font.split(' ')[1]),tot0=ctx.measureText(txt).width/R,th=thFor(tot0),T=arcText(txt,R,th);
       ctx.save();ctx.shadowBlur=0;ctx.lineCap='round';ctx.strokeStyle='rgba(5,3,12,.78)';ctx.lineWidth=fz+5;ctx.beginPath();ctx.arc(CX,CY,R+fz*0.36,th-T.tot/2-2/R,th+T.tot/2+2/R);ctx.stroke();ctx.restore();   // dark band for legibility
       ctx.fillStyle=col;ctx.shadowColor='rgba(0,0,0,.95)';ctx.shadowBlur=Q>0?6:3;
-      for(const ch of T.ch){const x=CX+Math.cos(ch.a)*R,y=CY+Math.sin(ch.a)*R;ctx.save();ctx.translate(x,y);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();lblReserve(x-fs1*0.6,y-fs1*0.9,fs1*1.2,fs1*1.2);}
-      if(glow&&Q>0){ctx.shadowColor=rgba(c,1);ctx.shadowBlur=glow;ctx.globalAlpha=0.6;for(const ch of T.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*R,CY+Math.sin(ch.a)*R);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}ctx.globalAlpha=1;}}
+      for(const ch of T.ch){const x=CX+Math.cos(ch.a)*R,y=CY+Math.sin(ch.a)*R;ctx.save();ctx.translate(x,y);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}
+      if(glow&&Q>0){ctx.shadowColor=rgba(c,1);ctx.shadowBlur=glow;ctx.globalAlpha=0.6*al;for(const ch of T.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*R,CY+Math.sin(ch.a)*R);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}ctx.globalAlpha=al;}}
     ctx.restore();}
 }
 let topWallsOld;
@@ -911,23 +919,6 @@ function drawBook(now){
   }
   ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
   drawKeyWalls(now,maxq);
-  // labels for top walls
-  ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;
-  for(const side of ['bid','ask']){
-    topWalls[side].forEach(([px,q],i)=>{
-      if(KEYW[side]&&KEYW[side].px===px)return;   // key wall already carries the curved SUPPORT/RESISTANCE label
-      const r=rOf(px-dispMid); if(r>RMAX*1.02)return;
-      const a=baseAng(side)+(side==='bid'?1:-1)*(levelSpan(q,maxq)+0.04)*(i%2?1:-1);
-      const x=CX+Math.cos(a)*r, y=CY+Math.sin(a)*r;
-      const txt=`${px.toFixed(5)} · ${fmtQ(q)}`, tw=ctx.measureText(txt).width+8;
-      const lx0=x+(side==='bid'?-1:1)*(WIDE?28+i*6:14), rx0=side==='bid'?lx0-tw:lx0;
-      const P=lblPlace(rx0,y+(i%2?1:-1)*(14+i*9),tw,i%2?1:-1); if(!P)return;
-      const ax=side==='bid'?P.x+tw:P.x;
-      ctx.strokeStyle='rgba(255,230,0,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(ax,P.y-4);ctx.stroke();
-      ctx.textAlign='left';ctx.fillStyle='rgba(5,3,12,.8)';ctx.fillRect(P.x,P.y-11,tw,15);
-      ctx.fillStyle='#ffe600';ctx.shadowColor='#ffe600';ctx.shadowBlur=Q>0?8:0;ctx.fillText(txt,P.x+4,P.y);ctx.shadowBlur=0;
-    });
-  }
   ctx.restore();
 }
 
@@ -997,8 +988,7 @@ function drawCore(now){
     ctx.beginPath();ctx.moveTo(CX+Math.cos(a)*(RH-5),CY+Math.sin(a)*(RH-5));ctx.lineTo(CX+Math.cos(a)*(RH-1),CY+Math.sin(a)*(RH-1));ctx.stroke();}
   ctx.shadowBlur=0;
   if(VIEW==='market'&&trail.length)drawTrailHead(now);
-  if(HL){const S=RH*1.62;ctx.save();ctx.beginPath();ctx.arc(CX,CY,RH-2,0,Math.PI*2);ctx.clip();ctx.shadowColor='rgba(0,240,255,.8)';ctx.shadowBlur=8;
-    ctx.drawImage(LOGO,CX-S/2,CY-S/2,S,S);ctx.restore();ctx.restore();return;}
+  if(HL){ctx.restore();return;}   // hub logo itself is drawn on the top logo canvas (drawLogosTop)
   ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font=`900 ${Math.round(Math.max(R0*0.30*hs,Math.min(R0*0.30,WIDE?12:9)))}px Orbitron,sans-serif`;ctx.shadowColor=VIEW==='market'?'rgba(0,0,0,.95)':'#00f0ff';ctx.shadowBlur=12;
   {const ty=CY+RH*0.10+(hs<1?3*(1-hs):0),txt=mid?hubTxt():'· · ·';
     if(VIEW==='market'){const tw=ctx.measureText(txt).width,fh=parseFloat(ctx.font.split(' ')[1])||10;
@@ -1095,9 +1085,13 @@ function logoGeom(){
       if(!best||sc<best.sc)best={x,y,S,sc};}
     if(best&&best.sc<S*0.6)g=best;else if(best&&S<=Math.max(60,S0*0.6))g=best;}
   lgCache={key,g};return g;}
-function drawLogo(){const g=logoGeom();if(!g||!LOGO.complete||!LOGO.naturalWidth)return;
-  ctx.save();ctx.shadowColor='rgba(0,240,255,.85)';ctx.shadowBlur=Q>0?18:8;ctx.drawImage(LOGO,g.x,g.y,g.S,g.S);
-  if(Q>0){ctx.shadowBlur=6;ctx.globalAlpha=0.5;ctx.drawImage(LOGO,g.x,g.y,g.S,g.S);}ctx.restore();}
+function drawLogosTop(){   // all logos on the top canvas (z-index above vignette, scanlines and glitch) -> nothing ever draws over them
+  lx.clearRect(0,0,W,H);if(!LOGO.complete||!LOGO.naturalWidth)return;
+  const g=logoGeom();
+  if(g){lx.save();lx.shadowColor='rgba(0,240,255,.85)';lx.shadowBlur=Q>0?18:8;lx.drawImage(LOGO,g.x,g.y,g.S,g.S);
+    if(Q>0){lx.shadowBlur=6;lx.globalAlpha=0.5;lx.drawImage(LOGO,g.x,g.y,g.S,g.S);}lx.restore();}
+  if(!WIDE){const RH=R0,S=RH*1.62;lx.save();lx.beginPath();lx.arc(CX,CY,RH-2,0,Math.PI*2);lx.clip();lx.shadowColor='rgba(0,240,255,.8)';lx.shadowBlur=8;
+    lx.drawImage(LOGO,CX-S/2,CY-S/2,S,S);lx.restore();}}
 function drawRingLabel(L,c,on,p){
   ctx.font=L.font;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillStyle=rgba(c,on?1:0.7);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(on?12*p:4):0;
   for(const ch of L.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*L.r,CY+Math.sin(ch.a)*L.r);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}
@@ -1545,12 +1539,12 @@ function frame(){
   if(!LIM){clipC();drawTrail(now);ctx.restore();drawMouthHead(now);drawTrailFlares(now);}sparks.length=0;shocks.length=0;
   drawNeedle(now);
   drawRSI(now);
-  drawLogo();
   drawVolume(now);
   drawCore(now);
   drawZoomBar(now);
   if(!mid){ctx.font='14px "Share Tech Mono",monospace';ctx.fillStyle='#ffe600';ctx.textAlign='center';ctx.fillText('ACQUIRING ORDER BOOK… '+connState,CX,CY+R0+30);}
   drawGlitch(now);
+  drawLogosTop();
   hud(now);
   requestAnimationFrame(frame);
 }
