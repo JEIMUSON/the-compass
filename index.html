@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261002-1312';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261002-1341';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05030c">
 <meta name="color-scheme" content="dark">
@@ -365,8 +365,8 @@ setInterval(()=>{if(VIEW==='market')buildTrail();},250);
 // While it lasts (+ hold) AUTO snaps the window to 15 s (tight vortex), then eases back to the price-move window.
 const BURST_X=3, BURST_MIN_USD=25000, BURST_HOLD=6500, BURST_WIN=15;
 let burst={on:false,until:0,rel:0,r3:0,base:0,usd3:0};
-// LIMIT + AUTO (opposite of MARKET): quiet tape -> 15 s depth; heavier traffic vs the 60 s baseline -> deeper, toward 2 m; burst -> full 2 m.
-// rho = 3 s USD rate / 60 s baseline: rho<=1 -> 15 s, rho=2 -> ~42 s, rho>=3 (=BURST_X) or burst -> 120 s (log scale). Deeper targets hold 5 s (burst: +6.5 s burst hold) before easing back in.
+// LIMIT + AUTO (opposite of MARKET): quiet tape -> 15 s depth; heavier traffic vs the 60 s baseline -> deeper, toward 1 m; burst -> full 1 m.
+// rho = 3 s USD rate / 60 s baseline: rho<=1 -> 15 s, rho=2 -> 30 s, rho>=3 (=BURST_X) or burst -> 60 s (log scale). Deeper targets hold 5 s (burst: +6.5 s burst hold) before easing back in.
 let LT={w:15,hold:0,rho:0};
 setInterval(()=>{if(!trades.length)return;const n=Date.now();let u3=0,u60=0,old=n;
   for(let i=trades.length-1;i>=0;i--){const t=trades[i],ag=n-t.t;if(ag>63000)break;const u=t.qty*t.px;if(ag<=3000)u3+=u;else u60+=u;old=Math.min(old,t.t);}
@@ -698,7 +698,7 @@ function updatePath(now){
 function offAtAge(age){const a=Math.max(0,Math.min(HIST_SEC,age)),i=Math.floor(a),f=a-i;return i>=HIST_SEC?pathOff[HIST_SEC]:pathOff[i]*(1-f)+pathOff[i+1]*f;}
 // MARKET: zoom sets the tunnel time window (zoom out = 120 s, zoom in = 15 s); tunnel depth always spans the window
 let MWIN=HIST_SEC;
-const MWMAX=60, LWMAX=HIST_SEC, WMIN=15;   // MARKET window 15-60 s (1 spiral turn = window); LIMIT depth 15-120 s
+const MWMAX=60, LWMAX=60, WMIN=15;   // MARKET window 15-60 s (1 spiral turn = window); LIMIT depth 15-60 s
 const mWinOf=r=>Math.max(WMIN,Math.min(MWMAX,MWMAX*Math.pow(WMIN/MWMAX,zT(r))));
 const lWinOf=r=>Math.max(WMIN,Math.min(LWMAX,LWMAX*Math.pow(WMIN/LWMAX,zT(r))));
 const TWIST_MAX=28*Math.PI/180;   // max tunnel twist at the vanishing point (MARKET, 15 s / burst)
@@ -754,10 +754,10 @@ function drawGrid(t){
   const TW=VIEW==='market'?TWIST_MAX*VSP.w:0;
   for(let k=0;k<NR;k++){const a=(k+0.5)/NR*Math.PI*2;
     const P=pts.map((p,i)=>{const aa=a-TW*Math.pow(FR[i],0.9);return {x:p.x+Math.cos(aa)*TR*p.s,y:p.y+Math.sin(aa)*TR*p.s,s:p.s};});
-    for(let pass=(Q>0&&VIEW==='market'?0:1);pass<2;pass++){           // pass 0 = wide soft glow (MARKET only), pass 1 = thin bright core
+    for(let pass=(Q>0?0:1);pass<2;pass++){           // pass 0 = wide soft glow, pass 1 = thin bright core
       const M=i=>i<=0?P[0]:i>=NS?P[NS]:{x:(P[i-1].x+P[i].x)/2,y:(P[i-1].y+P[i].y)/2};
       for(let i=0;i<=NS;i++){const p0=M(i),p1=M(i+1),c=P[i],s=c.s,fade=Math.pow(s,0.8);
-        ctx.strokeStyle=pass?`rgba(0,240,255,${(VIEW==='market'?1:0.45)*(0.06+0.34*fade)})`:`rgba(0,240,255,${0.035+0.07*fade})`;
+        ctx.strokeStyle=pass?`rgba(0,240,255,${0.06+0.34*fade})`:`rgba(0,240,255,${0.035+0.07*fade})`;
         ctx.lineWidth=pass?0.5+1.6*s:2+7*s;
         ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.quadraticCurveTo(c.x,c.y,p1.x,p1.y);ctx.stroke();}
     }
@@ -765,10 +765,10 @@ function drawGrid(t){
   // time rings: smooth, same soft style, tapered with depth
   ctx.font='10px "Share Tech Mono",monospace';ctx.textAlign='left';
   const MK=VIEW==='market', RINGS=MK?mRingAges().map(a=>({d:a*HIST_SEC/MWIN,maj:[30,60,90,120].includes(a)||a===mRingAges().slice(-1)[0]}))
-                                  :[1,2,3,4].map(k=>({d:k*HIST_SEC/4,maj:false}));   // LIMIT: one quiet ring per time label
+                                  :Array.from({length:12},(_,i)=>({d:(i+1)*10,maj:(i+1)%3===0}));
   for(const RG of RINGS){if(MK&&RG.d>HIST_SEC-1)continue;const p=proj(RG.d),s=p.s,fade=Math.pow(s,0.8);
-    if(Q>0&&MK){ctx.strokeStyle=`rgba(0,240,255,${0.03+0.06*fade})`;ctx.lineWidth=2+6*s;ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();}
-    ctx.strokeStyle=MK?`rgba(0,240,255,${0.05+(RG.maj?0.30:0.18)*fade})`:`rgba(0,240,255,${0.05+0.13*fade})`;ctx.lineWidth=MK?0.5+(RG.maj?1.4:0.9)*s:0.6+0.6*s;
+    if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${0.03+0.06*fade})`;ctx.lineWidth=2+6*s;ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();}
+    ctx.strokeStyle=`rgba(0,240,255,${0.05+(RG.maj?0.30:0.18)*fade})`;ctx.lineWidth=0.5+(RG.maj?1.4:0.9)*s;
     ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();
   }
   if(MK){ // vortex: smooth solid glowing ring pinned at the window end (constant depth d=HIST_SEC -> same on-screen size at every zoom 60 s..15 s / burst);
@@ -794,7 +794,7 @@ function drawGrid(t){
       if(put.some(q=>bx<q.x+q.w&&bx+bw>q.x&&by<q.y+q.h&&by+bh>q.y)||lblHit(bx,by,bw,bh))continue;
       put.push({x:bx,y:by,w:bw,h:bh,t:txt});lblReserve(bx,by,bw,bh);
       ctx.fillStyle='rgba(5,3,12,.6)';ctx.fillRect(bx,by,bw,bh);
-      ctx.fillStyle=a===0?'rgba(255,230,0,.9)':MK?`rgba(0,240,255,${0.45+0.45*s})`:`rgba(0,240,255,${0.38+0.3*s})`;ctx.fillText(txt,x,y);}
+      ctx.fillStyle=a===0?'rgba(255,230,0,.9)':`rgba(0,240,255,${0.45+0.45*s})`;ctx.fillText(txt,x,y);}
     window.__ofcTL=put.map(q=>q.t);ctx.textAlign='left';}
   ctx.restore();
   ctx.restore();
@@ -802,26 +802,24 @@ function drawGrid(t){
 
 let PLBL=[];
 const PF=p=>'$'+p.toFixed(4);
-const UNIT='XRP';
-function drawPriceLabels(){   // LIMIT: round-$ price marks on the horizontal axis
+function drawPriceLabels(){   // LIMIT: ring prices on the horizontal axis, over the walls
   if(!PLBL.length)return;ctx.save();ctx.font=`${WIDE?10:9}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.textBaseline='top';
-  for(const q of PLBL){ctx.fillStyle='rgba(5,3,12,.72)';ctx.fillRect(q.x,q.y,q.w,q.h);ctx.fillStyle=q.side==='bid'?'rgba(43,255,154,.95)':'rgba(255,43,214,.95)';ctx.fillText(q.txt,q.cx,q.y+2);}
+  for(const q of PLBL){ctx.fillStyle='rgba(5,3,12,.72)';ctx.fillRect(q.x,q.y,q.w,q.h);ctx.fillStyle=q.side==='bid'?'rgba(43,255,154,.9)':'rgba(255,43,214,.9)';ctx.fillText(q.txt,q.cx,q.y+2);}
+  const o=PLBL.filter(q=>q.side==='bid').sort((a,b)=>a.x-b.x)[0];
+  if(o){ctx.font=`700 ${WIDE?9:8}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(200,215,235,.75)';ctx.fillText('PRICE',o.cx,o.y+o.h+1);}
   ctx.restore();}
 function drawPriceRings(){
   if(!dispMid)return;
-  ctx.save();PLBL=[];
-  if(VIEW!=='market'&&mid){
-    const span=dispMid*PR_(), raw=span/4, mag=Math.pow(10,Math.floor(Math.log10(raw))), step=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=raw)||raw;
-    const dec=Math.max(0,Math.ceil(-Math.log10(step)-1e-9)+(Math.abs(step/Math.pow(10,Math.floor(Math.log10(step)))-2.5)<1e-6?1:0));
-    const fmt=p=>'$'+p.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
-    ctx.font=`${WIDE?10:9}px "Share Tech Mono",monospace`;ctx.textAlign='center';
-    for(const side of ['bid','ask']){let p=side==='bid'?Math.floor(dispMid/step)*step:Math.ceil(dispMid/step)*step,n=0;
-      for(let k=0;k<12&&n<3;k++,p+=side==='bid'?-step:step){const r=rOf(p-dispMid);if(r<R0+16)continue;if(r>RMAX*0.97)break;n++;
-        ctx.strokeStyle='rgba(120,200,255,0.13)';ctx.lineWidth=1;ctx.beginPath();
-        if(side==='bid')ctx.arc(CX,CY,r,Math.PI/2,Math.PI*1.5);else ctx.arc(CX,CY,r,-Math.PI/2,Math.PI/2);ctx.stroke();
-        const x=side==='bid'?CX-r:CX+r,txt=fmt(p),w=ctx.measureText(txt).width+6,bx=x-w/2,by=CY+5,bh=(WIDE?10:9)+4;
-        if(bx<2||bx+w>W-2||PLBL.some(q=>bx<q.x+q.w+4&&bx+w+4>q.x)||lblHit(bx,by,w,bh))continue;
-        PLBL.push({x:bx,y:by,w,h:bh,txt,side,cx:x});lblReserve(bx,by,w,bh);}}
+  ctx.save();
+  const span=dispMid*PR_(); // price distance at RMAX
+  const raw=span/5, mag=Math.pow(10,Math.floor(Math.log10(raw))); const nice=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=raw)||raw;
+  ctx.font=`${WIDE?10:9}px "Share Tech Mono",monospace`;ctx.textAlign='center';let ri=0;PLBL=[];
+  if(VIEW!=='market')for(let d=nice;d<=span*1.001;d+=nice){ri++;
+    const r=rOf(d);
+    ctx.strokeStyle='rgba(120,200,255,0.13)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);ctx.stroke();
+    for(const [side,px,x] of [['bid',dispMid-d,CX-r],['ask',dispMid+d,CX+r]]){const txt=PF(px),w=ctx.measureText(txt).width+6,bx=x-w/2,by=CY+4,bh=(WIDE?10:9)+4;
+      if(bx<2||bx+w>W-2||PLBL.some(q=>bx<q.x+q.w+3&&bx+w+3>q.x&&Math.abs(q.y-by)<bh)||lblHit(bx,by,w,bh))continue;
+      PLBL.push({x:bx,y:by,w,h:bh,txt,side,cx:x});lblReserve(bx,by,w,bh);}
   }
   // outer bezel
   ctx.strokeStyle='rgba(0,240,255,0.55)';ctx.lineWidth=2;ctx.shadowColor='#00f0ff';ctx.shadowBlur=14;
@@ -850,10 +848,10 @@ function drawHistory(now){
     const age=(now-h.t)/1000; if(age<0.5||age>LWIN)continue;
     const dz=depthOf(age), p=proj(dz), fade=INBOUND?limFade(age,dz):Math.max(0,1-dz/HIST_SEC);
     const sideDraw=(lv,side,c)=>{
-      for(const [px,q] of sigWalls(lv,h.maxq)){
+      for(const [px,q] of lv){
         const r=rOf(px-dispMid)*p.s; if(r>RMAX*1.02*p.s)continue;
         const sp=levelSpan(q,h.maxq), a0=baseAng(side);
-        ctx.strokeStyle=rgba(c,0.05+0.40*fade*Math.pow(q/h.maxq,0.5));
+        ctx.strokeStyle=rgba(c,0.05+0.32*fade*Math.pow(q/h.maxq,0.5));
         ctx.lineWidth=Math.max(0.6,(1+5*Math.pow(q/h.maxq,0.6))*p.s);
         ctx.beginPath();ctx.arc(p.x,p.y,r,a0-sp,a0+sp);ctx.stroke();
       }};
@@ -862,44 +860,74 @@ function drawHistory(now){
   ctx.restore();
 }
 
-// significant walls = top 5 per side by size + any giant (>= 50% of the biggest level on the book)
+const UNIT='XRP';
+// significant walls = top 5 per side by size + any giant (>= 50% of the biggest level) -> SUPPORT / RESISTANCE candidates
 const sigWalls=(lv,maxq)=>{const t=topBySize(lv,5),g=lv.filter(x=>x[1]>=0.5*maxq&&!t.includes(x));return t.concat(g);};
 let topWalls={bid:[],ask:[]}, KEYW={bid:null,ask:null};
+// curved label along a circle (upright in the upper half): returns per-char {c,a,rot} and total angle
+function arcText(txt,r,th0){const ws=[...txt].map(ch=>ctx.measureText(ch).width+0.6),tot=ws.reduce((x,y)=>x+y,0)/r,ch=[];let a=th0-tot/2;
+  [...txt].forEach((c,i)=>{const d=ws[i]/r,am=a+d/2;ch.push({c,a:am,rot:am+Math.PI/2});a+=d;});return {ch,tot};}
+function drawKeyWalls(now,maxq){   // SUPPORT (bid) / RESISTANCE (ask): highlight + two curved lines following the wall arc, upper side
+  const span=dispMid*PR_();
+  for(const [side,lv,c] of [['bid',sortedB,COL.bid],['ask',sortedA,COL.ask]]){
+    const vis=lv.filter(([px])=>rOf(px-dispMid)<=RMAX*1.0),sig=sigWalls(vis,maxq);
+    let key=null,ks=-1;for(const w of sig){const sc=w[1]*(1-0.45*Math.min(1,Math.abs(w[0]-dispMid)/span));if(sc>ks){ks=sc;key=w;}}
+    KEYW[side]=key?{px:key[0],q:key[1]}:null;if(!key)continue;
+    const [px,q]=key,rel=q/maxq,r=rOf(px-dispMid),sp=levelSpan(q,maxq),a0=baseAng(side),lw=1.2+9*Math.pow(rel,0.6);
+    const pl=0.85+0.15*Math.sin(now/650),cc=[Math.min(255,c[0]+45),Math.min(255,c[1]+45),Math.min(255,c[2]+45)];
+    ctx.save();ctx.globalCompositeOperation='source-over';ctx.strokeStyle=rgba(cc,(0.95*pl).toFixed(3));ctx.lineWidth=lw+2.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(LOW?16:28):0;
+    ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();ctx.restore();
+    // text: centre in the upper part of the arc (30-57 deg above the horizon) so it stays upright; title outside, price · size just outside the wall
+    const dl=Math.max(0.55,Math.min(1.0,sp*0.7)),th=side==='bid'?Math.PI+dl:2*Math.PI-dl;
+    const fs1=WIDE?Math.round(Math.max(12,Math.min(16,RMAX/27))):10,fs2=fs1-1,R1=r+lw/2+4,R2=R1+fs2+3;
+    const L1=`${PF(px)} · ${fmtQ(q)} ${UNIT}`,L2=side==='bid'?'SUPPORT':'RESISTANCE';
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    for(const [txt,R,font,col,glow] of [[L1,R1,`700 ${fs2}px "Share Tech Mono",monospace`,'#f2fbff',0],[L2,R2,`900 ${fs1}px Orbitron,sans-serif`,rgba(cc,1),10]]){
+      ctx.font=font;const T=arcText(txt,R,th),fz=parseFloat(font.split(' ')[1]);
+      ctx.save();ctx.shadowBlur=0;ctx.lineCap='round';ctx.strokeStyle='rgba(5,3,12,.78)';ctx.lineWidth=fz+5;ctx.beginPath();ctx.arc(CX,CY,R+fz*0.36,th-T.tot/2-2/R,th+T.tot/2+2/R);ctx.stroke();ctx.restore();   // dark band for legibility
+      ctx.fillStyle=col;ctx.shadowColor='rgba(0,0,0,.95)';ctx.shadowBlur=Q>0?6:3;
+      for(const ch of T.ch){const x=CX+Math.cos(ch.a)*R,y=CY+Math.sin(ch.a)*R;ctx.save();ctx.translate(x,y);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();lblReserve(x-fs1*0.6,y-fs1*0.9,fs1*1.2,fs1*1.2);}
+      if(glow&&Q>0){ctx.shadowColor=rgba(c,1);ctx.shadowBlur=glow;ctx.globalAlpha=0.6;for(const ch of T.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*R,CY+Math.sin(ch.a)*R);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}ctx.globalAlpha=1;}}
+    ctx.restore();}
+}
+let topWallsOld;
 function drawBook(now){
   if(!BREADY||!sortedB.length)return;
-  const maxq=Math.max(...sortedB.map(x=>x[1]),...sortedA.map(x=>x[1])), span=dispMid*PR_();
-  ctx.save();
+  const maxq=Math.max(...sortedB.map(x=>x[1]),...sortedA.map(x=>x[1]));
+  topWalls.bid=topBySize(sortedB,3); topWalls.ask=topBySize(sortedA,3);
+  const isTop=(side,px)=>topWalls[side].some(x=>x[0]===px);
+  ctx.save();ctx.globalCompositeOperation='lighter';
   for(const [side,lv,c] of [['bid',sortedB,COL.bid],['ask',sortedA,COL.ask]]){
-    const vis=lv.filter(([px])=>rOf(px-dispMid)<=RMAX*1.0), sig=sigWalls(vis,maxq), a0=baseAng(side);
-    topWalls[side]=sig;
-    // key wall: strongest, weighted toward the nearest (what price meets first)
-    let key=null,ks=-1;for(const w of sig){const sc=w[1]*(1-0.45*Math.min(1,Math.abs(w[0]-dispMid)/span));if(sc>ks){ks=sc;key=w;}}
-    KEYW[side]=key?{px:key[0],q:key[1]}:null;
-    // noise: faint thin depth texture, no glow
-    ctx.globalCompositeOperation='source-over';
-    const SG=new Set(sig);for(const e of vis){if(SG.has(e))continue;const [px,q]=e,rel=q/maxq,r=rOf(px-dispMid),sp=levelSpan(q,maxq);
-      ctx.strokeStyle=rgba(c,(0.05+0.10*Math.pow(rel,0.5)).toFixed(3));ctx.lineWidth=0.8+1.6*Math.pow(rel,0.6);
-      ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();}
-    // significant walls
-    ctx.globalCompositeOperation='lighter';
-    for(const w of sig){const [px,q]=w,rel=q/maxq,r=rOf(px-dispMid),sp=levelSpan(q,maxq),K=w===key;
-      const pl=K?0.88+0.12*Math.sin(now/650):1, cc=K?[Math.min(255,c[0]+70),Math.min(255,c[1]+70),Math.min(255,c[2]+70)]:c;
-      ctx.strokeStyle=rgba(cc,((K?0.9:0.42+0.4*Math.pow(rel,0.5))*pl).toFixed(3));ctx.lineWidth=(K?3.5:2)+8*Math.pow(rel,0.6);
-      ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q===0?0:K?(LOW?14:24):(LOW?0:10);
-      ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();}
-    ctx.shadowBlur=0;
+    // cumulative depth fill (wedge) for texture
+    for(const [px,q] of lv){
+      const r=rOf(px-dispMid); if(r>RMAX*1.02)continue;
+      const rel=q/maxq, sp=levelSpan(q,maxq), a0=baseAng(side), top=isTop(side,px);
+      const pulse=top?0.6+0.4*Math.sin(now/180+px*1e4):1;
+      ctx.strokeStyle=rgba(top?COL.yl:c,(0.25+0.75*Math.pow(rel,0.5))*pulse);
+      ctx.lineWidth=1.2+9*Math.pow(rel,0.6);
+      ctx.shadowColor=rgba(top?COL.yl:c,1);ctx.shadowBlur=Q===0?0:LOW||Q===1?(top?16:0):(top?26:(rel>0.25?12:0));
+      ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();
+    }
   }
-  ctx.globalCompositeOperation='source-over';
-  // one clean label per side on the key wall, just outside its upper tip
-  ctx.font=`700 ${WIDE?12:10}px "Share Tech Mono",monospace`;ctx.textAlign='left';
-  for(const side of ['bid','ask']){const k=KEYW[side];if(!k)continue;
-    const r=rOf(k.px-dispMid),sp=levelSpan(k.q,maxq),a=baseAng(side)+(side==='bid'?sp:-sp),x=CX+Math.cos(a)*r,y=CY+Math.sin(a)*r;
-    const t1=side==='bid'?'SUPPORT':'RESISTANCE',t2=`${PF(k.px)} · ${fmtQ(k.q)} ${UNIT}`,txt=t1+'  '+t2,tw=ctx.measureText(txt).width+12;
-    const P=lblPlace(side==='bid'?x-tw+tw*0.25:x-tw*0.25,y-12,tw,-1);if(!P)continue;
-    const c=side==='bid'?COL.bid:COL.ask;
-    ctx.fillStyle='rgba(5,3,12,.85)';ctx.fillRect(P.x,P.y-12,tw,17);ctx.fillStyle=rgba(c,1);ctx.fillRect(side==='bid'?P.x+tw-3:P.x,P.y-12,3,17);
-    ctx.strokeStyle=rgba(c,.5);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(Math.max(P.x,Math.min(P.x+tw,x)),P.y+5);ctx.stroke();
-    ctx.fillStyle=rgba(c,1);ctx.fillText(t1,P.x+6,P.y);ctx.fillStyle='#e8f4ff';ctx.fillText(t2,P.x+6+ctx.measureText(t1+'  ').width,P.y);}
+  ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
+  drawKeyWalls(now,maxq);
+  // labels for top walls
+  ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;
+  for(const side of ['bid','ask']){
+    topWalls[side].forEach(([px,q],i)=>{
+      if(KEYW[side]&&KEYW[side].px===px)return;   // key wall already carries the curved SUPPORT/RESISTANCE label
+      const r=rOf(px-dispMid); if(r>RMAX*1.02)return;
+      const a=baseAng(side)+(side==='bid'?1:-1)*(levelSpan(q,maxq)+0.04)*(i%2?1:-1);
+      const x=CX+Math.cos(a)*r, y=CY+Math.sin(a)*r;
+      const txt=`${px.toFixed(5)} · ${fmtQ(q)}`, tw=ctx.measureText(txt).width+8;
+      const lx0=x+(side==='bid'?-1:1)*(WIDE?28+i*6:14), rx0=side==='bid'?lx0-tw:lx0;
+      const P=lblPlace(rx0,y+(i%2?1:-1)*(14+i*9),tw,i%2?1:-1); if(!P)return;
+      const ax=side==='bid'?P.x+tw:P.x;
+      ctx.strokeStyle='rgba(255,230,0,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(ax,P.y-4);ctx.stroke();
+      ctx.textAlign='left';ctx.fillStyle='rgba(5,3,12,.8)';ctx.fillRect(P.x,P.y-11,tw,15);
+      ctx.fillStyle='#ffe600';ctx.shadowColor='#ffe600';ctx.shadowBlur=Q>0?8:0;ctx.fillText(txt,P.x+4,P.y);ctx.shadowBlur=0;
+    });
+  }
   ctx.restore();
 }
 
@@ -1414,7 +1442,7 @@ function drawZoomBar(now){
 // tap/drag the bar to set zoom (touch + mouse); stays out of pinch / double-tap handling
 let zDrag=false, pillT=0;
 function pillHit(px,py){const Z=zbarGeom();return !!(Z&&Z.pw&&px>Z.px-6&&px<Z.px+Z.pw+6&&py>Z.py-6&&py<Z.py+Z.ph+6);}
-function pillTap(){const n=performance.now();if(n-pillT<450)return;pillT=n;intro=null;if(rangeAuto)rangeFrac=ZMAX;setAuto(!rangeAuto);syncZA();}   // AUTO off -> ease to fully zoomed out (MARKET 60 s / LIMIT 2 m) until the user zooms
+function pillTap(){const n=performance.now();if(n-pillT<450)return;pillT=n;intro=null;if(rangeAuto)rangeFrac=ZMAX;setAuto(!rangeAuto);syncZA();}   // AUTO off -> ease to fully zoomed out (MARKET 60 s / LIMIT 60 s) until the user zooms
 function syncZA(){const b=$('zauto');if(b&&b.classList.contains('lit')!==rangeAuto)b.classList.toggle('lit',rangeAuto);}
 $('zauto').onclick=()=>{pillTap();};  // ON snaps back to auto-fit
 function zHit(px,py){const Z=zbarGeom();return Z&&Math.abs(px-Z.x)<18&&py>Z.y0-14&&py<Z.y1+8?Z:null;}
@@ -1489,7 +1517,7 @@ function frame(){
         f=zR(Math.log(MWMAX/Wsel)/Math.log(MWMAX/WMIN));
       }else{f=Math.max(db,da)/mid;}
       f=Math.min(ZMAX,Math.max(ZMIN,f)); fitFrac=f;
-      if(VIEW==='limit'){PFIT=f;if(rangeAuto)rangeFrac=zR(Math.log(LWMAX/LT.w)/Math.log(LWMAX/WMIN));}   // LIMIT: price always auto-fits; AUTO time depth follows traffic (quiet 15 s .. heavy/burst 2 m)
+      if(VIEW==='limit'){PFIT=f;if(rangeAuto)rangeFrac=zR(Math.log(LWMAX/LT.w)/Math.log(LWMAX/WMIN));}   // LIMIT: price always auto-fits; AUTO time depth follows traffic (quiet 15 s .. heavy/burst 1 m)
       else if(rangeAuto)rangeFrac=f;}
     if(VIEW==='limit')PRANGE+=(PFIT-PRANGE)*0.05;
     if(intro){
