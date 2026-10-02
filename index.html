@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261002-1552';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261002-1635';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05030c">
 <meta name="color-scheme" content="dark">
@@ -290,6 +290,7 @@ setInterval(()=>{computeIndicators();const cut=Date.now()-800*60000;for(const k 
 // ---------------- state ----------------
 let pricePrec=5, qtyPrec=8;
 const book={bids:new Map(), asks:new Map(), ready:false};
+let EAT=null;   // test hook (simEat)
 let sortedB=[], sortedA=[];                 // COMBINED [[p,q]] bids desc, asks asc (all venues or the selected one)
 let kB=[], kA=[];                           // Kraken's own book (for its CRC32 checksum)
 let mid=0, dispMid=0, bestBid=0, bestAsk=0;
@@ -531,6 +532,7 @@ function combine(){
   for(const {bb,aa} of per){for(const [p,q] of bb){const k=+key(p).toFixed(6);bm.set(k,(bm.get(k)||0)+q);}for(const [p,q] of aa){const k=+key(p).toFixed(6);am.set(k,(am.get(k)||0)+q);}}
   // venues/USDT books can overlap slightly; levels on the wrong side of the volume-weighted mid are dropped
   sortedB=[...bm.entries()].filter(x=>x[0]<M).sort((x,y)=>y[0]-x[0]);sortedA=[...am.entries()].filter(x=>x[0]>M).sort((x,y)=>x[0]-y[0]);
+  if(EAT&&sortedB.length>12){const u=Math.min(1,(Date.now()-EAT.t0)/EAT.ms);if(!EAT.px){let bd=1e9;for(const x of sortedB){const d=Math.abs(rOf(dispMid-x[0])-0.55*RMAX);if(d<bd){bd=d;EAT.px=x[0];}}EAT.q0=2*Math.max(...sortedB.map(x=>x[1]),...sortedA.map(x=>x[1]));}const e=sortedB.find(x=>x[0]===EAT.px);if(e)e[1]=EAT.q0*(1-0.9*u);}   // test hook: a bid wall being eaten
   if(sortedB.length>200)sortedB.length=200;if(sortedA.length>200)sortedA.length=200;
   if(!sortedB.length||!sortedA.length){BREADY=false;return;}
   bestBid=sortedB[0][0];bestAsk=sortedA[0][0];mid=simPx(one?(bestBid+bestAsk)/2:M);if(!dispMid)dispMid=mid;BREADY=true;
@@ -900,11 +902,19 @@ function drawPriceRings(){
 
 // level arc: radius by price distance, angular half-width by size
 const MAXSPAN=1.2; // radians each way from the horizontal axis
-function levelSpan(q,maxq){return 0.03+MAXSPAN*Math.pow(q/maxq,0.55);}
+function levelSpan(q,maxq){return 0.03+MAXSPAN*Math.pow(Math.min(1,q/maxq),0.55);}
+// LIMIT span reference: biggest level across the visible history window (+ live book). Shared by every snapshot copy, so a wall
+// that is being eaten draws a shorter arc in each newer copy (tapers down the tunnel). Rises instantly, eases down over ~3 s.
+let REFQ=0,REFT=0;
+function updRefQ(now){let m=0;for(const h of history){const age=(now-h.t)/1000;if(age<=LWIN+1&&h.maxq>m)m=h.maxq;}
+  if(BREADY&&sortedB.length&&sortedA.length)for(const L of [sortedB,sortedA])for(const x of L)if(x[1]>m)m=x[1];
+  const dt=REFT?Math.min(0.2,(now-REFT)/1000):0;REFT=now;
+  REFQ=!REFQ||m>=REFQ?m:REFQ+(m-REFQ)*(1-Math.exp(-dt/3));}
 
 // LIMIT fade: newest (at the vanishing point) dim-but-visible, brighter as they rush toward you, fade out as they exit past the ring
 const limFade=(age,dz)=>Math.min(1,0.3+age/Math.min(5,LWIN/8))*(0.3+0.7*(1-dz/HIST_SEC))*Math.max(0,Math.min(1,(LWIN-age)/(LWIN*0.12)));
 function drawHistory(now){
+  updRefQ(now);
   ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.arc(CX,CY,R0*1.02,0,Math.PI*2,true);ctx.clip();   // keep the hub readout clean over the newest datactx.globalCompositeOperation='lighter';
   const stepH=Q===2?1:Q===1?2:3;
   for(let hi=history.length-1-((history.length-1)%stepH);hi>=0;hi-=stepH){const h=history[hi];if(!h)continue;
@@ -913,7 +923,7 @@ function drawHistory(now){
     const sideDraw=(lv,side,c)=>{
       for(const [px,q] of lv){
         const r=rOf(px-dispMid)*p.s; if(r>RMAX*1.02*p.s)continue;
-        const sp=levelSpan(q,h.maxq), a0=baseAng(side);
+        const sp=levelSpan(q,REFQ||h.maxq), a0=baseAng(side);
         ctx.strokeStyle=rgba(c,0.05+0.32*fade*Math.pow(q/h.maxq,0.5));
         ctx.lineWidth=Math.max(0.6,(1+5*Math.pow(q/h.maxq,0.6))*p.s);
         ctx.beginPath();ctx.arc(p.x,p.y,r,a0-sp,a0+sp);ctx.stroke();
@@ -936,17 +946,18 @@ function drawKeyWalls(now,maxq){   // SUPPORT (bid) / RESISTANCE (ask): highligh
     const vis=lv.filter(([px])=>rOf(px-dispMid)<=RMAX*1.0),sig=sigWalls(vis,maxq);
     let key=null,ks=-1;for(const w of sig){const sc=w[1]*(1-0.45*Math.min(1,Math.abs(w[0]-dispMid)/span));if(sc>ks){ks=sc;key=w;}}
     KEYW[side]=key?{px:key[0],q:key[1]}:null;if(!key)continue;
-    const [px,q]=key,rel=q/maxq,r=rOf(px-dispMid),sp=levelSpan(q,maxq),a0=baseAng(side),lw=1.2+9*Math.pow(rel,0.6);
+    const [px,q]=key,rel=q/maxq,r=rOf(px-dispMid),sp=levelSpan(q,REFQ||maxq),a0=baseAng(side),lw=1.2+9*Math.pow(rel,0.6);
     const pl=0.85+0.15*Math.sin(now/650),cc=[Math.min(255,c[0]+45),Math.min(255,c[1]+45),Math.min(255,c[2]+45)];
     ctx.save();ctx.globalCompositeOperation='source-over';ctx.strokeStyle=rgba(cc,(0.95*pl).toFixed(3));ctx.lineWidth=lw+2.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(LOW?16:28):0;
     ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();ctx.restore();
     // text: centred on the angular midpoint of its own wall arc (a0), following the curve, upright (outward-facing); font shrinks with the arc, fades when too small
     const base1=WIDE?Math.round(Math.max(12,Math.min(16,RMAX/27))):10, sc=Math.max(0.62,Math.min(1,(r-R0)/(RMAX*0.28)));
-    const fs1=Math.max(7,Math.round(base1*sc)), fs2=Math.max(7,fs1-1), R1=r+lw/2+4, R2=R1+fs2+3;
-    const L1=`${PF(px)} · ${fmtQ(q)} ${UNIT}`,L2=side==='bid'?'SUPPORT':'RESISTANCE';
-    const F1=`700 ${fs2}px "Share Tech Mono",monospace`,F2=`900 ${fs1}px Orbitron,sans-serif`;
-    ctx.font=F1;const w1=ctx.measureText(L1).width/R1;ctx.font=F2;const w2=ctx.measureText(L2).width/R2,totM=Math.max(w1,w2);
-    let al=Math.max(0,Math.min(1,(r-R0*1.12)/(R0*0.45)))*Math.max(0,Math.min(1,(1.45-totM)/0.3));   // too close to the hub / too long for the arc -> fade
+    const L1=`${PF(px)} · ${fmtQ(q)} ${UNIT}`,L2=side==='bid'?'SUPPORT':'RESISTANCE', allow=Math.min(1.45,Math.max(0.55,2*sp+0.5));   // text may overhang a short arc a little
+    const lay=k=>{const fs1=Math.max(7,Math.round(base1*sc*k)),fs2=Math.max(7,fs1-1),R1=r+lw/2+4,R2=R1+fs2+3,F1=`700 ${fs2}px "Share Tech Mono",monospace`,F2=`900 ${fs1}px Orbitron,sans-serif`;
+      ctx.font=F1;const w1=ctx.measureText(L1).width/R1;ctx.font=F2;const w2=ctx.measureText(L2).width/R2;return {fs1,fs2,R1,R2,F1,F2,totM:Math.max(w1,w2)};};
+    let LY=lay(1);if(LY.totM>allow)LY=lay(Math.max(0.72,allow/LY.totM));   // short arc -> shrink the text (down to 72%) ...
+    const {fs1,fs2,R1,R2,F1,F2,totM}=LY;
+    let al=Math.max(0,Math.min(1,(r-R0*1.12)/(R0*0.45)))*Math.max(0,Math.min(1,(allow*1.35-totM)/(allow*0.35)));   // ... then fade if still too long / too close to the hub
     if(al<=0.03)continue;KLB[side]={r0:R1-3,r1:R2+fs1+3};
     ctx.save();ctx.globalAlpha=al;ctx.textAlign='center';ctx.textBaseline='alphabetic';
     for(const [txt,R,font,col,glow] of [[L1,R1,F1,'#f2fbff',0],[L2,R2,F2,rgba(cc,1),10]]){
@@ -968,7 +979,7 @@ function drawBook(now){
     // cumulative depth fill (wedge) for texture
     for(const [px,q] of lv){
       const r=rOf(px-dispMid); if(r>RMAX*1.02)continue;
-      const rel=q/maxq, sp=levelSpan(q,maxq), a0=baseAng(side), top=isTop(side,px);
+      const rel=q/maxq, sp=levelSpan(q,REFQ||maxq), a0=baseAng(side), top=isTop(side,px);
       const pulse=top?0.6+0.4*Math.sin(now/180+px*1e4):1;
       ctx.strokeStyle=rgba(top?COL.yl:c,(0.25+0.75*Math.pow(rel,0.5))*pulse);
       ctx.lineWidth=1.2+9*Math.pow(rel,0.6);
@@ -1607,7 +1618,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={get mt(){return {w:+MT.w.toFixed(1),q:+MT.q.toFixed(2),z:+MT.z.toFixed(2),sg:MT.sg,burst:burst.on}},get lt(){return {w:+LT.w.toFixed(1),rho:+LT.rho.toFixed(2),lwin:+LWIN.toFixed(1),burst:burst.on}},get keyWalls(){return VIEW==='limit'?{...KEYW,nSig:{bid:topWalls.bid.length,ask:topWalls.ask.length},marks:PLBL.map(q=>q.txt)}:null},simFlat(){SIM={on:true,base:mid,t0:0,dir:0,amp:0,ramp:1};},simMove(dir,frac,ramp){SIM.t0=Date.now();SIM.dir=dir;SIM.amp=frac*SIM.base;SIM.ramp=ramp;},get resp(){const v=proj(HIST_SEC),m=proj(HIST_SEC*0.4);return {tw:+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(2),vp:+(v.y-CY).toFixed(1),vm:+(m.y-CY).toFixed(1),o3:+((window.__ofcR||{}).o3||0).toFixed(1),o8:+((window.__ofcR||{}).o8||0).toFixed(1),mw:+MWIN.toFixed(1),dr:dispRange,pr:pathRef}},get bp(){return BP.length},autoOff(){pillT=0;if(rangeAuto)pillTap();},get dr(){return dispRange},get hubLogo(){return !WIDE&&LOGO.complete&&LOGO.naturalWidth>0},get hdrLogo(){const e=document.querySelector('#top .logo');return !!e&&getComputedStyle(e).display!=='none'},get flares(){return VIEW==='market'?[...FLR.entries()].map(([k,F])=>{const p=F.dx!=null?{x:F.dx,y:F.dy}:null;return {k,T:F.T,tT:trailT,st:trailStep,w:+F.w.toFixed(2),on:!!F.on,side:F.c===COL.bid?'bid':'ask',x:p?Math.round(p.x):null,y:p?Math.round(p.y):null};}):null},winTo(S){intro=null;setAuto(false);syncZA();let lo=0,hi=1;const f=u=>mWinOf(zR(u));const dec=f(0)>f(1);for(let i=0;i<40;i++){const m=(lo+hi)/2;if((f(m)>S)===dec)lo=m;else hi=m;}rangeFrac=zR((lo+hi)/2);return f((lo+hi)/2);},get vring(){if(VIEW!=='market')return null;const p=proj(HIST_SEC);return {full:+(RMAX*p.s).toFixed(1),r:+(RMAX*p.s).toFixed(1),x:Math.round(p.x),y:Math.round(p.y),R0:Math.round(R0)}},get twist(){return VIEW==='market'?+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(1):0},get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={simEat(ms){EAT={t0:Date.now(),ms,px:0,q0:0};},get eat(){const n=performance.now();return EAT&&{px:EAT.px,q0:EAT.q0,ref:REFQ,cp:history.filter((h,i)=>i%8===0&&(n-h.t)/1000<=LWIN).map(h=>{const e=h.b.find(x=>x[0]===EAT.px);return e?[Math.round((n-h.t)/1000),+levelSpan(e[1],REFQ||h.maxq).toFixed(3)]:null;}).filter(Boolean)}},get mt(){return {w:+MT.w.toFixed(1),q:+MT.q.toFixed(2),z:+MT.z.toFixed(2),sg:MT.sg,burst:burst.on}},get lt(){return {w:+LT.w.toFixed(1),rho:+LT.rho.toFixed(2),lwin:+LWIN.toFixed(1),burst:burst.on}},get keyWalls(){return VIEW==='limit'?{...KEYW,nSig:{bid:topWalls.bid.length,ask:topWalls.ask.length},marks:PLBL.map(q=>q.txt)}:null},simFlat(){SIM={on:true,base:mid,t0:0,dir:0,amp:0,ramp:1};},simMove(dir,frac,ramp){SIM.t0=Date.now();SIM.dir=dir;SIM.amp=frac*SIM.base;SIM.ramp=ramp;},get resp(){const v=proj(HIST_SEC),m=proj(HIST_SEC*0.4);return {tw:+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(2),vp:+(v.y-CY).toFixed(1),vm:+(m.y-CY).toFixed(1),o3:+((window.__ofcR||{}).o3||0).toFixed(1),o8:+((window.__ofcR||{}).o8||0).toFixed(1),mw:+MWIN.toFixed(1),dr:dispRange,pr:pathRef}},get bp(){return BP.length},autoOff(){pillT=0;if(rangeAuto)pillTap();},get dr(){return dispRange},get hubLogo(){return !WIDE&&LOGO.complete&&LOGO.naturalWidth>0},get hdrLogo(){const e=document.querySelector('#top .logo');return !!e&&getComputedStyle(e).display!=='none'},get flares(){return VIEW==='market'?[...FLR.entries()].map(([k,F])=>{const p=F.dx!=null?{x:F.dx,y:F.dy}:null;return {k,T:F.T,tT:trailT,st:trailStep,w:+F.w.toFixed(2),on:!!F.on,side:F.c===COL.bid?'bid':'ask',x:p?Math.round(p.x):null,y:p?Math.round(p.y):null};}):null},winTo(S){intro=null;setAuto(false);syncZA();let lo=0,hi=1;const f=u=>mWinOf(zR(u));const dec=f(0)>f(1);for(let i=0;i<40;i++){const m=(lo+hi)/2;if((f(m)>S)===dec)lo=m;else hi=m;}rangeFrac=zR((lo+hi)/2);return f((lo+hi)/2);},get vring(){if(VIEW!=='market')return null;const p=proj(HIST_SEC);return {full:+(RMAX*p.s).toFixed(1),r:+(RMAX*p.s).toFixed(1),x:Math.round(p.x),y:Math.round(p.y),R0:Math.round(R0)}},get twist(){return VIEW==='market'?+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(1):0},get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 // ---------------- INFO overlay: what am I looking at? (✕ / tap outside / Esc) ----------------
 (function(){const I=document.getElementById('info'),B=document.getElementById('infoBtn');if(!I||!B)return;
