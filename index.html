@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261002-1520';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261002-1552';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05030c">
 <meta name="color-scheme" content="dark">
@@ -135,16 +135,18 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 }
 #infoBtn{position:absolute;left:8px;top:5px;width:20px;height:20px;padding:0;border-radius:50%;background:rgba(5,3,12,.6);border:1px solid rgba(0,240,255,.55);color:var(--cy);font:italic 700 12px/18px Georgia,serif;text-align:center;cursor:pointer;z-index:2;box-shadow:0 0 6px rgba(0,240,255,.35)}
 #infoBtn:hover,#infoBtn:focus-visible{color:#fff;border-color:var(--yl);box-shadow:0 0 10px rgba(255,230,0,.5);outline:none}
-#info{display:none;position:fixed;inset:0;z-index:60;background:rgba(2,1,8,.72);align-items:center;justify-content:center;padding:calc(var(--st) + 12px) 12px calc(var(--sb) + 12px)}
+#info{display:none;position:fixed;left:0;right:0;top:0;height:100vh;height:100dvh;z-index:60;background:rgba(2,1,8,.72);align-items:center;justify-content:center;padding:calc(var(--st) + 10px) calc(env(safe-area-inset-right,0px) + 10px) calc(var(--sb) + 10px) calc(env(safe-area-inset-left,0px) + 10px)}   /* dvh: fits the visible area even with the Android URL bar */
 #info.on{display:flex}
-#infoBox{position:relative;width:min(560px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:rgba(8,14,28,.97);padding:14px 16px 12px;font-size:13px;line-height:1.45;color:#cfe9ff;-webkit-user-select:text;user-select:text;touch-action:pan-y}
-#infoBox h2{font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:3px;color:var(--cy);text-shadow:0 0 8px var(--cy);margin:0 40px 8px 0}
+#infoBox{position:relative;display:flex;flex-direction:column;width:min(560px,100%);max-height:100%;min-height:0;overflow:hidden;background:rgba(8,14,28,.97);padding:14px 16px 16px;font-size:13px;line-height:1.45;color:#cfe9ff;-webkit-user-select:text;user-select:text;touch-action:pan-y}
+#infoHd{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-4px 0 6px;padding-bottom:6px;border-bottom:1px solid rgba(0,240,255,.18)}   /* header row never scrolls: X always visible */
+#infoBody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding:0 2px 6px 0;scroll-padding-bottom:16px}   /* bottom inset matches the sides, while scrolling and at the end */
+#infoBox h2{font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:3px;color:var(--cy);text-shadow:0 0 8px var(--cy);margin:0}
 #infoBox h3{font-size:10px;margin:10px 0 4px}
 #infoBox ul{list-style:none}
 #infoBox li{position:relative;padding-left:12px;margin:2px 0}
 #infoBox li:before{content:'›';position:absolute;left:0;color:var(--cy)}
 #infoBox b{color:#fff;font-weight:700}#infoBox b.gr{color:var(--gr)}#infoBox b.rd{color:var(--rd)}
-#infoX{position:absolute;top:8px;right:10px;width:34px;height:24px;background:transparent;border:1px solid rgba(0,240,255,.45);color:var(--cy);font-size:14px;cursor:pointer}
+#infoX{flex:0 0 auto;position:relative;z-index:2;width:44px;height:40px;margin-right:4px;padding:0;background:rgba(5,3,12,.85);border:1px solid rgba(0,240,255,.6);color:var(--cy);font-size:18px;line-height:38px;font-family:system-ui,sans-serif;cursor:pointer;touch-action:manipulation;box-shadow:0 0 8px rgba(0,240,255,.3)}
 .infoCred{font-family:Orbitron,sans-serif;font-size:10px;letter-spacing:2px;color:var(--cy);text-align:center;margin-top:12px;text-shadow:0 0 6px rgba(0,240,255,.6)}
 #credit{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);z-index:9;pointer-events:none;white-space:nowrap;font-size:8px;letter-spacing:1px;color:rgba(160,200,230,.32)}
 @media (min-aspect-ratio:1/1){#credit{left:6px;transform:none;bottom:3px;font-size:9px}}
@@ -155,8 +157,8 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 </head>
 <body>
 <div id="info" role="dialog" aria-modal="true" aria-labelledby="infoT"><div id="infoBox" class="panel">
- <button id="infoX" aria-label="close">✕</button>
- <h2 id="infoT">// WHAT YOU'RE SEEING</h2>
+ <div id="infoHd"><h2 id="infoT">// WHAT YOU'RE SEEING</h2><button id="infoX" aria-label="close">✕</button></div>
+ <div id="infoBody">
  <h3>MARKET VIEW · LIVE TRADES</h3>
  <ul><li>Every trade lands on a <b>spiral</b>: newest on the outer ring, older ones wind into the center.</li>
  <li>One lap = the time window (15–60s, shown on the zoom bar).</li>
@@ -170,7 +172,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <li>New walls start at the center and drift outward over time. A wall that stays is <b>holding</b>; one that vanishes was <b>pulled or eaten</b>.</li>
  <li><b class="gr">SUPPORT</b> / <b class="rd">RESISTANCE</b> = the strongest nearby wall on each side.</li></ul>
  <h3>AUTO ZOOM</h3>
- <ul><li><b>MARKET:</b> normal traffic shows ~45s, dead-slow up to 60s. Price moves tighten it; volume bursts snap to a 15s vortex.</li>
+ <ul><li><b>MARKET:</b> normal traffic shows ~30s, dead-slow up to 60s. Price moves tighten it; volume bursts snap to a 15s vortex.</li>
  <li><b>LIMIT:</b> quiet = 15s; heavy trading zooms out to 1m so you see walls get hit.</li>
  <li><b>AUTO off</b> = full zoom out; then zoom by pinch, wheel or the zoom bar.</li></ul>
  <h3>ALSO</h3>
@@ -178,6 +180,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <li><b>SRC</b>: venues feeding the book. Pick ALL or one exchange.</li></ul>
  <div class="infoCred">Made by JEIMUSON &amp; Grok Bot</div>
  <div class="infoFoot">tap outside, ✕ or Esc to close</div>
+ </div>
 </div></div>
 <div id="app">
 <div id="colA"><div id="stage"><canvas id="cv"></canvas><div id="vig"></div><div id="scan"></div><canvas id="lcv"></canvas><div id="credit" aria-hidden="true">Made by JEIMUSON &amp; Grok Bot</div></div><canvas id="vcv"></canvas></div>
@@ -411,10 +414,11 @@ let burst={on:false,until:0,rel:0,r3:0,base:0,usd3:0};
 // LIMIT + AUTO (opposite of MARKET): quiet tape -> 15 s depth; heavier traffic vs the 60 s baseline -> deeper, toward 1 m; burst -> full 1 m.
 // rho = 3 s USD rate / 60 s baseline: rho<=1 -> 15 s, rho=2 -> 30 s, rho>=3 (=BURST_X) or burst -> 60 s (log scale). Deeper targets hold 5 s (burst: +6.5 s burst hold) before easing back in.
 let LT={w:15,hold:0,rho:0};
-// MARKET + AUTO window: volume sets the baseline (normal -> 45 s, dead-slow -> 60 s); price moves tighten it toward 15 s; a volume burst snaps to 15 s.
-//  q  = 60 s USD rate / 10 min EMA of that rate:   q>=0.6 -> 45 s,  q<=0.25 -> 60 s (log-interp between)
+// MARKET + AUTO window: volume sets the baseline (normal -> 30 s, dead-slow -> 60 s); price moves tighten it toward 15 s; a volume burst snaps to 15 s.
+//  q  = 60 s USD rate / 10 min EMA of that rate:   q>=0.6 -> 30 s,  q<=0.25 -> 60 s (log-interp between)
 //  z  = max |mid move| over last 10 s / 5 min EMA of that same measure (typical 10 s move):  z<=1.5 -> no change, z>=4 -> 15 s (log-interp)
-let MT={w:45,hold:0,q:1,z:0,vb:0,sg:0,t0:0,mp:[]};
+const MBASE=30;   // MARKET AUTO normal-traffic window
+let MT={w:30,hold:0,q:1,z:0,vb:0,sg:0,t0:0,mp:[]};
 setInterval(()=>{if(!trades.length)return;const n=Date.now();let u3=0,u60=0,old=n;
   for(let i=trades.length-1;i>=0;i--){const t=trades[i],ag=n-t.t;if(ag>63000)break;const u=t.qty*t.px;if(ag<=3000)u3+=u;else u60+=u;old=Math.min(old,t.t);}
   const bspan=Math.min(60,(n-old)/1000-3), base=bspan>=20?u60/bspan:0, r3=u3/3;
@@ -429,7 +433,7 @@ setInterval(()=>{if(!trades.length)return;const n=Date.now();let u3=0,u60=0,old=
     if(span10>=8){const a=1-Math.exp(-0.25/Math.min(300,10+el));MT.sg=MT.sg?MT.sg+(Math.max(mv,fl)-MT.sg)*a:Math.max(mv,fl);}
     if(base>0){const a=1-Math.exp(-0.25/Math.min(600,20+el));MT.vb=MT.vb?MT.vb+(base-MT.vb)*a:base;}
     MT.q=bspan>=20&&MT.vb>0?base/MT.vb:1; MT.z=MT.sg>0&&span10>=8?mv/MT.sg:0;
-    const kv=cl((MT.q-0.25)/0.35), wv=MWMAX*Math.pow(45/MWMAX,kv), kp=cl((MT.z-1.5)/2.5);
+    const kv=cl((MT.q-0.25)/0.35), wv=MWMAX*Math.pow(MBASE/MWMAX,kv), kp=cl((MT.z-1.5)/2.5);
     const wt=n<burst.until?BURST_WIN:wv*Math.pow(WMIN/wv,kp);
     if(wt<=MT.w){MT.w=wt;MT.hold=n+3000;}else if(n>MT.hold)MT.w=wt;}
   const was=burst.on;burst.on=n<burst.until;if(was&&!burst.on)burst.rel=n;},250);
@@ -1559,7 +1563,7 @@ function frame(){
   if(mid&&sortedB.length>5&&sortedA.length>5){
     {const db=mid-sortedB[Math.floor(sortedB.length*0.7)][0], da=sortedA[Math.floor(sortedA.length*0.7)][0]-mid;let f;
       if(VIEW==='market'){ // fit the recent trade price range so bubbles spread across the dial
-        const Wsel=burst.on?BURST_WIN:MT.w;   // volume burst -> tight vortex; else volume baseline (45/60 s) tightened by price moves (see MT)
+        const Wsel=burst.on?BURST_WIN:MT.w;   // volume burst -> tight vortex; else volume baseline (30/60 s) tightened by price moves (see MT)
         f=zR(Math.log(MWMAX/Wsel)/Math.log(MWMAX/WMIN));
       }else{f=Math.max(db,da)/mid;}
       f=Math.min(ZMAX,Math.max(ZMIN,f)); fitFrac=f;
