@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261002-1635';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261002-1710';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05030c">
 <meta name="color-scheme" content="dark">
@@ -170,7 +170,8 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <li>Distance from the middle = distance from the current price.</li>
  <li>Bigger, brighter arc = bigger wall.</li>
  <li>New walls start at the center and drift outward over time. A wall that stays is <b>holding</b>; one that vanishes was <b>pulled or eaten</b>.</li>
- <li><b class="gr">SUPPORT</b> / <b class="rd">RESISTANCE</b> = the strongest nearby wall on each side.</li></ul>
+ <li><b class="gr">SUPPORT</b> / <b class="rd">RESISTANCE</b> = the strongest nearby wall on each side.</li>
+ <li><b>EATEN</b> (bright bite flash) = a wall shrank while trades hit its price. <b>PULLED</b> (ghostly dashed outline) = it vanished with little trading there; repeat pulls in one zone = <b>SPOOF?</b> Just a hint: intent can't be proven.</li></ul>
  <h3>AUTO ZOOM</h3>
  <ul><li><b>MARKET:</b> normal traffic shows ~30s, dead-slow up to 60s. Price moves tighten it; volume bursts snap to a 15s vortex.</li>
  <li><b>LIMIT:</b> quiet = 15s; heavy trading zooms out to 1m so you see walls get hit.</li>
@@ -532,7 +533,7 @@ function combine(){
   for(const {bb,aa} of per){for(const [p,q] of bb){const k=+key(p).toFixed(6);bm.set(k,(bm.get(k)||0)+q);}for(const [p,q] of aa){const k=+key(p).toFixed(6);am.set(k,(am.get(k)||0)+q);}}
   // venues/USDT books can overlap slightly; levels on the wrong side of the volume-weighted mid are dropped
   sortedB=[...bm.entries()].filter(x=>x[0]<M).sort((x,y)=>y[0]-x[0]);sortedA=[...am.entries()].filter(x=>x[0]>M).sort((x,y)=>x[0]-y[0]);
-  if(EAT&&sortedB.length>12){const u=Math.min(1,(Date.now()-EAT.t0)/EAT.ms);if(!EAT.px){let bd=1e9;for(const x of sortedB){const d=Math.abs(rOf(dispMid-x[0])-0.55*RMAX);if(d<bd){bd=d;EAT.px=x[0];}}EAT.q0=2*Math.max(...sortedB.map(x=>x[1]),...sortedA.map(x=>x[1]));}const e=sortedB.find(x=>x[0]===EAT.px);if(e)e[1]=EAT.q0*(1-0.9*u);}   // test hook: a bid wall being eaten
+  if(EAT&&sortedB.length>12){const u=Math.max(0,Math.min(1,(Date.now()-EAT.t0-EAT.hold)/EAT.ms));if(!EAT.q0){if(!EAT.px){let bd=1e9;for(const x of sortedB){const d=Math.abs(rOf(dispMid-x[0])-0.55*RMAX);if(d<bd){bd=d;EAT.px=x[0];}}}EAT.q0=2*Math.max(...sortedB.map(x=>x[1]),...sortedA.map(x=>x[1]));}let e=sortedB.find(x=>x[0]===EAT.px);if(!e){e=[EAT.px,0];sortedB.push(e);sortedB.sort((x,y)=>y[0]-x[0]);}e[1]=EAT.q0*(1-(EAT.kind==='pull'?0.98:0.9)*u);}   // test hook: a simulated bid wall (eaten: with fills / pulled: without)
   if(sortedB.length>200)sortedB.length=200;if(sortedA.length>200)sortedA.length=200;
   if(!sortedB.length||!sortedA.length){BREADY=false;return;}
   bestBid=sortedB[0][0];bestAsk=sortedA[0][0];mid=simPx(one?(bestBid+bestAsk)/2:M);if(!dispMid)dispMid=mid;BREADY=true;
@@ -914,7 +915,7 @@ function updRefQ(now){let m=0;for(const h of history){const age=(now-h.t)/1000;i
 // LIMIT fade: newest (at the vanishing point) dim-but-visible, brighter as they rush toward you, fade out as they exit past the ring
 const limFade=(age,dz)=>Math.min(1,0.3+age/Math.min(5,LWIN/8))*(0.3+0.7*(1-dz/HIST_SEC))*Math.max(0,Math.min(1,(LWIN-age)/(LWIN*0.12)));
 function drawHistory(now){
-  updRefQ(now);
+  updRefQ(now);const GH=spGhosts(now);
   ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.arc(CX,CY,R0*1.02,0,Math.PI*2,true);ctx.clip();   // keep the hub readout clean over the newest datactx.globalCompositeOperation='lighter';
   const stepH=Q===2?1:Q===1?2:3;
   for(let hi=history.length-1-((history.length-1)%stepH);hi>=0;hi-=stepH){const h=history[hi];if(!h)continue;
@@ -924,6 +925,9 @@ function drawHistory(now){
       for(const [px,q] of lv){
         const r=rOf(px-dispMid)*p.s; if(r>RMAX*1.02*p.s)continue;
         const sp=levelSpan(q,REFQ||h.maxq), a0=baseAng(side);
+        {const G=GH.size?GH.get(side+'|'+px):null;if(G&&h.t<=G.tt){   // PULLED: earlier copies of the wall become a ghostly dashed, flickering outline drifting out the tunnel
+          const fl=0.55+0.45*Math.sin(now/70+px*977+hi*1.7),col=G.spoof?'255,110,235':'215,200,255';ctx.save();ctx.setLineDash([Math.max(2,7*p.s),Math.max(2,6*p.s)]);ctx.lineDashOffset=-now/45*p.s;
+          ctx.strokeStyle=`rgba(${col},${((0.38+0.55*fade)*fl).toFixed(3)})`;ctx.shadowColor=`rgba(${col},.8)`;ctx.shadowBlur=Q>0?6:0;ctx.lineWidth=Math.max(1.2,(1.5+3*Math.pow(q/h.maxq,0.6))*p.s);ctx.beginPath();ctx.arc(p.x,p.y,r,a0-sp,a0+sp);ctx.stroke();ctx.restore();continue;}}
         ctx.strokeStyle=rgba(c,0.05+0.32*fade*Math.pow(q/h.maxq,0.5));
         ctx.lineWidth=Math.max(0.6,(1+5*Math.pow(q/h.maxq,0.6))*p.s);
         ctx.beginPath();ctx.arc(p.x,p.y,r,a0-sp,a0+sp);ctx.stroke();
@@ -958,7 +962,7 @@ function drawKeyWalls(now,maxq){   // SUPPORT (bid) / RESISTANCE (ask): highligh
     let LY=lay(1);if(LY.totM>allow)LY=lay(Math.max(0.72,allow/LY.totM));   // short arc -> shrink the text (down to 72%) ...
     const {fs1,fs2,R1,R2,F1,F2,totM}=LY;
     let al=Math.max(0,Math.min(1,(r-R0*1.12)/(R0*0.45)))*Math.max(0,Math.min(1,(allow*1.35-totM)/(allow*0.35)));   // ... then fade if still too long / too close to the hub
-    if(al<=0.03)continue;KLB[side]={r0:R1-3,r1:R2+fs1+3};
+    if(al<=0.03)continue;KLB[side]={r0:R1-3,r1:R2+fs1+3,ah:totM/2+0.04};
     ctx.save();ctx.globalAlpha=al;ctx.textAlign='center';ctx.textBaseline='alphabetic';
     for(const [txt,R,font,col,glow] of [[L1,R1,F1,'#f2fbff',0],[L2,R2,F2,rgba(cc,1),10]]){
       ctx.font=font;const fz=parseFloat(font.split(' ')[1]),th=a0,T=arcText(txt,R,th);
@@ -967,6 +971,86 @@ function drawKeyWalls(now,maxq){   // SUPPORT (bid) / RESISTANCE (ask): highligh
       for(const ch of T.ch){const x=CX+Math.cos(ch.a)*R,y=CY+Math.sin(ch.a)*R;ctx.save();ctx.translate(x,y);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}
       if(glow&&Q>0){ctx.shadowColor=rgba(c,1);ctx.shadowBlur=glow;ctx.globalAlpha=0.6*al;for(const ch of T.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*R,CY+Math.sin(ch.a)*R);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}ctx.globalAlpha=al;}}
     ctx.restore();}
+}
+// ---------------- LIMIT spoof hint: EATEN vs PULLED ----------------
+// Tracks significant walls (top 6 per side, >= SP_REL x the span reference REFQ and >= $SP_USD). When one drops >= SP_DROP from its
+// peak of the last 10 s, the drop is compared with aggressor volume traded AT/THROUGH that price since the peak (selected venue only when SRC != ALL):
+//   price went through the level, or traded volume >= 50% of the drop  -> EATEN  (bright bite flash)
+//   traded volume < 20% of the drop and price never reached the level -> PULLED (ghost dashed copies + tag on big walls)
+//   only when the shrink is attributable to venue book(s) whose depth window still covers the price, the wall was sustained >= 3 s,
+//   one mark per zone per 15 s.  in between -> no mark.  2+ pulls within the same zone (±max(3 buckets, 0.03%)) in 5 min -> 'SPOOF?'.
+//   Smaller 25% steps that trades cover >= 50% flash a small 'bite'. A hint only: intent can't be proven.
+const SP_DROP=0.6, SP_EAT=0.5, SP_PULL=0.2, SP_REL=0.25, SP_USD=25000, SP_PEAK=10000, SP_MINAGE=1500, SP_REPEAT=300000, SP_GHOST=5, SP_HOLD=3, SP_DEDUP=15000;
+const SPF={trk:new Map(),ev:[],pulls:[],src:null,sum:0,n:{eaten:0,pulled:0,spoof:0,bite:0}};
+function spVol(side,px,t0,tol,vs){let v=0,thr=false,reach=false;
+  for(let i=trades.length-1;i>=0;i--){const t=trades[i];if(t.t<t0)break;if(SRC!=='all'&&t.v!==SRC)continue;if(vs&&!vs.includes(t.v))continue;
+    if(side==='bid'){if(t.px<=px+tol){reach=true;if(t.side==='sell')v+=t.qty;if(t.px<px-tol)thr=true;}}
+    else{if(t.px>=px-tol){reach=true;if(t.side==='buy')v+=t.qty;if(t.px>px+tol)thr=true;}}}
+  return {v,thr,reach};}
+function spVen(){   // per-venue levels mapped to the merged bucket keys + each venue's deepest visible price (depth-window edge)
+  const use=BOOKS.filter(B=>B.ready&&(SRC==='all'||B.v===SRC)&&VEN[B.v].st==='LIVE'),one=use.length===1,key=p=>+(one?p:Math.round(p/BUCK)*BUCK).toFixed(6);
+  return use.map(B=>{const bb=topLv(B.b,true,VDEPTH),aa=topLv(B.a,false,VDEPTH);return {v:B.v,bb,aa,kb:key,ka:key,eb:bb.length?bb[bb.length-1][0]:0,ea:aa.length?aa[aa.length-1][0]:Infinity};});}
+function spEv(o){o.tt=performance.now();SPF.ev.push(o);SPF.n[o.spoof?'spoof':o.kind]++;if(SPF.ev.length>80)SPF.ev.shift();}
+setInterval(()=>{
+  if(VIEW!=='limit'||!BREADY||!mid||!REFQ||!sortedB.length||!sortedA.length){SPF.trk.clear();return;}
+  const n=Date.now(), tol=BUCK/2+mid*0.00002, M={bid:new Map(sortedB),ask:new Map(sortedA)};
+  if(EAT&&EAT.kind==='eat'&&EAT.px){const e=M.bid.get(EAT.px);if(EAT.lq!=null&&e!=null&&e<EAT.lq)trades.push({t:n,side:'sell',qty:EAT.lq-e,px:EAT.px,v:SRC==='all'?'kraken':SRC});EAT.lq=e;}   // test hook: fills for a simulated eaten wall
+  let sum=0;for(const x of sortedB)sum+=x[1];for(const x of sortedA)sum+=x[1];
+  if(SPF.src!==SRC||(SPF.sum&&sum<0.6*SPF.sum)){SPF.trk.clear();SPF.src=SRC;SPF.sum=sum;return;}   // source switch / venue resync: whole book jumped -> not a pull
+  SPF.sum=sum;
+  for(const [side,lv] of [['bid',sortedB],['ask',sortedA]])for(const [px,q] of topBySize(lv,6)){
+    if(q<SP_REL*REFQ||q*px<SP_USD)continue;const k=side+'|'+px;if(!SPF.trk.has(k))SPF.trk.set(k,{side,px,t0:n,s:[],bq:q,bt:n});}
+  if(!SPF.trk.size)return;
+  // per-venue size of every tracked wall (attribute a drop to the venue(s) that actually shrank)
+  const VV=spVen(),VE={},TB=new Map(),TA=new Map();for(const T of SPF.trk.values()){T.cv={};(T.side==='bid'?TB:TA).set(T.px,T);}
+  for(const V of VV){VE[V.v]=V;if(TB.size)for(const [p,q] of V.bb){const T=TB.get(V.kb(p));if(T)T.cv[V.v]=(T.cv[V.v]||0)+q;}if(TA.size)for(const [p,q] of V.aa){const T=TA.get(V.ka(p));if(T)T.cv[V.v]=(T.cv[V.v]||0)+q;}}
+  for(const [k,T] of SPF.trk){
+    const L=T.side==='bid'?sortedB:sortedA, q=M[T.side].get(T.px)||0;
+    if(T.side==='bid'?T.px<L[L.length-1][0]:T.px>L[L.length-1][0]){SPF.trk.delete(k);continue;}   // level fell off the visible book: unknown
+    T.s.push([n,q,T.cv]);while(T.s.length&&n-T.s[0][0]>SP_PEAK)T.s.shift();
+    let pk=0,tp=n,pv={};for(const [t,v,cv] of T.s)if(v>=pk){pk=v;tp=t;pv=cv;}
+    if(pk<SP_REL*REFQ*0.7||pk*T.px<SP_USD){SPF.trk.delete(k);continue;}   // no longer significant
+    if(n-T.t0<SP_MINAGE)continue;
+    if(q>T.bq){T.bq=q;T.bt=n;}
+    else if(T.bq-q>=0.25*pk){const r=spVol(T.side,T.px,T.bt-500,tol,null);if(r.v>=0.5*(T.bq-q))spEv({kind:'bite',side:T.side,px:T.px,q0:T.bq,q1:q});T.bq=q;T.bt=n;}
+    if(q<=(1-SP_DROP)*pk){
+      SPF.trk.delete(k);
+      const drop=pk-q, sim=EAT&&EAT.px===T.px&&T.side==='bid';
+      let held=0;for(const s of T.s)if(s[1]>=0.6*pk)held++;
+      if(!sim&&held*0.25<SP_HOLD)continue;   // flicker: was never a sustained wall
+      const dv=sim?null:Object.keys(pv).filter(v=>pv[v]-(T.cv[v]||0)>0.15*drop);
+      if(dv&&!dv.length)continue;   // drop not attributable to a venue book
+      let cover=true;if(dv)for(const v of dv){const V=VE[v];if(!V){cover=false;break;}const best=T.side==='bid'?V.bb[0]&&Math.max(...V.bb.slice(0,3).map(x=>x[0])):V.aa[0]&&Math.min(...V.aa.slice(0,3).map(x=>x[0]));
+        const edge=T.side==='bid'?V.eb:V.ea,mg=Math.abs(best-edge)*0.12+tol;if(T.side==='bid'?T.px<=edge+mg:T.px>=edge-mg){cover=false;break;}}
+      if(!cover)continue;   // the venue's depth window no longer reaches this price -> can't tell
+      const r=spVol(T.side,T.px,tp-500,tol,dv), ratio=r.v/drop, thr=r.thr||(T.side==='bid'?bestBid<T.px-tol:bestAsk>T.px+tol);
+      const kind=thr||ratio>=SP_EAT?'eaten':(ratio<SP_PULL&&!r.reach?'pulled':null);
+      if(!kind)continue;
+      const z=Math.max(BUCK*3,T.px*0.0003),o={kind,side:T.side,px:T.px,q0:pk,q1:q,ratio:+ratio.toFixed(2),t:n,big:pk>=0.35*REFQ,spoof:false,ven:dv?dv.join(','):'sim'};
+      if(kind==='pulled'){SPF.pulls=SPF.pulls.filter(p=>n-p.t<SP_REPEAT);o.spoof=SPF.pulls.some(p=>p.side===T.side&&Math.abs(p.px-T.px)<=z);SPF.pulls.push({t:n,side:T.side,px:T.px});}
+      if(SPF.ev.some(e=>e.kind===kind&&e.side===T.side&&Math.abs(e.px-T.px)<=z&&n-e.t<SP_DEDUP&&!(o.spoof&&!e.spoof)))continue;   // one mark per zone per 15 s
+      spEv(o);}
+  }
+},250);
+function spGhosts(now){const G=new Map();for(const o of SPF.ev)if(o.kind==='pulled'&&now-o.tt<(LWIN+2)*1000)G.set(o.side+'|'+o.px,o);return G;}
+function spTag(txt,r,a0,col,al,fz){ctx.save();ctx.globalAlpha=al;ctx.font=`900 ${fz}px Orbitron,sans-serif`;ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  const T=arcText(txt,r,a0);ctx.lineCap='round';ctx.strokeStyle='rgba(5,3,12,.8)';ctx.lineWidth=fz+5;ctx.beginPath();ctx.arc(CX,CY,r+fz*0.36,a0-T.tot/2-2/r,a0+T.tot/2+2/r);ctx.stroke();
+  ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=Q>0?8:0;for(const ch of T.ch){ctx.save();ctx.translate(CX+Math.cos(ch.a)*r,CY+Math.sin(ch.a)*r);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}ctx.restore();}
+function drawSpoofFx(now){   // front layer: EATEN/bite flash; PULLED ghost at the wall's live spot for a few seconds (+ PULLED / SPOOF? tag on big ones)
+  for(const o of SPF.ev){const age=(now-o.tt)/1000;if(age>SP_GHOST)continue;const r=rOf(o.px-dispMid);if(r>RMAX*1.02||r<R0*1.1)continue;
+    const a0=baseAng(o.side),c=o.side==='bid'?COL.bid:COL.ask,sp=levelSpan(o.q0,REFQ||o.q0);
+    if(o.kind!=='pulled'){const D=o.kind==='eaten'?0.9:0.55;if(age>D)continue;const u=age/D,hc=`${Math.min(255,c[0]+110)},${Math.min(255,c[1]+110)},${Math.min(255,c[2]+110)}`,big=o.kind==='eaten';
+      ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle=`rgba(${hc},${((1-u)*(1-u)*(big?1:0.7)).toFixed(3)})`;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(big?26:16):0;
+      ctx.lineCap='round';ctx.lineWidth=(big?14:8)*(1-u)+2;const s2=sp*(1-0.35*u);ctx.beginPath();ctx.arc(CX,CY,r+u*6,a0-s2,a0+s2);ctx.stroke();
+      ctx.lineWidth=1.6;const N=big?9:5;for(let i=0;i<N;i++){const f=((i*0.6180339+o.px*7.31)%1)*2-1,ang=a0+s2*f,d0=r+4+u*6,d1=r+8+u*(big?36:20);
+        ctx.beginPath();ctx.moveTo(CX+Math.cos(ang)*d0,CY+Math.sin(ang)*d0);ctx.lineTo(CX+Math.cos(ang)*d1,CY+Math.sin(ang)*d1);ctx.stroke();}   // bite sparks
+      ctx.restore();continue;}
+    const u=age/SP_GHOST,fl=0.6+0.4*Math.sin(now/70+o.px*911),col=o.spoof?'255,110,235':'215,200,255';
+    ctx.save();ctx.setLineDash([7,6]);ctx.lineDashOffset=-now/45;ctx.lineWidth=2.2;ctx.strokeStyle=`rgba(${col},${((1-u)*0.85*fl).toFixed(3)})`;ctx.shadowColor=`rgba(${col},.9)`;ctx.shadowBlur=Q>0?10:0;
+    ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();ctx.restore();
+    if(o.big||o.spoof){const fz=WIDE?11:9,txt=o.spoof?'SPOOF?':'PULLED',R=r+fz*0.4+6;ctx.save();ctx.font=`900 ${fz}px Orbitron,sans-serif`;const ht=ctx.measureText(txt).width/R/2+0.02;ctx.restore();
+      const K=KLB[o.side],off=Math.max(ht+Math.max(0.12,22/R),K&&R+fz>K.r0&&R-fz<K.r1?K.ah+ht+0.04:0),ta=a0+(o.side==='bid'?-off:off);   // just below the horizon (clear of price tags), past SUPPORT/RESISTANCE text
+      spTag(txt,R,ta,o.spoof?'#ff6eeb':'#d7c8ff',Math.min(1,(1-u)*1.6)*Math.max(0,Math.min(1,(r-R0*1.12)/(R0*0.45))),fz);}}
 }
 let topWallsOld;
 function drawBook(now){
@@ -989,6 +1073,7 @@ function drawBook(now){
   }
   ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
   drawKeyWalls(now,maxq);
+  drawSpoofFx(now);
   ctx.restore();
 }
 
@@ -1618,7 +1703,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={simEat(ms){EAT={t0:Date.now(),ms,px:0,q0:0};},get eat(){const n=performance.now();return EAT&&{px:EAT.px,q0:EAT.q0,ref:REFQ,cp:history.filter((h,i)=>i%8===0&&(n-h.t)/1000<=LWIN).map(h=>{const e=h.b.find(x=>x[0]===EAT.px);return e?[Math.round((n-h.t)/1000),+levelSpan(e[1],REFQ||h.maxq).toFixed(3)]:null;}).filter(Boolean)}},get mt(){return {w:+MT.w.toFixed(1),q:+MT.q.toFixed(2),z:+MT.z.toFixed(2),sg:MT.sg,burst:burst.on}},get lt(){return {w:+LT.w.toFixed(1),rho:+LT.rho.toFixed(2),lwin:+LWIN.toFixed(1),burst:burst.on}},get keyWalls(){return VIEW==='limit'?{...KEYW,nSig:{bid:topWalls.bid.length,ask:topWalls.ask.length},marks:PLBL.map(q=>q.txt)}:null},simFlat(){SIM={on:true,base:mid,t0:0,dir:0,amp:0,ramp:1};},simMove(dir,frac,ramp){SIM.t0=Date.now();SIM.dir=dir;SIM.amp=frac*SIM.base;SIM.ramp=ramp;},get resp(){const v=proj(HIST_SEC),m=proj(HIST_SEC*0.4);return {tw:+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(2),vp:+(v.y-CY).toFixed(1),vm:+(m.y-CY).toFixed(1),o3:+((window.__ofcR||{}).o3||0).toFixed(1),o8:+((window.__ofcR||{}).o8||0).toFixed(1),mw:+MWIN.toFixed(1),dr:dispRange,pr:pathRef}},get bp(){return BP.length},autoOff(){pillT=0;if(rangeAuto)pillTap();},get dr(){return dispRange},get hubLogo(){return !WIDE&&LOGO.complete&&LOGO.naturalWidth>0},get hdrLogo(){const e=document.querySelector('#top .logo');return !!e&&getComputedStyle(e).display!=='none'},get flares(){return VIEW==='market'?[...FLR.entries()].map(([k,F])=>{const p=F.dx!=null?{x:F.dx,y:F.dy}:null;return {k,T:F.T,tT:trailT,st:trailStep,w:+F.w.toFixed(2),on:!!F.on,side:F.c===COL.bid?'bid':'ask',x:p?Math.round(p.x):null,y:p?Math.round(p.y):null};}):null},winTo(S){intro=null;setAuto(false);syncZA();let lo=0,hi=1;const f=u=>mWinOf(zR(u));const dec=f(0)>f(1);for(let i=0;i<40;i++){const m=(lo+hi)/2;if((f(m)>S)===dec)lo=m;else hi=m;}rangeFrac=zR((lo+hi)/2);return f((lo+hi)/2);},get vring(){if(VIEW!=='market')return null;const p=proj(HIST_SEC);return {full:+(RMAX*p.s).toFixed(1),r:+(RMAX*p.s).toFixed(1),x:Math.round(p.x),y:Math.round(p.y),R0:Math.round(R0)}},get twist(){return VIEW==='market'?+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(1):0},get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={simEat(ms,kind,hold,px){EAT={t0:Date.now(),ms,kind:kind||'eat',hold:hold==null?0:hold,px:px||0,q0:0,lq:null};},get spoof(){return {n:{...SPF.n},trk:SPF.trk.size,ev:SPF.ev.slice(-6).map(o=>({k:o.kind,s:o.side,px:o.px,q0:+o.q0.toFixed(1),q1:+o.q1.toFixed(1),ratio:o.ratio,spoof:o.spoof,big:o.big,ven:o.ven}))}},get eat(){const n=performance.now();return EAT&&{px:EAT.px,q0:EAT.q0,ref:REFQ,cp:history.filter((h,i)=>i%8===0&&(n-h.t)/1000<=LWIN).map(h=>{const e=h.b.find(x=>x[0]===EAT.px);return e?[Math.round((n-h.t)/1000),+levelSpan(e[1],REFQ||h.maxq).toFixed(3)]:null;}).filter(Boolean)}},get mt(){return {w:+MT.w.toFixed(1),q:+MT.q.toFixed(2),z:+MT.z.toFixed(2),sg:MT.sg,burst:burst.on}},get lt(){return {w:+LT.w.toFixed(1),rho:+LT.rho.toFixed(2),lwin:+LWIN.toFixed(1),burst:burst.on}},get keyWalls(){return VIEW==='limit'?{...KEYW,nSig:{bid:topWalls.bid.length,ask:topWalls.ask.length},marks:PLBL.map(q=>q.txt)}:null},simFlat(){SIM={on:true,base:mid,t0:0,dir:0,amp:0,ramp:1};},simMove(dir,frac,ramp){SIM.t0=Date.now();SIM.dir=dir;SIM.amp=frac*SIM.base;SIM.ramp=ramp;},get resp(){const v=proj(HIST_SEC),m=proj(HIST_SEC*0.4);return {tw:+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(2),vp:+(v.y-CY).toFixed(1),vm:+(m.y-CY).toFixed(1),o3:+((window.__ofcR||{}).o3||0).toFixed(1),o8:+((window.__ofcR||{}).o8||0).toFixed(1),mw:+MWIN.toFixed(1),dr:dispRange,pr:pathRef}},get bp(){return BP.length},autoOff(){pillT=0;if(rangeAuto)pillTap();},get dr(){return dispRange},get hubLogo(){return !WIDE&&LOGO.complete&&LOGO.naturalWidth>0},get hdrLogo(){const e=document.querySelector('#top .logo');return !!e&&getComputedStyle(e).display!=='none'},get flares(){return VIEW==='market'?[...FLR.entries()].map(([k,F])=>{const p=F.dx!=null?{x:F.dx,y:F.dy}:null;return {k,T:F.T,tT:trailT,st:trailStep,w:+F.w.toFixed(2),on:!!F.on,side:F.c===COL.bid?'bid':'ask',x:p?Math.round(p.x):null,y:p?Math.round(p.y):null};}):null},winTo(S){intro=null;setAuto(false);syncZA();let lo=0,hi=1;const f=u=>mWinOf(zR(u));const dec=f(0)>f(1);for(let i=0;i<40;i++){const m=(lo+hi)/2;if((f(m)>S)===dec)lo=m;else hi=m;}rangeFrac=zR((lo+hi)/2);return f((lo+hi)/2);},get vring(){if(VIEW!=='market')return null;const p=proj(HIST_SEC);return {full:+(RMAX*p.s).toFixed(1),r:+(RMAX*p.s).toFixed(1),x:Math.round(p.x),y:Math.round(p.y),R0:Math.round(R0)}},get twist(){return VIEW==='market'?+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(1):0},get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 // ---------------- INFO overlay: what am I looking at? (✕ / tap outside / Esc) ----------------
 (function(){const I=document.getElementById('info'),B=document.getElementById('infoBtn');if(!I||!B)return;
