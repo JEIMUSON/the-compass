@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261002-1352';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261002-1424';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05030c">
 <meta name="color-scheme" content="dark">
@@ -805,6 +805,8 @@ let PLBL=[];
 const PF=p=>'$'+p.toFixed(4);
 function drawPriceLabels(){   // LIMIT: ring prices on the horizontal axis, over the walls
   if(!PLBL.length)return;ctx.save();ctx.font=`${WIDE?10:9}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.textBaseline='top';
+  PLBL=PLBL.filter(q=>{const K=KLB[q.side];if(!K)return true;const d=Math.abs(q.cx-CX);return d+q.w/2<K.r0||d-q.w/2>K.r1;});   // never draw over SUPPORT/RESISTANCE text
+  if(!PLBL.length){ctx.restore();return;}
   for(const q of PLBL){ctx.fillStyle='rgba(5,3,12,.72)';ctx.fillRect(q.x,q.y,q.w,q.h);ctx.fillStyle=q.side==='bid'?'rgba(43,255,154,.9)':'rgba(255,43,214,.9)';ctx.fillText(q.txt,q.cx,q.y+2);}
   const o=PLBL.filter(q=>q.side==='bid').sort((a,b)=>a.x-b.x)[0];
   if(o){ctx.font=`700 ${WIDE?9:8}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(200,215,235,.75)';ctx.fillText('PRICE',o.cx,o.y+o.h+1);}
@@ -864,13 +866,13 @@ function drawHistory(now){
 const UNIT='XRP';
 // significant walls = top 5 per side by size + any giant (>= 50% of the biggest level) -> SUPPORT / RESISTANCE candidates
 const sigWalls=(lv,maxq)=>{const t=topBySize(lv,5),g=lv.filter(x=>x[1]>=0.5*maxq&&!t.includes(x));return t.concat(g);};
-let topWalls={bid:[],ask:[]}, KEYW={bid:null,ask:null};
+let topWalls={bid:[],ask:[]}, KEYW={bid:null,ask:null}, KLB={bid:null,ask:null};   // KLB: radial extent of the key-wall label band (price tags avoid it)
 // curved label along a circle (upright in the upper half): returns per-char {c,a,rot} and total angle
 function arcText(txt,r,th0){const ws=[...txt].map(ch=>ctx.measureText(ch).width+0.6),tot=ws.reduce((x,y)=>x+y,0)/r,ch=[];let a=th0-tot/2;
   [...txt].forEach((c,i)=>{const d=ws[i]/r,am=a+d/2;ch.push({c,a:am,rot:am+Math.PI/2});a+=d;});return {ch,tot};}
 function drawKeyWalls(now,maxq){   // SUPPORT (bid) / RESISTANCE (ask): highlight + two curved lines following the wall arc, upper side
   const span=dispMid*PR_();
-  for(const [side,lv,c] of [['bid',sortedB,COL.bid],['ask',sortedA,COL.ask]]){
+  for(const [side,lv,c] of [['bid',sortedB,COL.bid],['ask',sortedA,COL.ask]]){KLB[side]=null;
     const vis=lv.filter(([px])=>rOf(px-dispMid)<=RMAX*1.0),sig=sigWalls(vis,maxq);
     let key=null,ks=-1;for(const w of sig){const sc=w[1]*(1-0.45*Math.min(1,Math.abs(w[0]-dispMid)/span));if(sc>ks){ks=sc;key=w;}}
     KEYW[side]=key?{px:key[0],q:key[1]}:null;if(!key)continue;
@@ -878,20 +880,17 @@ function drawKeyWalls(now,maxq){   // SUPPORT (bid) / RESISTANCE (ask): highligh
     const pl=0.85+0.15*Math.sin(now/650),cc=[Math.min(255,c[0]+45),Math.min(255,c[1]+45),Math.min(255,c[2]+45)];
     ctx.save();ctx.globalCompositeOperation='source-over';ctx.strokeStyle=rgba(cc,(0.95*pl).toFixed(3));ctx.lineWidth=lw+2.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(LOW?16:28):0;
     ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();ctx.restore();
-    // text: centred on the arc's upper portion nearest the vertical centre line (SUPPORT: right/top part of its arc around 9 o'clock,
-    // RESISTANCE: left/top part of its arc around 3 o'clock), upright and fully above the horizon; font shrinks with the arc, fades when too small
+    // text: centred on the angular midpoint of its own wall arc (a0), following the curve, upright (outward-facing); font shrinks with the arc, fades when too small
     const base1=WIDE?Math.round(Math.max(12,Math.min(16,RMAX/27))):10, sc=Math.max(0.62,Math.min(1,(r-R0)/(RMAX*0.28)));
     const fs1=Math.max(7,Math.round(base1*sc)), fs2=Math.max(7,fs1-1), R1=r+lw/2+4, R2=R1+fs2+3;
     const L1=`${PF(px)} · ${fmtQ(q)} ${UNIT}`,L2=side==='bid'?'SUPPORT':'RESISTANCE';
     const F1=`700 ${fs2}px "Share Tech Mono",monospace`,F2=`900 ${fs1}px Orbitron,sans-serif`;
     ctx.font=F1;const w1=ctx.measureText(L1).width/R1;ctx.font=F2;const w2=ctx.measureText(L2).width/R2,totM=Math.max(w1,w2);
     let al=Math.max(0,Math.min(1,(r-R0*1.12)/(R0*0.45)))*Math.max(0,Math.min(1,(1.45-totM)/0.3));   // too close to the hub / too long for the arc -> fade
-    if(al<=0.03)continue;
-    const H=Math.PI/2, th0=side==='bid'?Math.PI+sp/2:2*Math.PI-sp/2;
-    const thFor=tot=>side==='bid'?Math.min(Math.PI+H-tot/2-0.03,Math.max(Math.PI+tot/2+0.06,th0)):Math.max(Math.PI+H+tot/2+0.03,Math.min(2*Math.PI-tot/2-0.06,th0));
+    if(al<=0.03)continue;KLB[side]={r0:R1-3,r1:R2+fs1+3};
     ctx.save();ctx.globalAlpha=al;ctx.textAlign='center';ctx.textBaseline='alphabetic';
     for(const [txt,R,font,col,glow] of [[L1,R1,F1,'#f2fbff',0],[L2,R2,F2,rgba(cc,1),10]]){
-      ctx.font=font;const fz=parseFloat(font.split(' ')[1]),tot0=ctx.measureText(txt).width/R,th=thFor(tot0),T=arcText(txt,R,th);
+      ctx.font=font;const fz=parseFloat(font.split(' ')[1]),th=a0,T=arcText(txt,R,th);
       ctx.save();ctx.shadowBlur=0;ctx.lineCap='round';ctx.strokeStyle='rgba(5,3,12,.78)';ctx.lineWidth=fz+5;ctx.beginPath();ctx.arc(CX,CY,R+fz*0.36,th-T.tot/2-2/R,th+T.tot/2+2/R);ctx.stroke();ctx.restore();   // dark band for legibility
       ctx.fillStyle=col;ctx.shadowColor='rgba(0,0,0,.95)';ctx.shadowBlur=Q>0?6:3;
       for(const ch of T.ch){const x=CX+Math.cos(ch.a)*R,y=CY+Math.sin(ch.a)*R;ctx.save();ctx.translate(x,y);ctx.rotate(ch.rot);ctx.fillText(ch.c,0,0);ctx.restore();}
@@ -1422,7 +1421,6 @@ function drawZoomBar(now){
   const lab=fmtAge(Math.round(VIEW==='limit'?LWIN:MWIN)).replace('-','');   // zoom = time: LIMIT depth / MARKET window
   ctx.font=`700 ${WIDE?10:8.5}px Orbitron,sans-serif`;ctx.textAlign='right';ctx.fillStyle=`rgba(${col},.95)`;
   ctx.fillText(lab,x-8,y0+7);
-  ctx.font=`${WIDE?9:7.5}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(0,240,255,.5)';ctx.fillText('ZOOM',x-8,y1);
   if(Z.pw){const {px,py,pw,ph}=Z,on=rangeAuto;   // big AUTO toggle: yellow like the VIEW button when on, dim when off
     ctx.beginPath();ctx.moveTo(px+7,py);ctx.lineTo(px+pw,py);ctx.lineTo(px+pw,py+ph-7);ctx.lineTo(px+pw-7,py+ph);ctx.lineTo(px,py+ph);ctx.lineTo(px,py+7);ctx.closePath();
     ctx.fillStyle=on?'rgba(255,230,0,.10)':'rgba(5,3,12,.75)';ctx.fill();
