@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261002-1009';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261002-1106';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05030c">
 <meta name="color-scheme" content="dark">
@@ -48,6 +48,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--
 /* ---------- MOBILE FIRST ---------- */
 #top .logo{flex:0 0 auto;width:22px;height:22px;margin-right:-2px;align-self:center;filter:drop-shadow(0 0 3px rgba(0,240,255,.85)) drop-shadow(0 0 8px rgba(0,240,255,.35))}
 @media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#top .logo{display:none}}   /* desktop: logo sits by the compass instead */
+body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub instead */
 #top{order:1;flex:0 0 auto;position:relative;z-index:6}
 #top{padding:4px 10px 3px}
 #top .l1{display:flex;align-items:center;gap:8px;white-space:nowrap}
@@ -600,7 +601,7 @@ const WIDE_GUESS=()=>matchMedia('(min-aspect-ratio:1/1)').matches&&innerWidth>=7
 function resize(){
   const st=$('stage').getBoundingClientRect(); W=Math.max(100,Math.round(st.width)); H=Math.max(100,Math.round(st.height));
   const land=matchMedia('(min-aspect-ratio:1/1)').matches;
-  WIDE=land&&W>=700&&H>=420;
+  WIDE=land&&W>=700&&H>=420; document.body.classList.toggle('hublogo',!WIDE);
   LOW=!WIDE||matchMedia('(pointer:coarse)').matches;
   DPR=Math.min(window.devicePixelRatio||1,LOW?1.75:2);
   cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -946,7 +947,8 @@ function drawSparks(now){
 function drawCore(now){
   ctx.save();
   const hs=1, RH=R0;   // hub always full size
-  if(VIEW==='market'){ctx.fillStyle='rgb(6,9,20)';ctx.beginPath();ctx.arc(CX,CY,RH+1,0,Math.PI*2);ctx.fill();}   // solid: vortex never shows through
+  const HL=!WIDE&&LOGO.complete&&LOGO.naturalWidth>0;   // mobile: logo in the hub (both views), no price text
+  if(VIEW==='market'||HL){ctx.fillStyle='rgb(6,9,20)';ctx.beginPath();ctx.arc(CX,CY,RH+1,0,Math.PI*2);ctx.fill();}   // solid: vortex never shows through
   const g=ctx.createRadialGradient(CX,CY,0,CX,CY,RH);
   g.addColorStop(0,'rgba(0,240,255,0.25)');g.addColorStop(1,'rgba(0,240,255,0.02)');
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,CY,RH,0,Math.PI*2);ctx.fill();
@@ -956,6 +958,8 @@ function drawCore(now){
     ctx.beginPath();ctx.moveTo(CX+Math.cos(a)*(RH-5),CY+Math.sin(a)*(RH-5));ctx.lineTo(CX+Math.cos(a)*(RH-1),CY+Math.sin(a)*(RH-1));ctx.stroke();}
   ctx.shadowBlur=0;
   if(VIEW==='market'&&trail.length)drawTrailHead(now);
+  if(HL){const S=RH*1.62;ctx.save();ctx.beginPath();ctx.arc(CX,CY,RH-2,0,Math.PI*2);ctx.clip();ctx.shadowColor='rgba(0,240,255,.8)';ctx.shadowBlur=8;
+    ctx.drawImage(LOGO,CX-S/2,CY-S/2,S,S);ctx.restore();ctx.restore();return;}
   ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font=`900 ${Math.round(Math.max(R0*0.30*hs,Math.min(R0*0.30,WIDE?12:9)))}px Orbitron,sans-serif`;ctx.shadowColor=VIEW==='market'?'rgba(0,0,0,.95)':'#00f0ff';ctx.shadowBlur=12;
   {const ty=CY+RH*0.10+(hs<1?3*(1-hs):0),txt=mid?hubTxt():'· · ·';
     if(VIEW==='market'){const tw=ctx.measureText(txt).width,fh=parseFloat(ctx.font.split(' ')[1])||10;
@@ -1192,20 +1196,51 @@ function drawVolumeV(now,cs){
 }
 function mixCol(r){ // r: -1 (sell) .. +1 (buy)
   const t=(r+1)/2; return [Math.round(COL.ask[0]+(COL.bid[0]-COL.ask[0])*t),Math.round(COL.ask[1]+(COL.bid[1]-COL.ask[1])*t),Math.round(COL.ask[2]+(COL.bid[2]-COL.ask[2])*t)];}
-// top-3 hottest points on the trail (distinct price levels, spread along it), labelled outside the clip
-let TRHOT=[], TRHEAD={x:0,y:0};
-function drawTrailLabels(){
-  if(!TRHOT.length)return;
-  const pick=[];for(const h of [...TRHOT].sort((x,y)=>y.ht*y.u-x.ht*x.u)){if(pick.length>=3)break;
+// top-3 hottest points on the trail -> text-free glowing flares (no labels). Each flare is keyed to its trail sample's absolute
+// time slot, so it rides the spiral smoothly as the sample ages; selection has hysteresis and fades in/out (no jumping/bouncing).
+let TRHOT=[], TRHEAD={x:0,y:0}, TRP=[], FLR=new Map(), FLRt=0;
+function drawTrailFlares(now){
+  const dt=FLRt?Math.min(0.1,Math.max(0,(now-FLRt)/1000)):0;FLRt=now;
+  const SM=1000*trailStep, posAt=T=>{const fa=(trailT-T)/SM,i=Math.floor(fa),k=fa-i,p0=TRP[i],p1=TRP[i+1];if(fa<1||!p0||!p1)return null;
+    return {x:p0.x+(p1.x-p0.x)*k,y:p0.y+(p1.y-p0.y)*k,u:p0.u+(p1.u-p0.u)*k};};
+  // pick up to 3 distinct hot spots; incumbents get a stickiness bonus so the set doesn't flicker
+  const near=h=>{for(const [k,F] of FLR){const q=posAt(F.T);if(Math.abs(F.T-h.key)<2.2*SM||(q&&Math.hypot(q.x-h.x,q.y-h.y)<40))return k;}return null;};
+  const sc=h=>{const k=near(h);return h.ht*h.u*(k!=null&&FLR.get(k).on?1.35:1);};
+  const pick=[];for(const h of [...TRHOT].sort((x,y)=>sc(y)-sc(x))){if(pick.length>=3)break;
     if(pick.some(q=>Math.abs(q.px-h.px)<HB*4||Math.hypot(q.x-h.x,q.y-h.y)<40))continue;pick.push(h);}
-  ctx.save();ctx.font=`${WIDE?11:9.5}px "Share Tech Mono",monospace`;
-  for(const h of pick){const txt=`${h.px.toFixed(5)} · ${fmtQ(h.v)}`,tw=ctx.measureText(txt).width+8,right=h.x>=CX;
-    const P=lblPlace(right?h.x+14:h.x-14-tw,h.y-10,tw,h.y<CY?-1:1);if(!P)continue;
-    ctx.strokeStyle='rgba(255,230,0,.55)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(h.x,h.y);ctx.lineTo(right?P.x:P.x+tw,P.y-4);ctx.stroke();
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(h.x,h.y,2,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(5,3,12,.8)';ctx.fillRect(P.x,P.y-11,tw,15);
-    ctx.textAlign='left';ctx.fillStyle='#ffe600';ctx.fillText(txt,P.x+(right?5:3),P.y);
-    ctx.fillStyle=rgba(h.c,1);ctx.fillRect(right?P.x:P.x+tw-3,P.y-11,3,15);}
+  const sel=new Set();
+  for(const h of pick){let k=near(h);if(k==null||sel.has(k)){k=h.key;FLR.set(k,{T:h.key,w:0,ht:h.ht,c:h.c,ph:Math.random()*6.28});}
+    const F=FLR.get(k);sel.add(k);F.on=true;F.ht+=(h.ht-F.ht)*Math.min(1,dt*2);F.c=h.c;F.T+=(h.key-F.T)*Math.min(1,dt*0.8);}   // drift gently toward the current hot sample
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const [key,F] of FLR){if(!sel.has(key))F.on=false;
+    F.w+=((F.on?1:0)-F.w)*Math.min(1,dt*(F.on?2.2:2.5));
+    const p=posAt(F.T);
+    if((!F.on&&F.w<0.01)||!p){FLR.delete(key);continue;}}
+  const DRAW=[...FLR.values()].sort((x,y)=>y.w-x.w).slice(0,3);   // never more than 3 on screen
+  for(const F of FLR.values()){F.dx=null;if(!DRAW.includes(F))F.lx=null;}
+  for(const F of DRAW){const p0=posAt(F.T);if(!p0)continue;
+    // glide over discontinuities (trail rebuild re-samples tick wiggle / AUTO rescale): absorb jumps >10 px, decay over ~0.4 s
+    if(F.lx!=null){const jx=p0.x-F.lx,jy=p0.y-F.ly;if(Math.hypot(jx,jy)>10){F.ox=(F.ox||0)-jx;F.oy=(F.oy||0)-jy;}}
+    F.lx=p0.x;F.ly=p0.y;const dk=Math.exp(-dt/0.18);F.ox=(F.ox||0)*dk;F.oy=(F.oy||0)*dk;
+    const p={x:p0.x+F.ox,y:p0.y+F.oy,u:p0.u};F.dx=p.x;F.dy=p.y;
+    const u=p.u,al=F.w*u*(0.45+0.55*F.ht);if(al<0.01)continue;
+    const puls=0.5+0.5*Math.sin(now/520+F.ph), c=F.c;
+    const R=(7+RMAX*0.085*F.ht)*(0.35+0.65*u)*(0.9+0.18*puls);
+    // soft bloom
+    let g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,R*1.9);g.addColorStop(0,rgba(c,0.55*al));g.addColorStop(0.35,rgba(c,0.22*al));g.addColorStop(1,rgba(c,0));
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,R*1.9,0,Math.PI*2);ctx.fill();
+    // hot white-ish core
+    g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,R*0.45);g.addColorStop(0,`rgba(255,255,255,${(0.75*al*(0.8+0.2*puls)).toFixed(3)})`);g.addColorStop(1,rgba(c,0));
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,R*0.45,0,Math.PI*2);ctx.fill();
+    // gentle expanding pulse ring (one every ~2.6 s)
+    if(Q>0){const q=((now/2600+F.ph/6.28)%1);ctx.strokeStyle=rgba(c,(0.35*al*(1-q)).toFixed(3));ctx.lineWidth=1.2*(0.5+0.5*u);
+      ctx.beginPath();ctx.arc(p.x,p.y,R*(0.6+1.3*q),0,Math.PI*2);ctx.stroke();}
+    // slim 4-point glint, slowly turning
+    if(Q>0&&u>0.25){const th=now/4000+F.ph,L=R*(1.3+0.4*puls);ctx.lineWidth=1;
+      for(let k=0;k<2;k++){const aa=th+k*Math.PI/2,dx=Math.cos(aa)*L,dy=Math.sin(aa)*L,lg=ctx.createLinearGradient(p.x-dx,p.y-dy,p.x+dx,p.y+dy);
+        lg.addColorStop(0,rgba(c,0));lg.addColorStop(0.5,`rgba(255,255,255,${(0.5*al).toFixed(3)})`);lg.addColorStop(1,rgba(c,0));
+        ctx.strokeStyle=lg;ctx.beginPath();ctx.moveTo(p.x-dx,p.y-dy);ctx.lineTo(p.x+dx,p.y+dy);ctx.stroke();}}
+  }
   ctx.restore();
 }
 function trailDom(){ // current dominant aggressor side over the last ~10s of the trail (-1 sell .. +1 buy)
@@ -1271,8 +1306,8 @@ function drawTrail(now){
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,R,0,Math.PI*2);ctx.fill();
     if(Q>0&&ht>0.6&&a%2===0){const n=3,ph=now/300+a;ctx.strokeStyle=rgba([255,255,255],0.7*ht*p.u);ctx.lineWidth=1;ctx.beginPath();
       for(let k=0;k<n;k++){const th=ph*0.7+k*2.1,d0=R*0.35,d1=R*(0.6+0.35*Math.abs(Math.sin(ph+k)));ctx.moveTo(p.x+Math.cos(th)*d0,p.y+Math.sin(th)*d0);ctx.lineTo(p.x+Math.cos(th)*d1,p.y+Math.sin(th)*d1);}ctx.stroke();}
-    TRHOT.push({a,x:p.x,y:p.y,ht,u:p.u,px:b.Ps,v:HT[a],c});}
-  TRHEAD={x:P[0].x,y:P[0].y};
+    TRHOT.push({a,key:trailT-a*1000*trailStep,x:p.x,y:p.y,ht,u:p.u,px:b.Ps,v:HT[a],c:b.bs>=b.ss?COL.bid:[255,59,107]});}
+  TRHEAD={x:P[0].x,y:P[0].y};TRP=P;
   // fresh prints burst as short sparks from the head (NOW)
   impacts=impacts.filter(m=>now-m.t<700);
   for(const m of impacts){const k=(now-m.t)/700,c=m.side==='buy'?COL.bid:COL.ask,big=Math.min(1,Math.sqrt(m.qty*(m.px||1)/whaleUSD));if(big<0.08)continue;
@@ -1449,7 +1484,7 @@ function frame(){
   if(LIM){clipC();drawHistory(now);ctx.restore();} else {if(trailDirty)buildTrail();}
   drawPriceRings();
   if(LIM){drawBook(now);drawPriceLabels();}else PLBL=[];
-  if(!LIM){clipC();drawTrail(now);ctx.restore();drawMouthHead(now);drawTrailLabels();}sparks.length=0;shocks.length=0;
+  if(!LIM){clipC();drawTrail(now);ctx.restore();drawMouthHead(now);drawTrailFlares(now);}sparks.length=0;shocks.length=0;
   drawNeedle(now);
   drawRSI(now);
   drawLogo();
@@ -1464,7 +1499,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={winTo(S){intro=null;setAuto(false);syncZA();let lo=0,hi=1;const f=u=>mWinOf(zR(u));const dec=f(0)>f(1);for(let i=0;i<40;i++){const m=(lo+hi)/2;if((f(m)>S)===dec)lo=m;else hi=m;}rangeFrac=zR((lo+hi)/2);return f((lo+hi)/2);},get vring(){if(VIEW!=='market')return null;const p=proj(HIST_SEC);return {full:+(RMAX*p.s).toFixed(1),r:+(RMAX*p.s).toFixed(1),x:Math.round(p.x),y:Math.round(p.y),R0:Math.round(R0)}},get twist(){return VIEW==='market'?+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(1):0},get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={get hubLogo(){return !WIDE&&LOGO.complete&&LOGO.naturalWidth>0},get hdrLogo(){const e=document.querySelector('#top .logo');return !!e&&getComputedStyle(e).display!=='none'},get flares(){return VIEW==='market'?[...FLR.entries()].map(([k,F])=>{const p=F.dx!=null?{x:F.dx,y:F.dy}:null;return {k,T:F.T,tT:trailT,st:trailStep,w:+F.w.toFixed(2),on:!!F.on,side:F.c===COL.bid?'bid':'ask',x:p?Math.round(p.x):null,y:p?Math.round(p.y):null};}):null},winTo(S){intro=null;setAuto(false);syncZA();let lo=0,hi=1;const f=u=>mWinOf(zR(u));const dec=f(0)>f(1);for(let i=0;i<40;i++){const m=(lo+hi)/2;if((f(m)>S)===dec)lo=m;else hi=m;}rangeFrac=zR((lo+hi)/2);return f((lo+hi)/2);},get vring(){if(VIEW!=='market')return null;const p=proj(HIST_SEC);return {full:+(RMAX*p.s).toFixed(1),r:+(RMAX*p.s).toFixed(1),x:Math.round(p.x),y:Math.round(p.y),R0:Math.round(R0)}},get twist(){return VIEW==='market'?+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(1):0},get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
