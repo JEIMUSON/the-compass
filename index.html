@@ -691,7 +691,7 @@ let MWIN=HIST_SEC;
 const MWMAX=60, LWMAX=HIST_SEC, WMIN=15;   // MARKET window 15-60 s (1 spiral turn = window); LIMIT depth 15-120 s
 const mWinOf=r=>Math.max(WMIN,Math.min(MWMAX,MWMAX*Math.pow(WMIN/MWMAX,zT(r))));
 const lWinOf=r=>Math.max(WMIN,Math.min(LWMAX,LWMAX*Math.pow(WMIN/LWMAX,zT(r))));
-let LWIN=HIST_SEC;
+let LWIN=HIST_SEC, VSP={w:0,ph:0,t:0};   // VSP = vortex-ring spin (eased speed 0..1, phase)
 const mRingAges=()=>[5,10,15,20,30,45,60].filter(a=>a<=MWIN+0.5);
 const fmtAge=a=>a===0?'NOW':a<60?'-'+a+'s':'-'+Math.floor(a/60)+'m'+(a%60?String(a%60).padStart(2,'0'):'');
 function proj(dz){const s=FOCAL/(FOCAL+dz);const age=INBOUND?(HIST_SEC-dz)*LWIN/HIST_SEC:dz*MWIN/HIST_SEC;const lim=Math.max(0,RMAX*(0.97-s));
@@ -738,7 +738,7 @@ function drawGrid(t){
   const NR=10, NS=LOW?22:30, pts=[], TR=RMAX;   // tunnel mouth locked to the compass ring
   for(let i=0;i<=NS;i++){const d=HIST_SEC*Math.pow(i/NS,1.6);pts.push(proj(d));}   // denser samples near the front
   ctx.lineCap='round';ctx.lineJoin='round';
-  for(let k=0;k<NR;k++){const a=(k+0.5)/NR*Math.PI*2, ca=Math.cos(a), sa=Math.sin(a);
+  for(let k=0;k<NR;k++){const a=(k+0.5)/NR*Math.PI*2+(VIEW==='market'?VSP.ph:0), ca=Math.cos(a), sa=Math.sin(a);   // MARKET: rails spin with the vortex ring
     const P=pts.map(p=>({x:p.x+ca*TR*p.s,y:p.y+sa*TR*p.s,s:p.s}));
     for(let pass=(Q>0?0:1);pass<2;pass++){           // pass 0 = wide soft glow, pass 1 = thin bright core
       const M=i=>i<=0?P[0]:i>=NS?P[NS]:{x:(P[i-1].x+P[i].x)/2,y:(P[i-1].y+P[i].y)/2};
@@ -757,11 +757,21 @@ function drawGrid(t){
     ctx.strokeStyle=`rgba(0,240,255,${0.05+(RG.maj?0.30:0.18)*fade})`;ctx.lineWidth=0.5+(RG.maj?1.4:0.9)*s;
     ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();
   }
-  if(MK&&RINGS.length){ // vortex: innermost ring (nearest the vanishing point) brighter with a soft glow; extra at 15 s / during a burst
-    const RG=RINGS[RINGS.length-1],p=proj(RG.d),rr=TR*p.s,tight=burst.on||MWIN<=16.5,k=(tight?1:0.6)*(0.85+0.15*Math.sin(t/300));
-    ctx.save();ctx.shadowColor='rgba(0,240,255,1)';ctx.shadowBlur=Q>0?(tight?22:14):0;
-    ctx.strokeStyle=`rgba(0,240,255,${(0.10*k).toFixed(3)})`;ctx.lineWidth=tight?9:6;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,Math.PI*2);ctx.stroke();
-    ctx.strokeStyle=`rgba(170,250,255,${(0.75*k).toFixed(3)})`;ctx.lineWidth=tight?2.4:1.8;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,Math.PI*2);ctx.stroke();
+  if(MK&&RINGS.length){ // vortex: innermost ring glows + spins (comet-dash texture); spin ramps with zoom: ~0 at 60 s -> slight at 15 s / burst, eased
+    const RG=RINGS[RINGS.length-1],p=proj(RG.d),rr=TR*p.s, TAU=Math.PI*2;
+    const g=VSP.w, k=(0.6+0.4*g)*(0.85+0.15*Math.sin(t/300));
+    ctx.save();ctx.lineCap='round';ctx.shadowColor='rgba(0,240,255,1)';ctx.shadowBlur=Q>0?14+8*g:0;
+    ctx.strokeStyle=`rgba(0,240,255,${(0.10*k).toFixed(3)})`;ctx.lineWidth=6+3*g;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,TAU);ctx.stroke();       // soft halo
+    ctx.strokeStyle=`rgba(170,250,255,${(0.32*k).toFixed(3)})`;ctx.lineWidth=1.3+0.5*g;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,TAU);ctx.stroke();  // base ring
+    const N=10, seg=Math.min(0.12,14/Math.max(20,rr));            // comet dashes: bright head, tail trailing behind the motion
+    for(let i=0;i<N;i++){const a0=VSP.ph+i*TAU/N;
+      for(let j=0;j<4;j++){ctx.strokeStyle=`rgba(200,252,255,${(0.9*k*(1-j/4)).toFixed(3)})`;ctx.lineWidth=(2.1+0.9*g)*(1-j*0.15);
+        ctx.beginPath();ctx.arc(p.x,p.y,rr,a0+j*seg,a0+(j+1)*seg);ctx.stroke();}}
+    if(g>0.04){ctx.shadowBlur=0;ctx.lineWidth=1.1;                // subtle inward swirl streaks toward the vanishing point
+      for(let i=0;i<6;i++){const a=VSP.ph*1.35+i*TAU/6;let px0=null,py0=null;
+        for(let q=0;q<=8;q++){const u=q/8,ang=a-u*1.2,rad=rr*(1-0.55*u),x=p.x+Math.cos(ang)*rad,y=p.y+Math.sin(ang)*rad;
+          if(px0!=null){ctx.strokeStyle=`rgba(0,240,255,${(0.28*g*(1-u)).toFixed(3)})`;ctx.beginPath();ctx.moveTo(px0,py0);ctx.lineTo(x,y);ctx.stroke();}
+          px0=x;py0=y;}}}
     ctx.restore();}
   // time labels at the top of each ring, nearest-first, skipped on collision (hub / earlier label / reserved)
   // MARKET: NOW at the mouth (newest trade) -> older inward.  LIMIT: NOW at the vanishing point -> older outward to the ring.
@@ -932,18 +942,25 @@ function drawSparks(now){
 
 function drawCore(now){
   ctx.save();
-  const g=ctx.createRadialGradient(CX,CY,0,CX,CY,R0);
+  const hs=VIEW==='market'?1-0.5*VSP.w:1, RH=R0*hs;   // MARKET: hub shrinks toward the vortex at max zoom
+  if(VIEW==='market'){ctx.fillStyle='rgb(6,9,20)';ctx.beginPath();ctx.arc(CX,CY,RH+1,0,Math.PI*2);ctx.fill();}   // solid: vortex never shows through
+  const g=ctx.createRadialGradient(CX,CY,0,CX,CY,RH);
   g.addColorStop(0,'rgba(0,240,255,0.25)');g.addColorStop(1,'rgba(0,240,255,0.02)');
-  ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,CY,R0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,CY,RH,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle='#00f0ff';ctx.lineWidth=1.5;ctx.shadowColor='#00f0ff';ctx.shadowBlur=16;ctx.stroke();
   // rotating ticks
   ctx.lineWidth=1;for(let i=0;i<24;i++){const a=i/24*Math.PI*2+now/4000;ctx.strokeStyle='rgba(0,240,255,0.5)';
-    ctx.beginPath();ctx.moveTo(CX+Math.cos(a)*(R0-5),CY+Math.sin(a)*(R0-5));ctx.lineTo(CX+Math.cos(a)*(R0-1),CY+Math.sin(a)*(R0-1));ctx.stroke();}
+    ctx.beginPath();ctx.moveTo(CX+Math.cos(a)*(RH-5),CY+Math.sin(a)*(RH-5));ctx.lineTo(CX+Math.cos(a)*(RH-1),CY+Math.sin(a)*(RH-1));ctx.stroke();}
   ctx.shadowBlur=0;
   if(VIEW==='market'&&trail.length)drawTrailHead(now);
-  ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font=`900 ${Math.round(R0*0.30)}px Orbitron,sans-serif`;ctx.shadowColor=VIEW==='market'?'rgba(0,0,0,.95)':'#00f0ff';ctx.shadowBlur=12;
-  ctx.fillText(mid?hubTxt():'· · ·',CX,CY+R0*0.10);ctx.shadowBlur=0;
-  ctx.font=`${Math.round(R0*0.17)}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(0,240,255,.8)';ctx.fillText(VIEW==='market'?'LAST · NOW':'MID · NOW',CX,CY+R0*0.42);
+  ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font=`900 ${Math.round(Math.max(R0*0.30*hs,Math.min(R0*0.30,WIDE?12:9)))}px Orbitron,sans-serif`;ctx.shadowColor=VIEW==='market'?'rgba(0,0,0,.95)':'#00f0ff';ctx.shadowBlur=12;
+  {const ty=CY+RH*0.10+(hs<1?3*(1-hs):0),txt=mid?hubTxt():'· · ·';
+    if(VIEW==='market'){const tw=ctx.measureText(txt).width,fh=parseFloat(ctx.font.split(' ')[1])||10;
+      if(tw/2+3>RH*0.95){const sb=ctx.shadowBlur;ctx.shadowBlur=0;ctx.fillStyle='rgb(6,9,20)';const x0=CX-tw/2-5,y0=ty-fh*0.95,w=tw+10,h=fh*1.35,r=h/2;
+        ctx.beginPath();ctx.moveTo(x0+r,y0);ctx.arcTo(x0+w,y0,x0+w,y0+h,r);ctx.arcTo(x0+w,y0+h,x0,y0+h,r);ctx.arcTo(x0,y0+h,x0,y0,r);ctx.arcTo(x0,y0,x0+w,y0,r);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='rgba(0,240,255,.45)';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle='#fff';ctx.shadowBlur=sb;}}
+    ctx.fillText(txt,CX,ty);}ctx.shadowBlur=0;
+  ctx.font=`${Math.round(Math.max(R0*0.17*hs,7))}px "Share Tech Mono",monospace`;ctx.fillStyle=`rgba(0,240,255,${(0.8*Math.max(0,Math.min(1,(hs-0.55)/0.3))).toFixed(3)})`;ctx.fillText(VIEW==='market'?'LAST · NOW':'MID · NOW',CX,CY+RH*0.42);
   ctx.restore();
 }
 
@@ -1280,17 +1297,11 @@ function drawMouthHead(now){
   const g=ctx.createRadialGradient(h.x,h.y,0,h.x,h.y,R);g.addColorStop(0,rgba([255,255,255],0.6+0.3*pl));g.addColorStop(0.3,rgba(c,0.75));g.addColorStop(1,rgba(c,0));
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(h.x,h.y,R,0,Math.PI*2);ctx.fill();
   ctx.globalCompositeOperation='source-over';ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:5;ctx.beginPath();ctx.arc(h.x,h.y,(WIDE?3:2.2)+1.2*pl,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-  if(mid){const txt=hubTxt(),fs=WIDE?12:9.5;ctx.font=`700 ${fs}px "Share Tech Mono",monospace`;const tw=ctx.measureText(txt).width+10,th=fs+6;
-    const dx=h.x-CX,dy=h.y-CY,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,off=R+Math.abs(ux)*tw/2+Math.abs(uy)*th/2+2;
-    let bx=h.x-ux*off-tw/2,by=h.y-uy*off-th/2;bx=Math.max(2,Math.min(W-2-tw,bx));
-    lblReserve(bx,by,tw,th);
-    ctx.fillStyle='rgba(5,3,12,.85)';ctx.fillRect(bx,by,tw,th);ctx.strokeStyle=rgba(c,.9);ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,tw-1,th-1);
-    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,bx+tw/2,by+th/2+.5);ctx.textBaseline='alphabetic';}
   ctx.restore();}
 function drawTrailHead(now){   // hub accent: thin dominance-coloured ring (the glowing head itself sits at the tunnel mouth)
   const c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260);
   ctx.save();ctx.strokeStyle=rgba(c,0.35+0.3*pl);ctx.lineWidth=1.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?12:4;
-  ctx.beginPath();ctx.arc(CX,CY,R0+3+2*pl,0,Math.PI*2);ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.arc(CX,CY,R0*(1-0.5*VSP.w)+3+2*pl,0,Math.PI*2);ctx.stroke();ctx.restore();
 }
 
 
@@ -1423,6 +1434,10 @@ function frame(){
   ctx.fillStyle='rgba(5,3,12,1)';ctx.fillRect(0,0,W,H);
   const bg=ctx.createRadialGradient(CX,CY,0,CX,CY,RMAX*1.6);bg.addColorStop(0,'rgba(30,10,60,.55)');bg.addColorStop(1,'rgba(5,3,12,0)');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
   updateFocal(); MWIN=VIEW==='market'?mWinOf(dispRange):MWMAX; LWIN=VIEW==='limit'?lWinOf(dispRange):HIST_SEC;
+  if(VIEW==='market'){ // vortex spin: eased speed 0..1 ramps with zoom (0 at 60 s -> 1 at 15 s; burst snap in AUTO = 1); counter-clockwise (head runs clockwise)
+    const zr=Math.max(0,Math.min(1,(MWMAX-MWIN)/(MWMAX-WMIN))), zk=zr*zr*(3-2*zr), tgt=Math.max(zk,burst.on&&rangeAuto?1:0);
+    const dt=VSP.t?Math.min(0.1,Math.max(0,(now-VSP.t)/1000)):0; VSP.t=now; VSP.w+=(tgt-VSP.w)*Math.min(1,dt*1.6); VSP.ph-=VSP.w*0.75*dt;   // max ~0.75 rad/s CCW
+  } else {VSP.w=0;VSP.t=0;}
   updatePath(now);
   lblReset();
   drawGrid(now);
@@ -1446,7 +1461,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 </script>
 </body>
