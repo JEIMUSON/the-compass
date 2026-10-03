@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='MA-TEST-20261003-1630';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='MA-TEST-20261003-1720';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -1650,7 +1650,7 @@ function drawTrailFlares(now){
 }
 function trailDom(){ // current dominant aggressor side over the last ~10s of the trail (-1 sell .. +1 buy)
   let b=0,x=0;for(let a=0;a<Math.min(10,trail.length);a++){b+=trail[a].bs||0;x+=trail[a].ss||0;}return b+x>0?(b-x)/(b+x):0;}
-let MAE=null,MAX={sg:0,ev:[],n:0};
+let MAE=null,MAV=null,MAX={sg:0,ev:[],n:0};
 function drawTrail(now){
   if(!trail.length||!dispMid)return;
   const span=dispMid*dispRange, px2=(RMAX-R0)/span, sEnd=FOCAL/(FOCAL+HIST_SEC);
@@ -1692,9 +1692,17 @@ function drawTrail(now){
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   // MA ghost (MOCKUP): EMA of the same raw trade-price series, period ~window/6, on the SAME spiral + price scale; thin dim yellow, behind the trail
   if(PR.length>2){const tau=Math.max(2.5,MWIN/6),al=1-Math.exp(-0.1/tau),n=PR.length;if(!MAE||MAE.length!==n)MAE=new Float64Array(n);
-    let e=PR[n-1];for(let k=n-1;k>=0;k--){e+=(PR[k]-e)*al;MAE[k]=e;}
-    const maAt=f=>{const k=Math.max(0,Math.min(n-1,Math.round(f*10)));return MAE[k];};
+    if(!MAV||MAV.length!==n)MAV=new Float64Array(n);
+    let e=PR[n-1],v=0;for(let k=n-1;k>=0;k--){const d=PR[k]-e;e+=d*al;v=(1-al)*(v+al*d*d);MAE[k]=e;MAV[k]=Math.sqrt(v);}   // EMA + exponentially-weighted SD, same period
+    const ix=f=>Math.max(0,Math.min(n-1,Math.round(f*10))),maAt=f=>MAE[ix(f)],upAt=f=>MAE[ix(f)]+2*MAV[ix(f)],loAt=f=>MAE[ix(f)]-2*MAV[ix(f)];
     const MS=Math.max(2,SUB),Q2=[];for(let a=0;a<NW;a++)for(let j=0;j<MS;j++)Q2.push(pt(a+j/MS,maAt));Q2.push(pt(NW,maAt));
+    // Bollinger bands (MOCKUP): EMA ± 2 SD on the same spiral/price scale; very light fill + faint thin edges, behind the MA and the trail
+    {const QU=[],QL=[];for(let a=0;a<NW;a++)for(let j=0;j<MS;j++){QU.push(pt(a+j/MS,upAt));QL.push(pt(a+j/MS,loAt));}QU.push(pt(NW,upAt));QL.push(pt(NW,loAt));
+      for(let i=0;i+MS<QU.length;i+=MS){const u=Q2[i].u;if(u<=0.02)continue;ctx.fillStyle=`rgba(255,226,90,${((WIDE?0.055:0.08)*Math.pow(u,0.9)).toFixed(3)})`;ctx.beginPath();
+        ctx.moveTo(QU[i].x,QU[i].y);for(let j=1;j<=MS;j++)ctx.lineTo(QU[i+j].x,QU[i+j].y);for(let j=MS;j>=0;j--)ctx.lineTo(QL[i+j].x,QL[i+j].y);ctx.closePath();ctx.fill();}
+      ctx.lineWidth=WIDE?1:0.9;ctx.shadowBlur=0;
+      for(const QB of [QU,QL])for(let i=0;i+MS<QB.length;i+=MS){const u=Q2[i].u;if(u<=0.02)continue;ctx.strokeStyle=`rgba(255,226,90,${((WIDE?0.26:0.34)*Math.pow(u,0.8)).toFixed(3)})`;
+        ctx.beginPath();ctx.moveTo(QB[i].x,QB[i].y);for(let j=1;j<=MS;j++)ctx.lineTo(QB[i+j].x,QB[i+j].y);ctx.stroke();}}
     const maSeg=(i)=>{ctx.beginPath();ctx.moveTo(Q2[i].x,Q2[i].y);for(let j=1;j<=MS;j++)ctx.lineTo(Q2[i+j].x,Q2[i+j].y);ctx.stroke();};
     for(const [lw,blur,col,am] of [[(WIDE?1.5:1.3)+2,0,'5,3,12',0.55],[WIDE?1.5:1.3,Q>0?6:0,'255,226,90',0.62]]){ctx.lineWidth=lw;ctx.shadowColor='rgba(255,215,50,.9)';ctx.shadowBlur=blur;   // dark keyline, then the dim yellow ghost
       for(let i=0;i+MS<Q2.length;i+=MS){const u=Q2[i].u;if(u<=0.02)continue;ctx.strokeStyle=`rgba(${col},${(am*Math.pow(u,0.8)).toFixed(3)})`;maSeg(i);}}
@@ -1705,7 +1713,7 @@ function drawTrail(now){
     for(const o of MAX.ev){const k=(dn-o.t)/900,p=pt((dn-o.t)/1000/trailStep);const R=(WIDE?3:2.4)+(WIDE?9:7)*k;
       ctx.strokeStyle=`rgba(255,240,150,${(0.85*(1-k)).toFixed(3)})`;ctx.lineWidth=1.2;ctx.shadowColor='rgba(255,230,80,1)';ctx.shadowBlur=Q>0?8:0;
       ctx.beginPath();ctx.arc(p.x,p.y,R,0,Math.PI*2);ctx.stroke();ctx.fillStyle=`rgba(255,255,220,${(0.9*(1-k)).toFixed(3)})`;ctx.beginPath();ctx.arc(p.x,p.y,1.6*(1-k)+0.6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
-    window.__ofcMA={tau,ma:MAE[0],px:PR[0],ev:MAX.ev.length,crosses:MAX.n};}
+    window.__ofcMA={tau,ma:MAE[0],sd:MAV[0],bwPct:+(4*MAV[0]/MAE[0]*100).toFixed(4),px:PR[0],ev:MAX.ev.length,crosses:MAX.n};}
   // centreline spine: thin continuous track that fades into the vanishing point
   ctx.lineWidth=1;
   const S=[];for(let a=0;a<P.length-1;a++)S.push(sub(a));
