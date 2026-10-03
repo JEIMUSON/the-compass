@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261003-1300';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261003-1420';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -1780,6 +1780,15 @@ function zbarGeom(){
   const y0=CY+dy+14, y1=(WIDE?CY+RMAX:botLblY()-20);
   return y1-y0>=40?{x,y0,y1,lw:30}:null;
 }
+// one value per zoom bar, at a FIXED spot (bar mid-height) on a fixed-width plate, monospace -> no jitter; white = AUTO, yellow = manual (like the halfway boxes)
+function barVal(txt,ref,auto,x,ym,side,y1){const fz=WIDE?Math.round(Math.max(15,Math.min(20,RMAX/22))):13.5;ctx.save();ctx.font=`${fz}px "Share Tech Mono",monospace`;
+  const w=Math.ceil(ctx.measureText(ref).width)+12,h=fz+8,bx=side>0?x:x-w;
+  if(y1!=null){const RL=RMAX+50,dx=Math.min(Math.abs(CX-bx),Math.abs(CX-bx-w));   // portrait corner: drop just enough to clear the ring + RSI gauge labels (still a fixed spot)
+    ym=Math.min(y1-h/2,Math.max(ym,CY+Math.sqrt(Math.max(0,RL*RL-dx*dx))+h/2+2));}
+  const by=Math.round(ym-h/2);
+  ctx.fillStyle='rgba(5,3,12,.8)';ctx.fillRect(bx,by,w,h);ctx.strokeStyle=auto?'rgba(255,255,255,.35)':'rgba(255,230,0,.4)';ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,w-1,h-1);
+  ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=auto?'#f2fbff':'#ffe600';ctx.shadowColor=auto?'rgba(255,255,255,.6)':'rgba(255,230,0,.6)';ctx.shadowBlur=Q>0?5:0;
+  ctx.fillText(txt,bx+6,by+h/2+1);ctx.restore();}
 function drawZoomBar(now){
   const Z=zbarGeom(); {const pill=!!(Z&&Z.pw);if(document.body.classList.contains('zpill')!==pill)document.body.classList.toggle('zpill',pill);}
   if(!Z)return; const {x,y0,y1}=Z, t=zT(dispRange), ty=y1-(y1-y0)*t;
@@ -1792,9 +1801,8 @@ function drawZoomBar(now){
   ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,ty);ctx.stroke();                                                        // fill from max-out
   ctx.fillStyle=`rgb(${col})`;ctx.beginPath();ctx.moveTo(x-6,ty);ctx.lineTo(x+1,ty-4);ctx.lineTo(x+1,ty+4);ctx.closePath();ctx.fill();  // marker
   ctx.fillRect(x-1.5,ty-1,4,2);ctx.shadowBlur=0;
-  const lab=fmtAge(Math.round(VIEW==='limit'?LWIN:MWIN)).replace('-','');   // zoom = time: LIMIT depth / MARKET window
-  ctx.font=`700 ${WIDE?10:8.5}px Orbitron,sans-serif`;ctx.textAlign='right';ctx.fillStyle=`rgba(${col},.95)`;
-  ctx.fillText(lab,x-8,y0+7);
+  const lab=Math.round(VIEW==='limit'?LWIN:MWIN)+'s';   // zoom = time (15-60 s): LIMIT depth / MARKET window -- one fixed value label, outer side on desktop, inward in the portrait corner
+  barVal(lab,'60s',rangeAuto,Z.pw?x+12:x-12,(y0+y1)/2,Z.pw?1:-1,Z.pw?null:y1);
   if(Z.pw){const {px,py,pw,ph}=Z,on=autoOn();   // big AUTO toggle: yellow like the VIEW button when on, dim when off
     ctx.beginPath();ctx.moveTo(px+7,py);ctx.lineTo(px+pw,py);ctx.lineTo(px+pw,py+ph-7);ctx.lineTo(px+pw-7,py+ph);ctx.lineTo(px,py+ph);ctx.lineTo(px,py+7);ctx.closePath();
     ctx.fillStyle=on?'rgba(255,230,0,.10)':'rgba(5,3,12,.75)';ctx.fill();
@@ -1815,10 +1823,7 @@ function drawPriceBar(){const P=pbarGeom();if(!P)return;const {x,y0,y1}=P,t=pzT(
   for(let i=0;i<=8;i++){const yy=y0+(y1-y0)*i/8;ctx.beginPath();ctx.moveTo(x+1,yy);ctx.lineTo(x+(i%4?2:4),yy);ctx.stroke();}
   ctx.strokeStyle=`rgba(${col},.85)`;ctx.lineWidth=3;ctx.shadowColor=`rgb(${col})`;ctx.shadowBlur=Q>0?10:0;ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,ty);ctx.stroke();
   ctx.fillStyle=`rgb(${col})`;ctx.beginPath();ctx.moveTo(x+6,ty);ctx.lineTo(x-1,ty-4);ctx.lineTo(x-1,ty+4);ctx.closePath();ctx.fill();ctx.fillRect(x-2.5,ty-1,4,2);ctx.shadowBlur=0;
-  const ly=Math.max(y0+3,Math.min(y1+3,ty+3.5));ctx.textAlign='left';
-  ctx.font=`${WIDE?9:8}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(0,240,255,.4)';   // scale ends (tight / wide), hidden when the value label sits on them
-  if(ly-(y0+3)>13)ctx.fillText('±0.15%',x+8,y0+3);if((y1+3)-ly>13)ctx.fillText('±1%',x+8,y1+3);
-  ctx.font=`700 ${WIDE?10:8.5}px Orbitron,sans-serif`;ctx.fillStyle=`rgba(${col},.95)`;ctx.fillText('±'+fmtPct(PZ),x+9,ly);   // current value, beside the marker
+  const roomy=!!(zbarGeom()||{}).pw;barVal('±'+fmtPct(PZ),'±0.15%',PAUTO,roomy?x-12:x+12,(y0+y1)/2,roomy?-1:1,roomy?null:y1);   // one fixed value label (mirror of the time bar's)
   ctx.restore();}
 function drawZRead(now){const a=now-ZRD.t;if(a>1300||!ZRD.txt)return;const al=a<650?1:1-(a-650)/650;ctx.save();ctx.globalAlpha=al;const fz=WIDE?24:20;ctx.font=`900 ${fz}px Orbitron,sans-serif`;
   ctx.textAlign='center';ctx.textBaseline='middle';const y=CY-R0-fz*1.7,w=ctx.measureText(ZRD.txt).width+26,h=fz*1.6;
