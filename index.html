@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261003-1205';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261003-1300';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -198,7 +198,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <ul><li>Arcs are <b>walls</b> of waiting orders: <b class="gr">buyers left</b>, <b class="rd">sellers right</b>.</li>
  <li>Distance from the middle = distance from the current price.</li>
  <li>Bigger, brighter arc = bigger wall.</li>
- <li><b>Price zoom</b> (bar opposite the time bar, ±0.1%–±2%): out shows walls further from price, in spreads the near ones. Phone: swipe ←/→ for price, ↑/↓ for time. Desktop: shift+wheel or the bar. <b>AUTO</b> fits the biggest bid and ask walls in clean steps (±0.1/0.2/0.5/1/2%; the white halfway circle's boxes show price and ±% there); zooming price by hand turns price AUTO off.</li>
+ <li><b>Price zoom</b> (bar opposite the time bar, ±0.15%–±1%): out shows walls further from price, in spreads the near ones. Phone: swipe ←/→ for price, ↑/↓ for time. Desktop: shift+wheel or the bar. <b>AUTO</b> follows traffic, like time AUTO: dead-slow ±0.15%, normal ±0.5%, busy or a burst ±1%, in clean steps (±0.15/0.25/0.5/0.75/1%; the white halfway circle's boxes show price and ±% there); zooming price by hand turns price AUTO off.</li>
  <li>New walls start at the center and drift outward over time. A wall that stays is <b>holding</b>; one that vanishes was <b>pulled or eaten</b>.</li>
  <li><b class="gr">SUPPORT</b> / <b class="rd">RESISTANCE</b> = the strongest nearby wall on each side.</li>
  <li><b>EATEN</b> (bright bite flash) = a wall shrank while trades hit its price. <b>PULLED</b> (ghostly dashed outline) = it vanished with little trading there; repeat pulls in one zone = <b>SPOOF?</b> Just a hint: intent can't be proven.</li></ul>
@@ -372,14 +372,15 @@ let needle=0, needleV=0;
 try{localStorage.removeItem('ofc.win');localStorage.removeItem('ofc.flowCache.v1');}catch(e){}
 const WL=sec=>sec<=60?'LIVE':sec<3600?(sec/60)+'M':(sec/3600)+'H';
 let rangeAuto=(()=>{try{return localStorage.getItem('ofc.autoZoom')!=='0';}catch(e){return true;}})(), rangeFrac=0.006, dispRange=0.006, PRANGE=0.006, PFIT=0.006;
-// LIMIT PRICE ZOOM (manual, per coin): half-range around price at the outer ring, ±0.1% .. ±2% (log); AUTO never touches it. Drawn range PRANGE eases to PZ.
-const PZMIN=0.001,PZMAX=0.02,PCUT=0.023,PZDEF={XRP:0.01,BTC:0.016,ETH:0.013,SOL:0.012,DOGE:0.02,ADA:0.013,LINK:0.016,LTC:0.017,AVAX:0.015,XLM:0.02};
+// LIMIT PRICE ZOOM (per coin): half-range around price at the outer ring, ±0.15% .. ±1% (log). Drawn range PRANGE eases to PZ.
+const PZMIN=0.0015,PZMAX=0.01,PCUT=0.023,PZDEF={XRP:0.005,BTC:0.005,ETH:0.005,SOL:0.005,DOGE:0.0075,ADA:0.005,LINK:0.005,LTC:0.005,AVAX:0.005,XLM:0.0075};
 let PZ=(()=>{let v=NaN;try{v=parseFloat(localStorage.getItem('ofc.pz.'+COIN));}catch(e){}return v>=PZMIN&&v<=PZMAX?v:(PZDEF[COIN]||0.012);})();PRANGE=PZ;
-const fmtPct=v=>{const p=v*100;return (p<0.995?p.toFixed(2):p.toFixed(1))+'%';};
+const fmtPct=v=>{const p=v*100;return (p<0.995?String(+p.toFixed(3)):p.toFixed(1))+'%';};   // 0.075%, 0.15%, 0.5%, 1.0%
 let ZRD={txt:'',t:-1e9};function zRead(t){ZRD={txt:t,t:performance.now()};}   // brief on-screen zoom readout
-// LIMIT price AUTO (same AUTO toggle): fit the biggest significant bid + ask wall (within ±2%, KEY-wall score) with 15% margin, ~10 s smoothed,
-// snapped to clean steps so the halfway-circle readouts show round ±% numbers. Hysteresis: widen after 3 s, narrow only with 15% spare room held 15 s. Manual price zoom turns it off.
-const PSTEPS=[0.001,0.002,0.005,0.01,0.02];   // halfway readouts then read ±0.05/0.1/0.25/0.5/1%
+// LIMIT price AUTO (same AUTO toggle): driven by TRAFFIC (LT.q = MARKET's 60 s USD rate / 10-min EMA, same as time AUTO):
+// q<=0.25 -> ±0.15%, q=1 -> ±0.5%, q>=2 or burst -> ±1% (log-interpolated), ~10 s smoothed, snapped to clean steps (halfway boxes read ±0.075/0.125/0.25/0.375/0.5%).
+// Hysteresis: step only when 8% past the log-midpoint to the next step; widen after 3 s, narrow after 15 s. Manual price zoom turns it off.
+const PSTEPS=[0.0015,0.0025,0.005,0.0075,0.01];   // ±0.15/0.25/0.5/0.75/1%
 let PAUTO=(()=>{try{return localStorage.getItem('ofc.pauto')!=='0';}catch(e){return true;}})(),PA={want:0,since:0,req:0,ch:0};
 function setPAuto(v){PAUTO=!!v;PA.since=0;PA.want=0;try{localStorage.setItem('ofc.pauto',v?'1':'0');}catch(e){}}
 let pzSaveT=0;function setPZ(v){setPAuto(false);PZ=Math.min(PZMAX,Math.max(PZMIN,v));clearTimeout(pzSaveT);pzSaveT=setTimeout(()=>{try{localStorage.setItem('ofc.pz.'+COIN,PZ.toFixed(5));}catch(e){}},300);zRead('±'+fmtPct(PZ));}   // dispRange = zoom-bar state; PRANGE = price range actually drawn
@@ -659,15 +660,14 @@ function combine(){
   mid=simPx(one?(bestBid+bestAsk)/2:M);if(!dispMid)dispMid=mid;BREADY=true;
 }
 setInterval(()=>{if(combDirty)combine();},LOWDEV()?250:150);
-setInterval(()=>{if(!PAUTO||!BREADY||!mid||VIEW!=='limit')return;const lim=mid*PZMAX,n=Date.now();
-  const pick=lv=>{let best=null,bs=-1;for(const x of lv){const d=Math.abs(x[0]-mid);if(d>lim)continue;const sc=x[1]*(1-0.45*d/lim);if(sc>bs){bs=sc;best=x;}}return best;};
-  const b=pick(sortedB),a=pick(sortedA);if(!b||!a)return;
-  const raw=Math.max(mid-b[0],a[0]-mid)/mid*1.15;PA.req=PA.req?PA.req+(raw-PA.req)*0.1:raw;PA.b=b[0];PA.a=a[0];
-  const fit=PSTEPS.find(x=>x>=PA.req)||PZMAX;
-  if(!PSTEPS.includes(PZ)){PZ=fit;PA.ch++;return;}   // entering AUTO: snap to the clean step that fits
-  const want=fit>PZ||(fit<PZ&&PA.req<=0.85*fit)?fit:PZ;
-  if(want===PZ){PA.want=0;return;}
-  if(PA.want!==want){PA.want=want;PA.since=n;}else if(n-PA.since>=(want>PZ?3000:15000)){PZ=want;PA.want=0;PA.ch++;}},1000);
+const pzOfQ=q=>{const l=Math.log2(Math.max(0.25,Math.min(2,q)));return l<0?0.005*Math.pow(0.3,-l/2):0.005*Math.pow(2,l);};   // 0.25->0.15%, 1->0.5%, 2->1%
+setInterval(()=>{if(!PAUTO||!mid||VIEW!=='limit')return;const n=Date.now(),busy=n<burst.until;
+  const raw=busy?PZMAX:pzOfQ(LT.q||1);PA.q=LT.q;PA.req=busy?raw:(PA.req?PA.req+(raw-PA.req)*0.1:raw);
+  let i=PSTEPS.indexOf(PZ);
+  if(i<0){PZ=PSTEPS.reduce((a,x)=>Math.abs(Math.log(x/PA.req))<Math.abs(Math.log(a/PA.req))?x:a);PA.ch++;return;}   // entering AUTO: snap to the nearest clean step
+  let j=i;while(j<PSTEPS.length-1&&PA.req>Math.sqrt(PSTEPS[j]*PSTEPS[j+1])*1.08)j++;while(j>0&&PA.req<Math.sqrt(PSTEPS[j-1]*PSTEPS[j])/1.08)j--;
+  const want=PSTEPS[j];if(want===PZ){PA.want=0;return;}
+  if(PA.want!==want){PA.want=want;PA.since=n;}else if(n-PA.since>=(want>PZ?(busy?0:3000):15000)){PZ=want;PA.want=0;PA.ch++;}},1000);
 let VEDGE={bid:[],ask:[]};   // [price, venue] where that venue's USD book ends, nearest first (only edges inside ±PZMAX)
 setInterval(()=>{if(!mid||VIEW!=='limit')return;const E={};for(const B of useB().filter(B=>!B.q)){/* each venue's main USD book (stable books are thin extras with sparse outlier quotes) */let mb=Infinity,ma=0;for(const p of B.b.keys())if(p<mb)mb=p;for(const p of B.a.keys())if(p>ma)ma=p;if(!(mb<Infinity)||!ma)continue;
     const e=E[B.v]||(E[B.v]={b:Infinity,a:0});e.b=Math.min(e.b,mb);e.a=Math.max(e.a,ma);}
@@ -1055,9 +1055,8 @@ let PLBL=[];
 const PF=p=>'$'+(CC.pf>=4?p.toFixed(CC.pf):fmtX(p,CC.pf));
 let HALF=null;   // halfway readout boxes (geometry from drawPriceRings)
 function drawHalfBoxes(){if(!HALF)return;const {w,h,f1,f2,rh}=HALF,T=Math.PI*2,lw=WIDE?Math.min(5,Math.max(3.2,RMAX/90)):2.8;
-  // halfway circle: drawn ABOVE the wall arcs (soft white glow + crisp core); gapped where a SUPPORT/RESISTANCE label crosses its radius
-  const G=[];for(const sd of ['bid','ask']){const k=KLB[sd];if(k&&k.th!=null&&k.r0<rh+lw&&k.r1>rh-lw){const g=k.ah+0.03,n=(((k.th-g)%T)+T)%T;G.push([n,n+2*g]);}}
-  const segs=[];if(!G.length)segs.push([0,T]);else{G.sort((a,b)=>a[0]-b[0]);for(let i=0;i<G.length;i++){const e=G[i][1],ns=i+1<G.length?G[i+1][0]:G[0][0]+T;if(ns>e)segs.push([e,ns]);}}
+  // halfway circle: drawn ABOVE the wall arcs (soft white glow + crisp core)
+  const segs=[[0,T]];   // labels now always sit outside the circle -> no gaps needed
   ctx.save();ctx.lineCap='round';
   for(const [st,lwp,blur,a] of [['rgba(255,255,255,.22)',lw+4,Q>0?18:0,1],['rgba(255,255,255,.93)',lw,Q>0?7:0,1]]){ctx.strokeStyle=st;ctx.lineWidth=lwp;ctx.shadowColor='rgba(255,255,255,.9)';ctx.shadowBlur=blur;
     ctx.beginPath();for(const [a0,a1] of segs){ctx.moveTo(CX+Math.cos(a0)*rh,CY+Math.sin(a0)*rh);ctx.arc(CX,CY,rh,a0,a1);}ctx.stroke();}
@@ -1068,13 +1067,7 @@ function drawHalfBoxes(){if(!HALF)return;const {w,h,f1,f2,rh}=HALF,T=Math.PI*2,l
     ctx.font=`${f2}px "Share Tech Mono",monospace`;ctx.fillStyle=side==='bid'?'rgba(43,255,154,.95)':'rgba(255,43,214,.95)';ctx.fillText(p,x,by+f1+5);}
   ctx.restore();}
 function drawPriceLabels(){   // LIMIT: ring prices on the horizontal axis, over the walls
-  drawHalfBoxes();if(!PLBL.length)return;ctx.save();ctx.font=`${WIDE?10:9}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.textBaseline='top';
-  PLBL=PLBL.filter(q=>{const K=KLB[q.side];if(!K)return true;const d=Math.abs(q.cx-CX);return d+q.w/2<K.r0||d-q.w/2>K.r1;});   // never draw over SUPPORT/RESISTANCE text
-  if(!PLBL.length){ctx.restore();return;}
-  for(const q of PLBL){ctx.fillStyle='rgba(5,3,12,.72)';ctx.fillRect(q.x,q.y,q.w,q.h);ctx.fillStyle=q.side==='bid'?'rgba(43,255,154,.9)':'rgba(255,43,214,.9)';ctx.fillText(q.txt,q.cx,q.y+2);}
-  const o=PLBL.filter(q=>q.side==='bid').sort((a,b)=>a.x-b.x)[0];
-  if(o){ctx.font=`700 ${WIDE?9:8}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(200,215,235,.75)';ctx.fillText('PRICE',o.cx,o.y+o.h+1);}
-  ctx.restore();}
+  drawHalfBoxes();}   // decluttered: the per-ring price tags + 'PRICE' caption are gone; the two fixed halfway boxes are the price readout
 function drawPriceRings(){
   if(!dispMid)return;
   ctx.save();
@@ -1091,9 +1084,6 @@ function drawPriceRings(){
   if(VIEW!=='market')for(let d=nice;d<=span*1.001;d+=nice){ri++;
     const r=rOf(d);
     ctx.strokeStyle='rgba(120,200,255,0.13)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);ctx.stroke();
-    for(const [side,px,x] of [['bid',dispMid-d,CX-r],['ask',dispMid+d,CX+r]]){const txt=PF(px),w=ctx.measureText(txt).width+6,bx=x-w/2,by=CY+4,bh=(WIDE?10:9)+4;
-      if(bx<2||bx+w>W-2||PLBL.some(q=>bx<q.x+q.w+3&&bx+w+3>q.x&&Math.abs(q.y-by)<bh)||lblHit(bx,by,w,bh))continue;
-      PLBL.push({x:bx,y:by,w,h:bh,txt,side,cx:x});lblReserve(bx,by,w,bh);}
   }
   // outer bezel
   ctx.strokeStyle='rgba(0,240,255,0.55)';ctx.lineWidth=2;ctx.shadowColor='#00f0ff';ctx.shadowBlur=14;
@@ -1163,16 +1153,18 @@ function drawKeyWalls(now,maxq){   // SUPPORT (bid) / RESISTANCE (ask): highligh
     ctx.save();ctx.globalCompositeOperation='source-over';ctx.strokeStyle=rgba(cc,(0.95*pl).toFixed(3));ctx.lineWidth=lw+2.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(LOW?16:28):0;
     ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();ctx.restore();
     // text: centred on the angular midpoint of its own wall arc (a0), following the curve, upright (outward-facing); font shrinks with the arc, fades when too small
-    const base1=WIDE?Math.round(Math.max(12,Math.min(16,RMAX/27))):10, sc=Math.max(0.62,Math.min(1,(r-R0)/(RMAX*0.28)));
-    const L1=`${PF(px)} · ${fmtQ(q)} ${UNIT}`,L2=side==='bid'?'SUPPORT':'RESISTANCE', allow=Math.min(1.45,Math.max(0.55,2*sp+0.5));   // text may overhang a short arc a little
-    const lay=k=>{const fs1=Math.max(7,Math.round(base1*sc*k)),fs2=Math.max(7,fs1-1),R1=r+lw/2+4,R2=R1+fs2+3,F1=`700 ${fs2}px "Share Tech Mono",monospace`,F2=`900 ${fs1}px Orbitron,sans-serif`;
+    const base1=WIDE?Math.round(Math.max(12,Math.min(16,RMAX/27))):10, sc=Math.max(0.62,Math.min(1,(Math.max(r,HALF?HALF.r1:0)-R0)/(RMAX*0.28)));   // scale by where the text sits (outside the circle), not the wall
+    const L1u=`${PF(px).replace('$','')} · ${fmtQ(q)} ${UNIT}`,L1n=`${PF(px).replace('$','')} · ${fmtQ(q)}`,L2=side==='bid'?'SUPPORT':'RESISTANCE', allow=Math.min(1.45,Math.max(0.55,2*sp+0.5));
+    const Rmin=HALF?HALF.r1+(WIDE?10:7):0;   // always outside the halfway circle AND its readout boxes (open space), never near the hub
+    let L1=L1u;   // text may overhang a short arc a little
+    const lay=k=>{const fs1=Math.max(7,Math.round(base1*sc*k)),fs2=Math.max(7,fs1-1),R1=Math.max(r+lw/2+4,Rmin),R2=R1+fs2+3,F1=`700 ${fs2}px "Share Tech Mono",monospace`,F2=`900 ${fs1}px Orbitron,sans-serif`;
       ctx.font=F1;const w1=ctx.measureText(L1).width/R1;ctx.font=F2;const w2=ctx.measureText(L2).width/R2;return {fs1,fs2,R1,R2,F1,F2,totM:Math.max(w1,w2)};};
-    let LY=lay(1);if(LY.totM>allow)LY=lay(Math.max(0.72,allow/LY.totM));   // short arc -> shrink the text (down to 72%) ...
+    let LY=lay(1);if(LY.totM>allow){L1=L1n;LY=lay(1);}   // drop the unit if it doesn't fit cleanly
+    if(LY.totM>allow)LY=lay(Math.max(0.72,allow/LY.totM));   // short arc -> shrink the text (down to 72%) ...
     const {fs1,fs2,R1,R2,F1,F2,totM}=LY;
-    let al=Math.max(0,Math.min(1,(r-R0*1.12)/(R0*0.45)))*Math.max(0,Math.min(1,(allow*1.35-totM)/(allow*0.35)));   // ... then fade if still too long / too close to the hub
+    let al=Math.max(0,Math.min(1,(R1-R0*1.12)/(R0*0.45)))*Math.max(0,Math.min(1,(allow*1.35-totM)/(allow*0.35)));   // ... then fade if still too long / too close to the hub
     if(al<=0.03)continue;KLB[side]={r0:R1-3,r1:R2+fs1+3,ah:totM/2+0.04};
-    let TH=a0;if(HALF&&R2+fs1+3>HALF.r0-4&&R1-3<HALF.r1+4)TH=a0+(side==='bid'?1:-1)*(totM/2+(HALF.h/2+6)/R1);   // clear the halfway readout box: slide the text up along its arc
-    KLB[side].th=TH;
+    const TH=a0;
     ctx.save();ctx.globalAlpha=al;ctx.textAlign='center';ctx.textBaseline='alphabetic';
     for(const [txt,R,font,col,glow] of [[L1,R1,F1,'#f2fbff',0],[L2,R2,F2,rgba(cc,1),10]]){
       ctx.font=font;const fz=parseFloat(font.split(' ')[1]),th=TH,T=arcText(txt,R,th);
@@ -1261,17 +1253,14 @@ function drawSpoofFx(now){   // front layer: EATEN/bite flash; PULLED ghost at t
     const u=age/SP_GHOST,fl=0.6+0.4*Math.sin(now/70+o.px*911),col=o.spoof?'255,110,235':'215,200,255';
     ctx.save();ctx.setLineDash([7,6]);ctx.lineDashOffset=-now/45;ctx.lineWidth=2.2;ctx.strokeStyle=`rgba(${col},${((1-u)*0.85*fl).toFixed(3)})`;ctx.shadowColor=`rgba(${col},.9)`;ctx.shadowBlur=Q>0?10:0;
     ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();ctx.restore();
-    if(o.big||o.spoof){const fz=WIDE?11:9,txt=o.spoof?'SPOOF?':'PULLED',R=r+fz*0.4+6;ctx.save();ctx.font=`900 ${fz}px Orbitron,sans-serif`;const ht=ctx.measureText(txt).width/R/2+0.02;ctx.restore();
+    if(o.big||o.spoof){const fz=WIDE?11:9,txt=o.spoof?'SPOOF?':'PULLED',R=Math.max(r+fz*0.4+6,HALF?HALF.r1+fz+(WIDE?10:7):0);ctx.save();ctx.font=`900 ${fz}px Orbitron,sans-serif`;const ht=ctx.measureText(txt).width/R/2+0.02;ctx.restore();
       const K=KLB[o.side],off=Math.max(ht+Math.max(0.12,22/R),K&&R+fz>K.r0&&R-fz<K.r1?K.ah+ht+0.04:0),ta=a0+(o.side==='bid'?-off:off);   // just below the horizon (clear of price tags), past SUPPORT/RESISTANCE text
-      spTag(txt,R,ta,o.spoof?'#ff6eeb':'#d7c8ff',Math.min(1,(1-u)*1.6)*Math.max(0,Math.min(1,(r-R0*1.12)/(R0*0.45))),fz);}}
+      spTag(txt,R,ta,o.spoof?'#ff6eeb':'#d7c8ff',Math.min(1,(1-u)*1.6)*Math.max(0,Math.min(1,(R-R0*1.12)/(R0*0.45))),fz);}}   // PULLED/SPOOF? tag always outside the halfway circle
 }
 let topWallsOld;
 function drawBookEdge(){   // faint dashed arc where a venue's book runs out inside the visible price range (+ which venues)
   for(const side of ['bid','ask']){const L=VEDGE[side].filter(([p])=>rOf(p-dispMid)<=RMAX);if(!L.length)continue;const r=rOf(L[0][0]-dispMid);if(r<R0*1.15)continue;
     const a0=baseAng(side),sp=MAXSPAN+0.12;ctx.save();ctx.setLineDash([3,6]);ctx.strokeStyle='rgba(160,190,220,.28)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(CX,CY,r,a0-sp,a0+sp);ctx.stroke();ctx.setLineDash([]);
-    if(r>R0*2.2){const ta=side==='bid'?Math.PI-0.95:0.95,fz=WIDE?9:8,tx=CX+Math.cos(ta)*r,ty=CY+Math.sin(ta)*r,txt='BOOK EDGE '+L.map(x=>VEN[x[1]].t).join('·');   // lower quadrant of its own side
-      ctx.font=`${fz}px "Share Tech Mono",monospace`;const w=ctx.measureText(txt).width+6;ctx.fillStyle='rgba(5,3,12,.7)';ctx.fillRect(tx-w/2,ty-fz/2-2,w,fz+4);
-      ctx.fillStyle='rgba(160,190,220,.6)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,tx,ty);}
     ctx.restore();}}
 function drawBook(now){
   if(!BREADY||!sortedB.length)return;
@@ -1816,7 +1805,7 @@ function drawZoomBar(now){
     ctx.font='700 12px Orbitron,sans-serif';if(on&&Q>0){ctx.shadowColor='#ffe600';ctx.shadowBlur=8;}ctx.fillText('AUTO',tx+w1,py+ph/2+4.5);ctx.shadowBlur=0;}
   ctx.restore();
 }
-// LIMIT price-zoom bar: mirror of the time bar on the opposite side; top = tight (±0.1%), bottom = wide (±2%), log scale
+// LIMIT price-zoom bar: mirror of the time bar on the opposite side; top = tight (±0.15%), bottom = wide (±1%), log scale
 function pbarGeom(){if(VIEW!=='limit')return null;const Z=zbarGeom();if(!Z)return null;return {x:Math.max(8,Math.min(W-8,2*CX-Z.x)),y0:Z.y0,y1:Z.y1};}
 const pzT=v=>Math.max(0,Math.min(1,Math.log(PZMAX/v)/Math.log(PZMAX/PZMIN))), pzV=t=>PZMAX*Math.pow(PZMIN/PZMAX,Math.max(0,Math.min(1,t)));
 function drawPriceBar(){const P=pbarGeom();if(!P)return;const {x,y0,y1}=P,t=pzT(PRANGE),ty=y1-(y1-y0)*t,col=PAUTO?'0,240,255':'255,230,0';
@@ -1828,7 +1817,7 @@ function drawPriceBar(){const P=pbarGeom();if(!P)return;const {x,y0,y1}=P,t=pzT(
   ctx.fillStyle=`rgb(${col})`;ctx.beginPath();ctx.moveTo(x+6,ty);ctx.lineTo(x-1,ty-4);ctx.lineTo(x-1,ty+4);ctx.closePath();ctx.fill();ctx.fillRect(x-2.5,ty-1,4,2);ctx.shadowBlur=0;
   const ly=Math.max(y0+3,Math.min(y1+3,ty+3.5));ctx.textAlign='left';
   ctx.font=`${WIDE?9:8}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(0,240,255,.4)';   // scale ends (tight / wide), hidden when the value label sits on them
-  if(ly-(y0+3)>13)ctx.fillText('±0.1%',x+8,y0+3);if((y1+3)-ly>13)ctx.fillText('±2%',x+8,y1+3);
+  if(ly-(y0+3)>13)ctx.fillText('±0.15%',x+8,y0+3);if((y1+3)-ly>13)ctx.fillText('±1%',x+8,y1+3);
   ctx.font=`700 ${WIDE?10:8.5}px Orbitron,sans-serif`;ctx.fillStyle=`rgba(${col},.95)`;ctx.fillText('±'+fmtPct(PZ),x+9,ly);   // current value, beside the marker
   ctx.restore();}
 function drawZRead(now){const a=now-ZRD.t;if(a>1300||!ZRD.txt)return;const al=a<650?1:1-(a-650)/650;ctx.save();ctx.globalAlpha=al;const fz=WIDE?24:20;ctx.font=`900 ${fz}px Orbitron,sans-serif`;
@@ -1957,7 +1946,7 @@ function frame(){
 connect();seedREST();
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ws||ws.readyState>1)){backoff=1000;connect();}});
-window.__ofc={pillTap(){pillT=0;pillTap();},setAuto(v){setAuto(v);},get zst(){return {pa:PAUTO,ra:rangeAuto,ao:autoOn()};},simEat(ms,kind,hold,px){EAT={t0:Date.now(),ms,kind:kind||'eat',hold:hold==null?0:hold,px:px||0,q0:0,lq:null};},get spoof(){return {n:{...SPF.n},trk:SPF.trk.size,ev:SPF.ev.slice(-6).map(o=>({k:o.kind,s:o.side,px:o.px,q0:+o.q0.toFixed(1),q1:+o.q1.toFixed(1),ratio:o.ratio,spoof:o.spoof,big:o.big,ven:o.ven}))}},get eat(){const n=performance.now();return EAT&&{px:EAT.px,q0:EAT.q0,ref:REFQ,cp:history.filter((h,i)=>i%8===0&&(n-h.t)/1000<=LWIN).map(h=>{const e=h.b.find(x=>x[0]===EAT.px);return e?[Math.round((n-h.t)/1000),+levelSpan(e[1],REFQ||h.maxq).toFixed(3)]:null;}).filter(Boolean)}},get mt(){return {w:+MT.w.toFixed(1),q:+MT.q.toFixed(2),z:+MT.z.toFixed(2),sg:MT.sg,burst:burst.on}},get lt(){return {w:+LT.w.toFixed(1),q:+LT.q.toFixed(2),mq:+MT.q.toFixed(2),rho:+LT.rho.toFixed(2),lwin:+LWIN.toFixed(1),burst:burst.on}},get keyWalls(){return VIEW==='limit'?{...KEYW,nSig:{bid:topWalls.bid.length,ask:topWalls.ask.length},marks:PLBL.map(q=>q.txt)}:null},simFlat(){SIM={on:true,base:mid,t0:0,dir:0,amp:0,ramp:1};},simMove(dir,frac,ramp){SIM.t0=Date.now();SIM.dir=dir;SIM.amp=frac*SIM.base;SIM.ramp=ramp;},get resp(){const v=proj(HIST_SEC),m=proj(HIST_SEC*0.4);return {tw:+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(2),vp:+(v.y-CY).toFixed(1),vm:+(m.y-CY).toFixed(1),o3:+((window.__ofcR||{}).o3||0).toFixed(1),o8:+((window.__ofcR||{}).o8||0).toFixed(1),mw:+MWIN.toFixed(1),dr:dispRange,pr:pathRef}},get bp(){return BP.length},autoOff(){pillT=0;if(rangeAuto)pillTap();},get dr(){return dispRange},get hubLogo(){return !WIDE&&LOGO.complete&&LOGO.naturalWidth>0},get hdrLogo(){const e=document.querySelector('#top .logo');return !!e&&getComputedStyle(e).display!=='none'},get flares(){return VIEW==='market'?[...FLR.entries()].map(([k,F])=>{const p=F.dx!=null?{x:F.dx,y:F.dy}:null;return {k,T:F.T,tT:trailT,st:trailStep,w:+F.w.toFixed(2),on:!!F.on,side:F.c===COL.bid?'bid':'ask',x:p?Math.round(p.x):null,y:p?Math.round(p.y):null};}):null},winTo(S){intro=null;setAuto(false);syncZA();let lo=0,hi=1;const f=u=>mWinOf(zR(u));const dec=f(0)>f(1);for(let i=0;i<40;i++){const m=(lo+hi)/2;if((f(m)>S)===dec)lo=m;else hi=m;}rangeFrac=zR((lo+hi)/2);return f((lo+hi)/2);},get vring(){if(VIEW!=='market')return null;const p=proj(HIST_SEC);return {full:+(RMAX*p.s).toFixed(1),r:+(RMAX*p.s).toFixed(1),x:Math.round(p.x),y:Math.round(p.y),R0:Math.round(R0)}},get twist(){return VIEW==='market'?+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(1):0},get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,q:B.q||'USD',off:!!B.off,prem:B.prem==null?null:+B.prem.toFixed(5),rate:+rateOf(k,B.q).toFixed(5),ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get bkDepth(){const m=mid;return BOOKS.filter(B=>B.ready).map(B=>{let mb=Infinity,ma=0;for(const p of B.b.keys())if(p<mb)mb=p;for(const p of B.a.keys())if(p>ma)ma=p;const f=rateOf(B.v,B.q);return B.k+' -'+((1-mb*f/m)*100).toFixed(2)+'% +'+((ma*f/m-1)*100).toFixed(2)+'%';})},get pz(){return {pauto:PAUTO,req:PA.req,ch:PA.ch,wb:PA.b,wa:PA.a,pz:PZ,pr:PRANGE,edge:VEDGE,bar:pbarGeom(),rd:ZRD.txt,nb:sortedB.length,na:sortedA.length,lo:sortedB.length?sortedB[sortedB.length-1][0]:0,hi:sortedA.length?sortedA[sortedA.length-1][0]:0}},setPZ,get rates(){return JSON.parse(JSON.stringify(RATE))},simPeg(v,q,r){if(r)PSIM[v+'|'+q]=r;else delete PSIM[v+'|'+q];},get sq(){return SQ},get peg(){return PEG},get rawQ(){const o={};for(const t of RAW){const k=t.v+':'+(t.q||'USD');o[k]=(o[k]||0)+1;}return o},get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
+window.__ofc={pillTap(){pillT=0;pillTap();},setAuto(v){setAuto(v);},get zst(){return {pa:PAUTO,ra:rangeAuto,ao:autoOn()};},simEat(ms,kind,hold,px){EAT={t0:Date.now(),ms,kind:kind||'eat',hold:hold==null?0:hold,px:px||0,q0:0,lq:null};},get spoof(){return {n:{...SPF.n},trk:SPF.trk.size,ev:SPF.ev.slice(-6).map(o=>({k:o.kind,s:o.side,px:o.px,q0:+o.q0.toFixed(1),q1:+o.q1.toFixed(1),ratio:o.ratio,spoof:o.spoof,big:o.big,ven:o.ven}))}},get eat(){const n=performance.now();return EAT&&{px:EAT.px,q0:EAT.q0,ref:REFQ,cp:history.filter((h,i)=>i%8===0&&(n-h.t)/1000<=LWIN).map(h=>{const e=h.b.find(x=>x[0]===EAT.px);return e?[Math.round((n-h.t)/1000),+levelSpan(e[1],REFQ||h.maxq).toFixed(3)]:null;}).filter(Boolean)}},get mt(){return {w:+MT.w.toFixed(1),q:+MT.q.toFixed(2),z:+MT.z.toFixed(2),sg:MT.sg,burst:burst.on}},get lt(){return {w:+LT.w.toFixed(1),q:+LT.q.toFixed(2),mq:+MT.q.toFixed(2),rho:+LT.rho.toFixed(2),lwin:+LWIN.toFixed(1),burst:burst.on}},get keyWalls(){return VIEW==='limit'?{...KEYW,nSig:{bid:topWalls.bid.length,ask:topWalls.ask.length},marks:PLBL.map(q=>q.txt)}:null},simFlat(){SIM={on:true,base:mid,t0:0,dir:0,amp:0,ramp:1};},simMove(dir,frac,ramp){SIM.t0=Date.now();SIM.dir=dir;SIM.amp=frac*SIM.base;SIM.ramp=ramp;},get resp(){const v=proj(HIST_SEC),m=proj(HIST_SEC*0.4);return {tw:+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(2),vp:+(v.y-CY).toFixed(1),vm:+(m.y-CY).toFixed(1),o3:+((window.__ofcR||{}).o3||0).toFixed(1),o8:+((window.__ofcR||{}).o8||0).toFixed(1),mw:+MWIN.toFixed(1),dr:dispRange,pr:pathRef}},get bp(){return BP.length},autoOff(){pillT=0;if(rangeAuto)pillTap();},get dr(){return dispRange},get hubLogo(){return !WIDE&&LOGO.complete&&LOGO.naturalWidth>0},get hdrLogo(){const e=document.querySelector('#top .logo');return !!e&&getComputedStyle(e).display!=='none'},get flares(){return VIEW==='market'?[...FLR.entries()].map(([k,F])=>{const p=F.dx!=null?{x:F.dx,y:F.dy}:null;return {k,T:F.T,tT:trailT,st:trailStep,w:+F.w.toFixed(2),on:!!F.on,side:F.c===COL.bid?'bid':'ask',x:p?Math.round(p.x):null,y:p?Math.round(p.y):null};}):null},winTo(S){intro=null;setAuto(false);syncZA();let lo=0,hi=1;const f=u=>mWinOf(zR(u));const dec=f(0)>f(1);for(let i=0;i<40;i++){const m=(lo+hi)/2;if((f(m)>S)===dec)lo=m;else hi=m;}rangeFrac=zR((lo+hi)/2);return f((lo+hi)/2);},get vring(){if(VIEW!=='market')return null;const p=proj(HIST_SEC);return {full:+(RMAX*p.s).toFixed(1),r:+(RMAX*p.s).toFixed(1),x:Math.round(p.x),y:Math.round(p.y),R0:Math.round(R0)}},get twist(){return VIEW==='market'?+(TWIST_MAX*VSP.w*180/Math.PI).toFixed(1):0},get spin(){return {w:+VSP.w.toFixed(3),ph:+VSP.ph.toFixed(3)}},zManual(){intro=null;setAuto(false);syncZA();},get burst(){return {...burst,now:Date.now()}},simBurst(usd){const px=trades.length?trades[trades.length-1].px:mid,n=Date.now();for(let k=0;k<8;k++)trades.push({t:n-(7-k)*300,side:k%2?'sell':'buy',qty:usd/8/px,px,v:'kraken'});trailDirty=true;},get auto(){return rangeAuto},zAuto(){intro=null;setAuto(true);syncZA();},zIn(){intro=null;setAuto(false);rangeFrac=zR(1);syncZA();},get mwin(){return +MWIN.toFixed(1)},get lwin(){return +LWIN.toFixed(1)},get prange(){return PRANGE},get disp(){return dispRange},get plbl(){return PLBL.map(q=>q.txt)},get hubTxt(){return mid?hubTxt():null},get head(){return {x:Math.round(TRHEAD.x),y:Math.round(TRHEAD.y),CX,CY,R0:Math.round(R0),RMAX:Math.round(RMAX)}},get logo(){const g=logoGeom();return g&&{x:Math.round(g.x),y:Math.round(g.y),S:g.S,CX,CY,RMAX,W,H,Z:zbarGeom()}},get ven(){return Object.fromEntries(Object.entries(VEN).map(([k,v])=>[k,{st:v.st,share:+v.share.toFixed(3),books:BOOKS.filter(B=>B.v===k).map(B=>({k:B.k,q:B.q||'USD',off:!!B.off,prem:B.prem==null?null:+B.prem.toFixed(5),rate:+rateOf(k,B.q).toFixed(5),ready:B.ready,n:B.b.size+B.a.size,ck:B.ckOk,ckBad:B.ckBad,resyncs:B.resyncs}))}]))},get src(){return SRC},setSource,get bkDepth(){const m=mid;return BOOKS.filter(B=>B.ready).map(B=>{let mb=Infinity,ma=0;for(const p of B.b.keys())if(p<mb)mb=p;for(const p of B.a.keys())if(p>ma)ma=p;const f=rateOf(B.v,B.q);return B.k+' -'+((1-mb*f/m)*100).toFixed(2)+'% +'+((ma*f/m-1)*100).toFixed(2)+'%';})},get pz(){return {pauto:PAUTO,req:PA.req,ch:PA.ch,q:LT.q,lw:LT.w,pz:PZ,pr:PRANGE,edge:VEDGE,bar:pbarGeom(),rd:ZRD.txt,nb:sortedB.length,na:sortedA.length,lo:sortedB.length?sortedB[sortedB.length-1][0]:0,hi:sortedA.length?sortedA[sortedA.length-1][0]:0}},setPZ,get rates(){return JSON.parse(JSON.stringify(RATE))},simPeg(v,q,r){if(r)PSIM[v+'|'+q]=r;else delete PSIM[v+'|'+q];},get sq(){return SQ},get peg(){return PEG},get rawQ(){const o={};for(const t of RAW){const k=t.v+':'+(t.q||'USD');o[k]=(o[k]||0)+1;}return o},get comb(){return {ready:BREADY,mid,bestBid,bestAsk,nb:sortedB.length,na:sortedA.length}},get raw(){return RAW.length},get flow(){const f=flow(30);return {b:Math.round(f.b),s:Math.round(f.s),r:+f.r.toFixed(3)}},get trendW(){return trendWin()},get win(){return winSec},get heatN(){return Object.fromEntries(Object.entries(HEATS).map(([w,H])=>[w,H.m.size]))},get intro(){return intro},book,get mid(){return mid},get ck(){return {ckOk,ckBad,ckLast}},get trades(){return tradeCount},get bubbles(){return bubbles.length},get hist(){return history.length},get ind(){return ind},get candles(){return candles.size},get dir(){return INBOUND?'in':'out'},get view(){return VIEW},get layout(){return {W,H,CX,CY,RMAX,R0,WIDE}},get tunnel(){const far=proj(HIST_SEC);return {FOCAL,farScale:far.s,farY:far.y-CY,dispRange,fitFrac,rangeAuto,RMAX}},zoom(f){setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac*f));},autoZoom(){setAuto(true);},get autoOn(){return rangeAuto},get zgeom(){return zbarGeom()},get conn(){return connState},get fps(){return FPS},get q(){return Q},get rc(){return reconnects},forceDrop(){ws&&ws.close();}};
 })();
 // ---------------- INFO overlay: what am I looking at? (✕ / tap outside / Esc) ----------------
 (function(){const I=document.getElementById('info'),B=document.getElementById('infoBtn');if(!I||!B)return;
