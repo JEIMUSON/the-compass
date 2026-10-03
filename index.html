@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261003-0524';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261003-0544';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05030c">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="XRP Compass">
-<meta name="description" content="Live XRP/USD order-flow radar from Kraken public market data">
+<meta name="apple-mobile-web-app-title" content="The Compass">
+<meta name="description" content="The Compass: live crypto order-flow radar (BTC, ETH, XRP, SOL and more) aggregated from Kraken, Coinbase, Bitstamp, Binance.US and Bitfinex public market data">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>XRP COMPASS</title>
+<title>The Compass</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -71,6 +71,8 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 #win button.zauto{flex:1.5}.zpill #win button.zauto{display:none !important}#win button.tdir#tdir{flex:1.6}
 #win button.zauto:not(.lit){color:rgba(0,240,255,.45);border-color:rgba(0,240,255,.25);background:rgba(5,3,12,.75)}
 #win button.zauto.lit{box-shadow:0 0 10px rgba(255,230,0,.35)}
+#win button.tdir#coinB{flex:1.1;font-size:8px}#win button#coinB i{display:block;font-style:normal;margin-bottom:3px;opacity:.8}
+#top .lp .big .cu{font-size:.42em;letter-spacing:2px;color:var(--yl);text-shadow:0 0 8px rgba(255,230,0,.55);margin-right:.45em;vertical-align:.45em}
 #win button.on{background:rgba(0,240,255,.22);color:#fff;box-shadow:0 0 12px var(--cy),inset 0 0 10px rgba(0,240,255,.4)}
 #sheet>.panel{padding:0 6px}
 #tabs{display:flex;gap:4px;margin:0}
@@ -103,7 +105,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  #app{padding:calc(var(--st) + 6px) calc(env(safe-area-inset-right,0px) + 8px) calc(var(--sb) + 6px) calc(env(safe-area-inset-left,0px) + 8px)}
  #top,#vcv,#sheet{margin:0}
  #win{flex-wrap:wrap;row-gap:6px}
- #win button.zauto,#win button.tdir#tdir{flex:1 1 40%}
+ #win button.zauto,#win button.tdir#tdir,#win button.tdir#coinB{flex:1 1 40%}#win button.tdir#coinB{font-size:9px}#win button#coinB i{display:inline;margin:0}
  #vcv{order:-1;flex:0 0 clamp(130px,10.5vw,270px);width:clamp(130px,10.5vw,270px) !important;height:auto;align-self:stretch;min-height:0}
  #pages{display:block;position:static;max-height:none;margin-top:6px}
  #sheetClose{display:none}
@@ -135,25 +137,27 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 }
 #infoBtn{position:absolute;left:8px;top:5px;width:20px;height:20px;padding:0;border-radius:50%;background:rgba(5,3,12,.6);border:1px solid rgba(0,240,255,.55);color:var(--cy);font:italic 700 12px/18px Georgia,serif;text-align:center;cursor:pointer;z-index:2;box-shadow:0 0 6px rgba(0,240,255,.35)}
 #infoBtn:hover,#infoBtn:focus-visible{color:#fff;border-color:var(--yl);box-shadow:0 0 10px rgba(255,230,0,.5);outline:none}
-#info,#tip{display:none;position:fixed;left:0;right:0;top:0;height:100vh;height:100dvh;z-index:60;background:rgba(2,1,8,.72);align-items:center;justify-content:center;padding:calc(var(--st) + 10px) calc(env(safe-area-inset-right,0px) + 10px) calc(var(--sb) + 10px) calc(env(safe-area-inset-left,0px) + 10px)}   /* dvh: fits the visible area even with the Android URL bar */
-#info.on,#tip.on{display:flex}
+#info,#tip,#coinPk{display:none;position:fixed;left:0;right:0;top:0;height:100vh;height:100dvh;z-index:60;background:rgba(2,1,8,.72);align-items:center;justify-content:center;padding:calc(var(--st) + 10px) calc(env(safe-area-inset-right,0px) + 10px) calc(var(--sb) + 10px) calc(env(safe-area-inset-left,0px) + 10px)}   /* dvh: fits the visible area even with the Android URL bar */
+#info.on,#tip.on,#coinPk.on{display:flex}
 #top .logo{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
-#infoBox,#tipBox{position:relative;display:flex;flex-direction:column;width:min(560px,100%);max-height:100%;min-height:0;overflow:hidden;background:rgba(8,14,28,.97);padding:14px 16px 16px;font-size:13px;line-height:1.45;color:#cfe9ff;-webkit-user-select:text;user-select:text;touch-action:pan-y}
-#infoHd,#tipHd{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-4px 0 6px;padding-bottom:6px;border-bottom:1px solid rgba(0,240,255,.18)}   /* header row never scrolls: X always visible */
+#infoBox,#tipBox,#coinBox{position:relative;display:flex;flex-direction:column;width:min(560px,100%);max-height:100%;min-height:0;overflow:hidden;background:rgba(8,14,28,.97);padding:14px 16px 16px;font-size:13px;line-height:1.45;color:#cfe9ff;-webkit-user-select:text;user-select:text;touch-action:pan-y}
+#infoHd,#tipHd,#coinHd{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-4px 0 6px;padding-bottom:6px;border-bottom:1px solid rgba(0,240,255,.18)}   /* header row never scrolls: X always visible */
 #infoBody,#tipBody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding:0 2px 6px 0;scroll-padding-bottom:16px}   /* bottom inset matches the sides, while scrolling and at the end */
-#infoBox h2,#tipBox h2{font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:3px;color:var(--cy);text-shadow:0 0 8px var(--cy);margin:0}
+#infoBox h2,#tipBox h2,#coinBox h2{font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:3px;color:var(--cy);text-shadow:0 0 8px var(--cy);margin:0}
 #infoBox h3{font-size:10px;margin:10px 0 4px}
 #infoBox ul{list-style:none}
 #infoBox li{position:relative;padding-left:12px;margin:2px 0}
 #infoBox li:before{content:'›';position:absolute;left:0;color:var(--cy)}
 #infoBox b{color:#fff;font-weight:700}#infoBox b.gr{color:var(--gr)}#infoBox b.rd{color:var(--rd)}
-#infoX,#tipX{flex:0 0 auto;position:relative;z-index:2;width:44px;height:40px;margin-right:4px;padding:0;background:rgba(5,3,12,.85);border:1px solid rgba(0,240,255,.6);color:var(--cy);font-size:18px;line-height:38px;font-family:system-ui,sans-serif;cursor:pointer;touch-action:manipulation;box-shadow:0 0 8px rgba(0,240,255,.3)}
+#infoX,#tipX,#coinX{flex:0 0 auto;position:relative;z-index:2;width:44px;height:40px;margin-right:4px;padding:0;background:rgba(5,3,12,.85);border:1px solid rgba(0,240,255,.6);color:var(--cy);font-size:18px;line-height:38px;font-family:system-ui,sans-serif;cursor:pointer;touch-action:manipulation;box-shadow:0 0 8px rgba(0,240,255,.3)}
 .infoCred{font-family:Orbitron,sans-serif;font-size:10px;letter-spacing:2px;color:var(--cy);text-align:center;margin-top:12px;text-shadow:0 0 6px rgba(0,240,255,.6)}
 #credit{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);z-index:9;pointer-events:none;white-space:nowrap;font-size:8px;letter-spacing:1px;color:rgba(160,200,230,.32)}
 @media (min-aspect-ratio:1/1){#credit{left:6px;transform:none;bottom:3px;font-size:9px}}
 .infoFoot{font-size:10px;color:#5f7a95;text-align:center;margin-top:10px}
 @media (min-aspect-ratio:1/1) and (min-width:900px) and (min-height:700px){#infoBox,#tipBox{font-size:15px;width:min(640px,100%);padding:20px 24px 16px}#infoBox h2,#tipBox h2{font-size:14px}#tip #tipBox{width:min(420px,100%)}#infoBox h3{font-size:12px}}
-#tip #tipBox{width:min(380px,100%)}#tipBody{text-align:center}#tipBody img{display:block;margin:10px auto 6px;width:72px;height:72px;filter:drop-shadow(0 0 6px rgba(0,240,255,.9)) drop-shadow(0 0 14px rgba(0,240,255,.4))}
+#tip #tipBox{width:min(380px,100%)}#coinPk #coinBox{width:min(420px,100%)}#coinGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;padding:8px 2px 4px}
+#coinGrid button{height:52px;padding:0 6px;font-family:Orbitron,sans-serif;font-weight:700;font-size:14px;letter-spacing:2px;color:var(--cy);background:rgba(5,3,12,.8);border:1px solid rgba(0,240,255,.45);cursor:pointer;touch-action:manipulation;line-height:1.15}#coinGrid button i{display:block;font-style:normal;font-family:"Share Tech Mono",monospace;font-weight:400;font-size:10px;letter-spacing:1px;color:#7f9ab5}
+#coinGrid button.on{color:var(--yl);border-color:rgba(255,230,0,.7);background:rgba(255,230,0,.1);box-shadow:0 0 10px rgba(255,230,0,.35)}#coinGrid button:hover,#coinGrid button:focus-visible{border-color:#fff;outline:none}#tipBody{text-align:center}#tipBody img{display:block;margin:10px auto 6px;width:72px;height:72px;filter:drop-shadow(0 0 6px rgba(0,240,255,.9)) drop-shadow(0 0 14px rgba(0,240,255,.4))}
 #tipBody .tipS{margin:6px 0 14px}#tipBody img{width:60px;height:60px;margin:6px auto 4px}
 .tipOr{display:flex;align-items:center;gap:10px;font-family:Orbitron,sans-serif;font-size:10px;letter-spacing:3px;color:var(--cy);text-shadow:0 0 6px rgba(0,240,255,.6);margin:16px 0 10px}.tipOr:before,.tipOr:after{content:"";flex:1;height:1px;background:rgba(0,240,255,.25)}
 .tipQr{width:112px;height:112px;margin:0 auto 10px;padding:4px;background:#fff;box-shadow:0 0 14px rgba(0,240,255,.45)}.tipQr svg{display:block;width:100%;height:100%}
@@ -164,6 +168,9 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 </style>
 </head>
 <body>
+<div id="coinPk" role="dialog" aria-modal="true" aria-labelledby="coinT"><div id="coinBox" class="panel">
+ <div id="coinHd"><h2 id="coinT">// SELECT COIN</h2><button id="coinX" aria-label="close">✕</button></div>
+ <div id="coinGrid"></div><div class="infoFoot">all pairs in USD · Kraken, Coinbase, Bitstamp, Binance.US, Bitfinex</div></div></div>
 <div id="tip" role="dialog" aria-modal="true" aria-labelledby="tipT"><div id="tipBox" class="panel">
  <div id="tipHd"><h2 id="tipT">// FOUND THE SECRET</h2><button id="tipX" aria-label="close">✕</button></div>
  <div id="tipBody"><img src="logo-128.png" alt="" width="72" height="72"><p class="tipS">Enjoying the compass? Buy me a coffee ☕</p><a id="tipGo" href="https://ko-fi.com/jeimuson" target="_blank" rel="noopener">Tip on Ko-fi</a>
@@ -191,7 +198,8 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <li><b>AUTO off</b> = full zoom out; then zoom by pinch, wheel or the zoom bar.</li></ul>
  <h3>ALSO</h3>
  <ul><li><b>RSI arc</b> (bottom): momentum. Left = oversold, right = overbought.</li>
- <li><b>SRC</b>: venues feeding the book. Pick ALL or one exchange.</li></ul>
+ <li><b>SRC</b>: venues feeding the book. Pick ALL or one exchange.</li>
+ <li><b>COIN</b>: switch between BTC, ETH, XRP, SOL and other big coins (USD pairs on all five exchanges). Your pick is remembered; links can use <b>?coin=ETH</b>.</li></ul>
  <div class="infoCred">Made by JEIMUSON &amp; Grok Bot</div>
  <div class="infoFoot">tap outside, ✕ or Esc to close</div>
  </div>
@@ -200,13 +208,13 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 <div id="colA"><div id="stage"><canvas id="cv"></canvas><div id="vig"></div><div id="scan"></div><canvas id="lcv"></canvas><div id="credit" aria-hidden="true">Made by JEIMUSON &amp; Grok Bot</div></div><canvas id="vcv"></canvas></div>
 <div id="colB">
 <div class="panel" id="top"><button id="infoBtn" aria-label="what am I looking at?" title="what am I looking at?">i</button>
- <div class="l1"><img class="logo" src="logo-64.png" srcset="logo-64.png 1x, logo-128.png 2x, logo.png 3x" alt="" width="22" height="22"><div class="t1">XRP&nbsp;COMPASS</div><div class="conn" id="conn"><span class="dot" style="background:#555"></span>INIT</div></div>
+ <div class="l1"><img class="logo" src="logo-64.png" srcset="logo-64.png 1x, logo-128.png 2x, logo.png 3x" alt="" width="22" height="22"><div class="t1">THE&nbsp;COMPASS</div><div class="conn" id="conn"><span class="dot" style="background:#555"></span>INIT</div></div>
  <div class="lp"><div class="big" id="mid">—</div></div>
  <div class="l2">SPRD <span id="spread">—</span> · IMB <span id="imb">—</span> · Δ <span id="dlt">—</span> · RSI <span id="rsiTop">—</span></div>
 </div>
 
 <div id="sheet">
- <div id="win"><button id="zauto" class="tdir zauto" title="auto zoom on/off">ZOOM ▸ <b>AUTO</b></button><button id="tdir" class="tdir" title="view mode: limit orders / market orders">VIEW ▸ <b>LIMIT</b></button></div>
+ <div id="win"><button id="zauto" class="tdir zauto" title="auto zoom on/off">ZOOM ▸ <b>AUTO</b></button><button id="tdir" class="tdir" title="view mode: limit orders / market orders">VIEW ▸ <b>LIMIT</b></button><button id="coinB" class="tdir" title="coin"><i>COIN ▸</i> <b>XRP</b></button></div>
  <div class="panel">
   <div id="tabs"><button data-p="0" class="on">FLOW</button><button data-p="1">DEPTH</button><button data-p="2">TECH</button><button data-p="3">LINK</button><button data-p="4">SRC</button></div>
  </div>
@@ -253,7 +261,25 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 <script>
 (()=>{
 'use strict';
-const SYMBOL='XRP/USD', DEPTH=100, WS_URL='wss://ws.kraken.com/v2';
+// ---- MULTI-COIN: per-coin feeds, price decimals, book bucketing and dollar thresholds (picked via ?coin=, else saved choice, else XRP)
+const COINS={
+ BTC: {n:'Bitcoin', kr:'BTC/USD', krr:'XBTUSD', cb:'BTC-USD', bs:'btcusd', bn:'btc', bf:'tBTCUSD',  band:1,BUCK:10,     dp:2,dh:0,pf:0,dep:500,whale:250000,burst:100000,tr:0.00025,zmin:0.0003,zmax:0.025},
+ ETH: {n:'Ethereum',kr:'ETH/USD', krr:'ETHUSD', cb:'ETH-USD', bs:'ethusd', bn:'eth', bf:'tETHUSD',  band:1,BUCK:0.25,   dp:2,dh:1,pf:1,dep:500,whale:100000,burst:60000, tr:0.0003, zmin:0.0003,zmax:0.035},
+ XRP: {n:'XRP',     kr:'XRP/USD', krr:'XRPUSD', cb:'XRP-USD', bs:'xrpusd', bn:'xrp', bf:'tXRPUSD',  band:0,BUCK:0.0001, dp:5,dh:5,pf:4,dep:100,whale:10000, burst:25000, tr:0.0004, zmin:0.0005,zmax:0.08},
+ SOL: {n:'Solana',  kr:'SOL/USD', krr:'SOLUSD', cb:'SOL-USD', bs:'solusd', bn:'sol', bf:'tSOLUSD',  band:1,BUCK:0.01,   dp:3,dh:2,pf:2,dep:500,whale:25000, burst:25000, tr:0.0004, zmin:0.0004,zmax:0.05},
+ DOGE:{n:'Dogecoin',kr:'DOGE/USD',krr:'XDGUSD', cb:'DOGE-USD',bs:'dogeusd',bn:'doge',bf:'tDOGE:USD',band:0,BUCK:0.00001,dp:6,dh:5,pf:5,dep:100,whale:10000, burst:15000, tr:0.0005, zmin:0.0005,zmax:0.08},
+ ADA: {n:'Cardano', kr:'ADA/USD', krr:'ADAUSD', cb:'ADA-USD', bs:'adausd', bn:'ada', bf:'tADAUSD',  band:0,BUCK:0.00002,dp:6,dh:5,pf:4,dep:100,whale:10000, burst:10000, tr:0.0005, zmin:0.0005,zmax:0.08},
+ LINK:{n:'Chainlink',kr:'LINK/USD',krr:'LINKUSD',cb:'LINK-USD',bs:'linkusd',bn:'link',bf:'tLINK:USD',band:1,BUCK:0.002,  dp:3,dh:3,pf:2,dep:500,whale:10000, burst:10000, tr:0.0005, zmin:0.0005,zmax:0.08},
+ LTC: {n:'Litecoin',kr:'LTC/USD', krr:'LTCUSD', cb:'LTC-USD', bs:'ltcusd', bn:'ltc', bf:'tLTCUSD',  band:1,BUCK:0.01,   dp:2,dh:2,pf:2,dep:500,whale:10000, burst:10000, tr:0.0005, zmin:0.0005,zmax:0.08},
+ AVAX:{n:'Avalanche',kr:'AVAX/USD',krr:'AVAXUSD',cb:'AVAX-USD',bs:'avaxusd',bn:'avax',bf:'tAVAX:USD',band:1,BUCK:0.001,  dp:3,dh:3,pf:2,dep:500,whale:10000, burst:10000, tr:0.0005, zmin:0.0005,zmax:0.08},
+ XLM: {n:'Stellar', kr:'XLM/USD', krr:'XLMUSD', cb:'XLM-USD', bs:'xlmusd', bn:'xlm', bf:'tXLMUSD',  band:0,BUCK:0.00002,dp:6,dh:5,pf:4,dep:100,whale:10000, burst:10000, tr:0.0005, zmin:0.0005,zmax:0.08}};
+const COIN=(()=>{let c='';try{c=(new URLSearchParams(location.search).get('coin')||'').toUpperCase();}catch(e){}
+  if(!COINS[c]){try{c=localStorage.getItem('ofc.coin')||'';}catch(e){}}if(!COINS[c])c='XRP';try{localStorage.setItem('ofc.coin',c);}catch(e){}return c;})();
+const CC=COINS[COIN];window.COIN=COIN;window.COINS_LIST=Object.keys(COINS);
+const KD=Math.max(0,Math.ceil(-Math.log10(CC.BUCK/2))+1);   // decimals for bucket keys
+const fmtX=(p,d)=>p.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtP=p=>CC.dp>=4?p.toFixed(CC.dp):fmtX(p,CC.dp), fmtH=p=>CC.dh>=4?p.toFixed(CC.dh):fmtX(p,CC.dh);   // main price / compact price (hub, walls, whales)
+const SYMBOL=CC.kr, DEPTH=CC.dep, WS_URL='wss://ws.kraken.com/v2';
 const HIST_SEC=120, SNAP_MS=1000;          // time tunnel length
 const $=id=>document.getElementById(id);
 const parseTs=x=>{if(typeof x==='number')return x*1000;const m=String(x).match(/^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\.\d+)?Z?$/);if(!m)return Date.now();return Date.parse(m[1]+(m[2]?m[2].slice(0,4):'')+'Z');};
@@ -286,12 +312,12 @@ function computeIndicators(){
 }
 async function seedREST(){
   try{
-    const r=await fetch('https://api.kraken.com/0/public/OHLC?pair=XRPUSD&interval=1');const j=await r.json();
+    const r=await fetch('https://api.kraken.com/0/public/OHLC?pair='+CC.krr+'&interval=1');const j=await r.json();
     const key=Object.keys(j.result).find(k=>k!=='last');
     for(const b of j.result[key]){const t=b[0]*1000;if(!candles.has(t)||!candles.get(t).v)setOHLC(t,+b[1],+b[2],+b[3],+b[4],+b[6]);}
   }catch(e){console.warn('OHLC seed failed',e);}
   try{
-    const r=await fetch('https://api.kraken.com/0/public/Trades?pair=XRPUSD&count=1000');const j=await r.json();
+    const r=await fetch('https://api.kraken.com/0/public/Trades?pair='+CC.krr+'&count=1000');const j=await r.json();
     const key=Object.keys(j.result).find(k=>k!=='last');const arr=j.result[key];
     if(arr.length){splitFrom=Math.min(splitFrom,minuteOf(arr[0][2]*1000)+60000);
       const dn=Date.now();
@@ -326,7 +352,7 @@ function setAuto(v){rangeAuto=!!v;try{localStorage.setItem('ofc.autoZoom',v?'1':
 const INTRO_MS=2600; let intro={t0:0,set:null};
 let glitchUntil=0, lastGlitch=0;
 let wallsPrev={bid:null,ask:null};
-let whaleUSD=10000;
+let whaleUSD=CC.whale;
 let connState='INIT';
 
 // ---------------- CRC32 / checksum ----------------
@@ -371,7 +397,7 @@ function resyncBook(){
 }
 
 // ---------------- MARKET view: impact heat (decaying volume profile) + price trail ----------------
-const HB=0.00005;                         // 0.00005 price buckets
+const HB=CC.BUCK/2;                       // heat buckets = half the book bucket
 // one decaying volume profile per flow window (half-life scales with the window); the selected one is drawn
 const HEATS={30:{hl:420,m:new Map()}};   // impact heat, ~7 min half-life
 let PR=new Float64Array(0), impacts=[], trail=[], trailDirty=true, trailT=0, trailStep=1;
@@ -424,7 +450,7 @@ function buildTrail(){
 setInterval(()=>{if(VIEW==='market')buildTrail();},250);
 // MARKET + AUTO: volume-burst vortex. Burst = USD traded in the last 3 s at >= 3x the 60 s baseline rate (and >= BURST_MIN_USD).
 // While it lasts (+ hold) AUTO snaps the window to 15 s (tight vortex), then eases back to the price-move window.
-const BURST_X=3, BURST_MIN_USD=25000, BURST_HOLD=6500, BURST_WIN=15;
+const BURST_X=3, BURST_MIN_USD=CC.burst, BURST_HOLD=6500, BURST_WIN=15;
 let burst={on:false,until:0,rel:0,r3:0,base:0,usd3:0};
 // LIMIT + AUTO (opposite of MARKET): quiet tape -> 15 s depth; heavier traffic vs the 60 s baseline -> deeper, toward 1 m; burst -> full 1 m.
 // rho = 3 s USD rate / 60 s baseline: rho<=1 -> 15 s, rho=2 -> 30 s, rho>=3 (=BURST_X) or burst -> 60 s (log scale). Deeper targets hold 5 s (burst: +6.5 s burst hold) before easing back in.
@@ -514,16 +540,16 @@ function updateWhaleThreshold(){
   const recent=trades.slice(-600).map(t=>t.qty*t.px).sort((a,b)=>a-b);
   if(recent.length<30)return;
   const p97=recent[Math.floor(recent.length*0.97)];
-  whaleUSD=Math.max(10000,p97);
+  whaleUSD=Math.max(CC.whale,p97);
 }
 
 // ---------------- multi-venue: registry, books, combined book ----------------
 const VEN={
-  kraken:  {n:'KRAKEN',  t:'KR',col:'#8d6bff',pair:'XRP/USD'},
-  coinbase:{n:'COINBASE',t:'CB',col:'#3f8cff',pair:'XRP-USD'},
-  bitstamp:{n:'BITSTAMP',t:'BS',col:'#2bd96b',pair:'xrpusd'},
-  binanceus:{n:'BINANCE.US',t:'BN',col:'#f3ba2f',pair:'XRPUSD+USDT'},
-  bitfinex:{n:'BITFINEX',t:'BF',col:'#16b157',pair:'tXRPUSD'},
+  kraken:  {n:'KRAKEN',  t:'KR',col:'#8d6bff',pair:CC.kr},
+  coinbase:{n:'COINBASE',t:'CB',col:'#3f8cff',pair:CC.cb},
+  bitstamp:{n:'BITSTAMP',t:'BS',col:'#2bd96b',pair:CC.bs},
+  binanceus:{n:'BINANCE.US',t:'BN',col:'#f3ba2f',pair:CC.bn.toUpperCase()+'USD+USDT'},
+  bitfinex:{n:'BITFINEX',t:'BF',col:'#16b157',pair:CC.bf},
 };
 for(const v of Object.values(VEN)){v.st='INIT';v.last=0;v.share=0;v.usd5=0;v.rc=0;}
 // every book: {v, k, b:Map(price->qty), a:Map, ready}; Kraken's existing `book` is registered as one of them
@@ -531,25 +557,33 @@ const BOOKS=[{v:'kraken',k:'kraken',b:book.bids,a:book.asks,get ready(){return b
 function mkBook(v,k){const B={v,k,b:new Map(),a:new Map(),ready:false};BOOKS.push(B);return B;}
 let SRC=(()=>{try{const v=localStorage.getItem('ofc.src');return v&&(v==='all'||VEN[v])?v:'all';}catch(e){return 'all';}})();
 let BREADY=false, combDirty=true;
-const VDEPTH=150, BUCK=0.0001;   // top levels used per venue book; ALL view merges into 0.0001 price buckets
+const VDEPTH=150, BUCK=CC.BUCK, BAND=0.025;   // low-priced coins: top levels per venue merged into BUCK buckets; high-priced coins: buckets within ±2.5% of each venue's mid
 function topLv(m,desc,n){const a=[...m.entries()];a.sort(desc?(x,y)=>y[0]-x[0]:(x,y)=>x[0]-y[0]);if(a.length>n)a.length=n;return a;}
 function combine(){
   combDirty=false;const use=BOOKS.filter(B=>B.ready&&(SRC==='all'||B.v===SRC)&&VEN[B.v].st==='LIVE');
   if(!use.length){BREADY=false;return;}
   const per=[];let wsum=0,msum=0;
-  for(const B of use){const bb=topLv(B.b,true,VDEPTH),aa=topLv(B.a,false,VDEPTH);if(!bb.length||!aa.length)continue;
+  if(CC.band){for(const B of use){let bb=0,aa=Infinity;for(const p of B.b.keys())if(p>bb)bb=p;for(const p of B.a.keys())if(p<aa)aa=p;
+    if(!bb||aa===Infinity)continue;
+    if(bb>=aa){B.ready=false;B.crossed=(B.crossed||0)+1;if(B.resync)B.resync();continue;}   // crossed own book = corrupt -> resnapshot
+    const m=(bb+aa)/2,w=1e-6+(BKVOL.get(B.k)||0);per.push({B,bb,aa,m});wsum+=w;msum+=m*w;}}
+  else for(const B of use){const bb=topLv(B.b,true,VDEPTH),aa=topLv(B.a,false,VDEPTH);if(!bb.length||!aa.length)continue;
     const m=(bb[0][0]+aa[0][0])/2;if(bb[0][0]>=aa[0][0]){B.ready=false;B.crossed=(B.crossed||0)+1;if(B.resync)B.resync();continue;}   // crossed own book = corrupt -> resnapshot
     const w=1e-6+(BKVOL.get(B.k)||0);per.push({bb,aa});wsum+=w;msum+=m*w;}
   if(!per.length){BREADY=false;return;}
   const M=msum/wsum, one=per.length===1;
-  const bm=new Map(),am=new Map(),key=p=>one?p:Math.round(p/BUCK)*BUCK;
-  for(const {bb,aa} of per){for(const [p,q] of bb){const k=+key(p).toFixed(6);bm.set(k,(bm.get(k)||0)+q);}for(const [p,q] of aa){const k=+key(p).toFixed(6);am.set(k,(am.get(k)||0)+q);}}
+  const bm=new Map(),am=new Map(),key=p=>one?p:Math.round(p/BUCK)*BUCK;let rb=0,ra=Infinity;
+  if(CC.band){const BK=one?BUCK/2:BUCK;for(const {B,m} of per){const lo=m*(1-BAND),hi=m*(1+BAND);
+    for(const [p,q] of B.b){if(p<lo)continue;if(p<M&&p>rb)rb=p;const k=+(Math.floor(p/BK)*BK).toFixed(KD);bm.set(k,(bm.get(k)||0)+q);}
+    for(const [p,q] of B.a){if(p>hi)continue;if(p>M&&p<ra)ra=p;const k=+(Math.ceil(p/BK)*BK).toFixed(KD);am.set(k,(am.get(k)||0)+q);}}}
+  else for(const {bb,aa} of per){for(const [p,q] of bb){const k=+key(p).toFixed(KD);bm.set(k,(bm.get(k)||0)+q);}for(const [p,q] of aa){const k=+key(p).toFixed(KD);am.set(k,(am.get(k)||0)+q);}}
   // venues/USDT books can overlap slightly; levels on the wrong side of the volume-weighted mid are dropped
   sortedB=[...bm.entries()].filter(x=>x[0]<M).sort((x,y)=>y[0]-x[0]);sortedA=[...am.entries()].filter(x=>x[0]>M).sort((x,y)=>x[0]-y[0]);
   if(EAT&&sortedB.length>12){const u=Math.max(0,Math.min(1,(Date.now()-EAT.t0-EAT.hold)/EAT.ms));if(!EAT.q0){if(!EAT.px){let bd=1e9;for(const x of sortedB){const d=Math.abs(rOf(dispMid-x[0])-0.55*RMAX);if(d<bd){bd=d;EAT.px=x[0];}}}EAT.q0=2*Math.max(...sortedB.map(x=>x[1]),...sortedA.map(x=>x[1]));}let e=sortedB.find(x=>x[0]===EAT.px);if(!e){e=[EAT.px,0];sortedB.push(e);sortedB.sort((x,y)=>y[0]-x[0]);}e[1]=EAT.q0*(1-(EAT.kind==='pull'?0.98:0.9)*u);}   // test hook: a simulated bid wall (eaten: with fills / pulled: without)
   if(sortedB.length>200)sortedB.length=200;if(sortedA.length>200)sortedA.length=200;
-  if(!sortedB.length||!sortedA.length){BREADY=false;return;}
-  bestBid=sortedB[0][0];bestAsk=sortedA[0][0];mid=simPx(one?(bestBid+bestAsk)/2:M);if(!dispMid)dispMid=mid;BREADY=true;
+  if(CC.band){if(!sortedB.length||!sortedA.length||!rb||ra===Infinity){BREADY=false;return;}bestBid=rb;bestAsk=ra;}   // banded: true best bid/ask, not bucket edges
+  else{if(!sortedB.length||!sortedA.length){BREADY=false;return;}bestBid=sortedB[0][0];bestAsk=sortedA[0][0];}
+  mid=simPx(one?(bestBid+bestAsk)/2:M);if(!dispMid)dispMid=mid;BREADY=true;
 }
 setInterval(()=>{if(combDirty)combine();},LOWDEV()?250:150);
 function LOWDEV(){return matchMedia('(pointer:coarse)').matches;}
@@ -573,33 +607,33 @@ function feed(v,url,onOpen,onMsg,staleMs){
 const setLv=(m,p,q)=>{if(q>0)m.set(p,q);else m.delete(p);};
 // --- Coinbase Exchange (public, no auth): level2_batch + matches; 'side' on a match is the MAKER side
 {const B=mkBook('coinbase','coinbase');
- feed('coinbase','wss://ws-feed.exchange.coinbase.com',F=>{B.ready=false;F.send({type:'subscribe',product_ids:['XRP-USD'],channels:['level2_batch','matches']});},m=>{
-  if(m.type==='snapshot'){B.b.clear();B.a.clear();const lo=(+m.bids[0][0])*0.9,hi=(+m.asks[0][0])*1.1;
+ feed('coinbase','wss://ws-feed.exchange.coinbase.com',F=>{B.ready=false;F.send({type:'subscribe',product_ids:[CC.cb],channels:['level2_batch','matches']});},m=>{
+  if(m.type==='snapshot'){B.b.clear();B.a.clear();const lo=(+m.bids[0][0])*(CC.band?0.97:0.9),hi=(+m.asks[0][0])*(CC.band?1.03:1.1);
     for(const [p,q] of m.bids){const P=+p;if(P<lo)break;B.b.set(P,+q);}for(const [p,q] of m.asks){const P=+p;if(P>hi)break;B.a.set(P,+q);}B.ready=true;combDirty=true;}
   else if(m.type==='l2update'&&B.ready){for(const [sd,p,q] of m.changes)setLv(sd==='buy'?B.b:B.a,+p,+q);combDirty=true;}
   else if(m.type==='match'){addTrades([{v:'coinbase',k:'coinbase',id:m.trade_id,ts:Date.parse(m.time),side:m.side==='sell'?'buy':'sell',qty:+m.size,px:+m.price}]);}
  },30000);
- setInterval(()=>{if(B.ready&&B.b.size+B.a.size>4000){const m=mid||0;if(!m)return;for(const p of B.b.keys())if(p<m*0.9)B.b.delete(p);for(const p of B.a.keys())if(p>m*1.1)B.a.delete(p);}},15000);}
+ setInterval(()=>{if(B.ready&&B.b.size+B.a.size>(CC.band?8000:4000)){const m=mid||0;if(!m)return;const L=CC.band?0.97:0.9,U=CC.band?1.03:1.1;for(const p of B.b.keys())if(p<m*L)B.b.delete(p);for(const p of B.a.keys())if(p>m*U)B.a.delete(p);}},15000);}
 // --- Bitstamp: order_book channel = full top-100 snapshot on every push (no sequencing needed); live_trades type 0=buy 1=sell taker
 {const B=mkBook('bitstamp','bitstamp');
- feed('bitstamp','wss://ws.bitstamp.net',F=>{B.ready=false;F.send({event:'bts:subscribe',data:{channel:'order_book_xrpusd'}});F.send({event:'bts:subscribe',data:{channel:'live_trades_xrpusd'}});},(m,F)=>{
+ feed('bitstamp','wss://ws.bitstamp.net',F=>{B.ready=false;F.send({event:'bts:subscribe',data:{channel:'order_book_'+CC.bs}});F.send({event:'bts:subscribe',data:{channel:'live_trades_'+CC.bs}});},(m,F)=>{
   if(m.event==='bts:request_reconnect'){F.resync();return;}
-  if(m.event==='data'&&m.channel==='order_book_xrpusd'){B.b.clear();B.a.clear();for(const [p,q] of m.data.bids)B.b.set(+p,+q);for(const [p,q] of m.data.asks)B.a.set(+p,+q);B.ready=true;combDirty=true;}
+  if(m.event==='data'&&m.channel==='order_book_'+CC.bs){B.b.clear();B.a.clear();for(const [p,q] of m.data.bids)B.b.set(+p,+q);for(const [p,q] of m.data.asks)B.a.set(+p,+q);B.ready=true;combDirty=true;}
   else if(m.event==='trade'){const d=m.data;addTrades([{v:'bitstamp',k:'bitstamp',id:d.id,ts:+d.microtimestamp/1000,side:d.type===0?'buy':'sell',qty:+d.amount,px:+d.price}]);}
  },45000);}
-// --- Binance.US: diff depth stream + REST snapshot (CORS ok), lastUpdateId sequencing; XRPUSD and XRPUSDT (USDT≈USD)
-{const SY={xrpusd:mkBook('binanceus','bn_usd'),xrpusdt:mkBook('binanceus','bn_usdt')};
+// --- Binance.US: diff depth stream + REST snapshot (CORS ok), lastUpdateId sequencing; <COIN>USD and <COIN>USDT (USDT≈USD)
+{const SU=CC.bn+'usd',ST=CC.bn+'usdt',SY={[SU]:mkBook('binanceus','bn_usd'),[ST]:mkBook('binanceus','bn_usdt')};
  for(const B of Object.values(SY)){B.buf=[];B.lid=0;B.u=0;}
  const snap=async(sym,F)=>{const B=SY[sym];B.ready=false;B.buf=[];B.snapping=true;
-   try{const r=await fetch('https://api.binance.us/api/v3/depth?symbol='+sym.toUpperCase()+'&limit=500');const j=await r.json();
+   try{const r=await fetch('https://api.binance.us/api/v3/depth?symbol='+sym.toUpperCase()+'&limit='+(CC.band?1000:500));const j=await r.json();
      B.b.clear();B.a.clear();for(const [p,q] of j.bids)B.b.set(+p,+q);for(const [p,q] of j.asks)B.a.set(+p,+q);B.lid=j.lastUpdateId;B.u=0;
      for(const e of B.buf)apply(B,e,F);B.buf=[];B.snapping=false;B.ready=B.u>0||true;combDirty=true;}catch(e){B.snapping=false;setTimeout(()=>F.ws&&F.ws.readyState===1&&snap(sym,F),5000);}};
  const apply=(B,e,F)=>{if(e.u<=B.lid)return;
    if(B.u&&e.U!==B.u+1){B.ready=false;B.resyncs=(B.resyncs||0)+1;snap(B.sym,F);return;}   // gap -> resnapshot
    for(const [p,q] of e.b)setLv(B.b,+p,+q);for(const [p,q] of e.a)setLv(B.a,+p,+q);B.u=e.u;};
- SY.xrpusd.sym='xrpusd';SY.xrpusdt.sym='xrpusdt';
+ SY[SU].sym=SU;SY[ST].sym=ST;
  for(const B of Object.values(SY))B.resync=()=>{B.ready=false;VEN.binanceus.F&&snap(B.sym,VEN.binanceus.F);};
- feed('binanceus','wss://stream.binance.us:9443/stream?streams=xrpusd@depth@100ms/xrpusdt@depth@100ms/xrpusd@trade/xrpusdt@trade',F=>{for(const k in SY)snap(k,F);},(m,F)=>{
+ feed('binanceus','wss://stream.binance.us:9443/stream?streams='+SU+'@depth@100ms/'+ST+'@depth@100ms/'+SU+'@trade/'+ST+'@trade',F=>{for(const k in SY)snap(k,F);},(m,F)=>{
   const st=m.stream||'',d=m.data;if(!d)return;const sym=st.split('@')[0],B=SY[sym];if(!B)return;
   if(d.e==='depthUpdate'){if(B.snapping){B.buf.push(d);if(B.buf.length>600)B.buf.shift();return;}if(!B.lid)return;apply(B,d,F);combDirty=true;}
   else if(d.e==='trade'){addTrades([{v:'binanceus',k:B.k,id:sym+d.t,ts:d.T,side:d.m?'sell':'buy',qty:+d.q,px:+d.p}]);}
@@ -607,7 +641,7 @@ const setLv=(m,p,q)=>{if(q>0)m.set(p,q);else m.delete(p);};
 // --- Bitfinex: book P0 len 100 with CRC32 checksum (flag 131072), trades 'te'
 {const B=mkBook('bitfinex','bitfinex');const ch={};
  const bfxCk=()=>{const bb=topLv(B.b,true,25),aa=topLv(B.a,false,25),o=[];for(let i=0;i<25;i++){if(bb[i])o.push(bb[i][0],bb[i][1]);if(aa[i])o.push(aa[i][0],-aa[i][1]);}return crc32(o.join(':'))|0;};
- feed('bitfinex','wss://api-pub.bitfinex.com/ws/2',F=>{B.ready=false;F.send({event:'conf',flags:131072});F.send({event:'subscribe',channel:'book',symbol:'tXRPUSD',prec:'P0',len:'100'});F.send({event:'subscribe',channel:'trades',symbol:'tXRPUSD'});},(m,F)=>{
+ feed('bitfinex','wss://api-pub.bitfinex.com/ws/2',F=>{B.ready=false;F.send({event:'conf',flags:131072});F.send({event:'subscribe',channel:'book',symbol:CC.bf,prec:'P0',len:CC.band?'250':'100'});F.send({event:'subscribe',channel:'trades',symbol:CC.bf});},(m,F)=>{
   if(!Array.isArray(m)){if(m.event==='subscribed')ch[m.chanId]=m.channel;else if(m.event==='info'&&m.code===20051)F.resync();return;}
   const c=ch[m[0]],d=m[1];if(d==='hb')return;
   if(c==='book'){
@@ -706,7 +740,7 @@ let pinch=null,lastTap=0;
 cv.addEventListener('touchstart',e=>{if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pinch={d,f:rangeFrac};}
   else if(e.touches.length===1){const n=performance.now();if(n-lastTap<300)setAuto(true);lastTap=n;}},{passive:true});
 cv.addEventListener('touchmove',e=>{if(pinch&&e.touches.length===2){e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-  setAuto(false);rangeFrac=Math.min(0.08,Math.max(0.0005,pinch.f*pinch.d/d));}},{passive:false});
+  setAuto(false);rangeFrac=Math.min(ZMAX,Math.max(ZMIN,pinch.f*pinch.d/d));}},{passive:false});
 cv.addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null;},{passive:true});
 // tabs + swipe
 let page=0;const pages=[...document.querySelectorAll('#pages .page')],tabs=[...document.querySelectorAll('#tabs button')];
@@ -721,7 +755,7 @@ try{const st=JSON.parse(localStorage.getItem('ofc.sheet')||'null');if(st){setPag
 let sx=null;const pg=$('pages');
 pg.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
 pg.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)setPage(page+(dx<0?1:-1));sx=null;},{passive:true});
-cv.addEventListener('wheel',e=>{e.preventDefault();setAuto(false);rangeFrac*=e.deltaY>0?1.15:1/1.15;rangeFrac=Math.min(0.08,Math.max(0.0005,rangeFrac));},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();setAuto(false);rangeFrac*=e.deltaY>0?1.15:1/1.15;rangeFrac=Math.min(ZMAX,Math.max(ZMIN,rangeFrac));},{passive:false});
 cv.addEventListener('dblclick',e=>{if(performance.now()-pillT<700)return;if(window.__lgHit&&__lgHit(e.clientX,e.clientY))return;setAuto(true);});
 // VIEW mode: LIMIT (default) = order book only, inbound time motion (past streams toward the dial)
 //            MARKET         = trades only, outbound time motion (recedes from the dial)
@@ -732,6 +766,17 @@ try{let v=localStorage.getItem('ofc.view');
 let INBOUND=VIEW==='limit';
 function syncDir(){INBOUND=VIEW==='limit';$('tdir').innerHTML=`VIEW ▸ <b>${VIEW==='limit'?'LIMIT':'MARKET'}</b>`;trailDirty=true;}
 $('tdir').onclick=()=>{VIEW=VIEW==='limit'?'market':'limit';try{localStorage.setItem('ofc.view',VIEW);}catch(e){}syncDir();};syncDir();
+// COIN picker: switching reloads the page with ?coin= (fresh buffers, fresh feeds); the choice is remembered
+{const CB=$('coinB'),PK=$('coinPk'),G=$('coinGrid');CB.innerHTML=`<i>COIN ▸</i> <b>${COIN}</b>`;
+  G.innerHTML=Object.keys(COINS).map(c=>`<button data-c="${c}"${c===COIN?' class="on"':''}>${c}<i>${COINS[c].n}</i></button>`).join('');
+  const open=()=>{PK.classList.add('on');(G.querySelector('.on')||$('coinX')).focus({preventScroll:true});},close=()=>{PK.classList.remove('on');};
+  CB.onclick=e=>{e.stopPropagation();open();};$('coinX').onclick=e=>{e.stopPropagation();close();};
+  PK.addEventListener('click',e=>{if(e.target===PK)close();e.stopPropagation();});
+  ['touchstart','touchmove','touchend','wheel','mousedown','pointerdown'].forEach(ev=>PK.addEventListener(ev,e=>e.stopPropagation(),{passive:true}));
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&PK.classList.contains('on'))close();});
+  G.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const c=b.dataset.c;if(c===COIN){close();return;}
+    try{localStorage.setItem('ofc.coin',c);}catch(_){}location.replace(location.pathname+'?coin='+c+location.hash);});
+  window.__coin={open,close,get on(){return PK.classList.contains('on')}};}
 const depthOf=age=>INBOUND?Math.max(0,(LWIN-age)*HIST_SEC/LWIN):age;   // LIMIT: newest at the vanishing point, LWIN-old at the ring   // tunnel depth in seconds
 
 const COL={bid:[43,255,154],ask:[255,43,214],cy:[0,240,255],yl:[255,230,0]};
@@ -786,7 +831,8 @@ function proj(dz){const s=FOCAL/(FOCAL+dz);const age=INBOUND?(HIST_SEC-dz)*LWIN/
   const off=Math.max(-lim,Math.min(lim,offAtAge(age)*Math.min(1,dz/12)));return {s,x:CX,y:CY+off};}
 // side half-plane: bids LEFT (angle π), asks RIGHT (angle 0)
 const baseAng=side=>side==='bid'||side==='buy'?Math.PI:0;
-const fmtQ=q=>q>=1e6?(q/1e6).toFixed(2)+'M':q>=1e3?(q/1e3).toFixed(1)+'K':q.toFixed(0);
+const fmtQ=CC.band?(q=>q>=1e6?(q/1e6).toFixed(2)+'M':q>=1e4?(q/1e3).toFixed(1)+'K':q>=100?q.toFixed(0):q>=10?q.toFixed(1):q>=1?q.toFixed(2):q>=0.01?q.toFixed(3):q.toFixed(4))   // fractional sizes (BTC, ETH, ...)
+  :(q=>q>=1e6?(q/1e6).toFixed(2)+'M':q>=1e3?(q/1e3).toFixed(1)+'K':q.toFixed(0));
 const fmtUSD=v=>'$'+(v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0));
 
 // ---- shared canvas label registry: fixed labels reserve space first; dynamic labels avoid them and each other
@@ -878,7 +924,7 @@ function drawGrid(t){
 }
 
 let PLBL=[];
-const PF=p=>'$'+p.toFixed(4);
+const PF=p=>'$'+(CC.pf>=4?p.toFixed(CC.pf):fmtX(p,CC.pf));
 function drawPriceLabels(){   // LIMIT: ring prices on the horizontal axis, over the walls
   if(!PLBL.length)return;ctx.save();ctx.font=`${WIDE?10:9}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.textBaseline='top';
   PLBL=PLBL.filter(q=>{const K=KLB[q.side];if(!K)return true;const d=Math.abs(q.cx-CX);return d+q.w/2<K.r0||d-q.w/2>K.r1;});   // never draw over SUPPORT/RESISTANCE text
@@ -950,7 +996,7 @@ function drawHistory(now){
   ctx.restore();
 }
 
-const UNIT='XRP';
+const UNIT=COIN;
 // significant walls = top 5 per side by size + any giant (>= 50% of the biggest level) -> SUPPORT / RESISTANCE candidates
 const sigWalls=(lv,maxq)=>{const t=topBySize(lv,5),g=lv.filter(x=>x[1]>=0.5*maxq&&!t.includes(x));return t.concat(g);};
 let topWalls={bid:[],ask:[]}, KEYW={bid:null,ask:null}, KLB={bid:null,ask:null};   // KLB: radial extent of the key-wall label band (price tags avoid it)
@@ -1000,8 +1046,11 @@ function spVol(side,px,t0,tol,vs){let v=0,thr=false,reach=false;
     if(side==='bid'){if(t.px<=px+tol){reach=true;if(t.side==='sell')v+=t.qty;if(t.px<px-tol)thr=true;}}
     else{if(t.px>=px-tol){reach=true;if(t.side==='buy')v+=t.qty;if(t.px>px+tol)thr=true;}}}
   return {v,thr,reach};}
-function spVen(){   // per-venue levels mapped to the merged bucket keys + each venue's deepest visible price (depth-window edge)
-  const use=BOOKS.filter(B=>B.ready&&(SRC==='all'||B.v===SRC)&&VEN[B.v].st==='LIVE'),one=use.length===1,key=p=>+(one?p:Math.round(p/BUCK)*BUCK).toFixed(6);
+function spVen(){   // per-venue levels mapped to the merged bucket keys + each venue's deepest visible price (depth-window / band edge)
+  if(CC.band){const use=BOOKS.filter(B=>B.ready&&(SRC==='all'||B.v===SRC)&&VEN[B.v].st==='LIVE'),one=use.length===1,BK=one?BUCK/2:BUCK;
+    return use.map(B=>{let bb=0,aa=Infinity,mb=Infinity,ma=0;for(const p of B.b.keys()){if(p>bb)bb=p;if(p<mb)mb=p;}for(const p of B.a.keys()){if(p<aa)aa=p;if(p>ma)ma=p;}
+      const m=(bb+aa)/2,lo=m*(1-BAND),hi=m*(1+BAND);return {v:B.v,bb:[...B.b].filter(x=>x[0]>=lo),aa:[...B.a].filter(x=>x[0]<=hi),kb:p=>+(Math.floor(p/BK)*BK).toFixed(KD),ka:p=>+(Math.ceil(p/BK)*BK).toFixed(KD),eb:Math.max(lo,mb),ea:Math.min(hi,ma)};});}
+  const use=BOOKS.filter(B=>B.ready&&(SRC==='all'||B.v===SRC)&&VEN[B.v].st==='LIVE'),one=use.length===1,key=p=>+(one?p:Math.round(p/BUCK)*BUCK).toFixed(KD);
   return use.map(B=>{const bb=topLv(B.b,true,VDEPTH),aa=topLv(B.a,false,VDEPTH);return {v:B.v,bb,aa,kb:key,ka:key,eb:bb.length?bb[bb.length-1][0]:0,ea:aa.length?aa[aa.length-1][0]:Infinity};});}
 function spEv(o){o.tt=performance.now();SPF.ev.push(o);SPF.n[o.spoof?'spoof':o.kind]++;if(SPF.ev.length>80)SPF.ev.shift();}
 setInterval(()=>{
@@ -1108,7 +1157,7 @@ function drawBubbles(now){
     ctx.beginPath();ctx.arc(x,y,br,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
     ctx.strokeStyle=rgba(b.whale?COL.yl:c,0.9*fade);ctx.lineWidth=b.whale?2:1;ctx.stroke();
     if(b.whale&&dz<45){ctx.font='11px "Share Tech Mono",monospace';ctx.textAlign='center';ctx.fillStyle=rgba(COL.yl,fade);
-      ctx.font=`${WIDE?11:9}px "Share Tech Mono",monospace`;ctx.fillText(`${b.side==='buy'?'WHALE BUY':'WHALE SELL'} ${fmtQ(b.qty)}${WIDE?' @'+b.px.toFixed(5):''}`,x,y-br-6);}
+      ctx.font=`${WIDE?11:9}px "Share Tech Mono",monospace`;ctx.fillText(`${b.side==='buy'?'WHALE BUY':'WHALE SELL'} ${fmtQ(b.qty)}${WIDE?' @'+fmtH(b.px):''}`,x,y-br-6);}
   }
   bubbles=keep;
   if(INBOUND){ // trades still register at NOW on the front dial: brief pop ring at their price
@@ -1346,7 +1395,7 @@ function drawVolume(now){
   vx.fillStyle=rgba(COL.bid,.85);vx.fillText('▲ MKT BUY VOL / 1M',x0+3,top+9);
   vx.fillStyle=rgba(COL.ask,.85);vx.fillText('▼ SELL',x0+3,top+h-3);
   vx.textAlign='right';vx.fillStyle='rgba(255,230,0,.8)';vx.fillText(`${bars.length} BARS · MAX ${fmtQ(vmax)}`,x0+w-3,top+9);
-  if(history.length>10){const tf=trendWin(),up=tf>0.0004,dn=tf<-0.0004,c=up?COL.bid:dn?COL.ask:[150,180,210];
+  if(history.length>10){const tf=trendWin(),up=tf>CC.tr,dn=tf<-CC.tr,c=up?COL.bid:dn?COL.ask:[150,180,210];
     vx.font=`700 ${WIDE?10:8}px Orbitron,sans-serif`;vx.textAlign='center';vx.fillStyle=rgba(c,.9);
     vx.fillText(`${up?'TREND ▲ UPHILL':dn?'TREND ▼ DOWNHILL':'TREND ◆ FLAT'} ${(tf>=0?'+':'')+(tf*100).toFixed(2)}% · ${WL(winSec)}`,VW/2,top+h-3);}
   vx.restore();
@@ -1395,7 +1444,7 @@ function drawVolumeV(now,cs){
   // footer: trend
   const fy=top+h-ftr;vx.strokeStyle='rgba(0,240,255,.25)';vx.beginPath();vx.moveTo(x0+4,fy+4);vx.lineTo(x0+w-4,fy+4);vx.stroke();
   vx.textAlign='center';vx.font=`${fs}px "Share Tech Mono",monospace`;vx.fillStyle='rgba(200,215,235,.75)';vx.fillText(`TREND · ${WL(winSec)}`,cx,fy+fs+8);
-  if(history.length>10){const tf=trendWin(),up=tf>0.0004,dn=tf<-0.0004,c=up?COL.bid:dn?COL.ask:[150,180,210];
+  if(history.length>10){const tf=trendWin(),up=tf>CC.tr,dn=tf<-CC.tr,c=up?COL.bid:dn?COL.ask:[150,180,210];
     vx.font=`900 ${fsB}px Orbitron,sans-serif`;vx.fillStyle=rgba(c,.95);vx.shadowColor=rgba(c,1);vx.shadowBlur=Q>0?8:0;
     vx.fillText(up?'▲ UPHILL':dn?'▼ DOWNHILL':'◆ FLAT',cx,fy+fs+10+fsB*1.15);vx.shadowBlur=0;
     vx.font=`700 ${fsB*.9}px "Share Tech Mono",monospace`;vx.fillText(`${(tf>=0?'+':'')+(tf*100).toFixed(2)}%`,cx,fy+fs+12+fsB*2.3);}
@@ -1554,7 +1603,7 @@ function drawBP(now){const dt=BPt?Math.min(0.05,(now-BPt)/1000):0;BPt=now;if(!BP
 // glowing head (NOW) riding the compass's outer ring; drawn outside the dial clip, glow capped below the gauge arcs/ring labels
 // MARKET: hub + head tag both show the LAST trade (current source filter) so they always match; LIMIT hub = MID
 const hubPx=()=>VIEW==='market'&&trades.length?trades[trades.length-1].px:mid;
-const hubTxt=()=>{const P=hubPx();return P.toFixed(5);};
+const hubTxt=()=>{const P=hubPx();return fmtH(P);};
 function drawMouthHead(now){
   if(!trail.length||!TRHEAD.x)return;const h=TRHEAD,c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260),R=Math.min(RMAX*0.05,18)*(0.85+0.3*pl);
   ctx.save();ctx.globalCompositeOperation='lighter';
@@ -1570,7 +1619,7 @@ function drawTrailHead(now){   // hub accent: thin dominance-coloured ring (the 
 
 
 // ---------------- zoom level bar (right edge; bottom = max out, top = max in) ----------------
-const ZMIN=0.0005, ZMAX=0.08, ZL=Math.log(ZMAX/ZMIN);
+const ZMIN=CC.zmin, ZMAX=CC.zmax, ZL=Math.log(ZMAX/ZMIN);
 const zT=r=>Math.max(0,Math.min(1,Math.log(ZMAX/r)/ZL));            // range fraction -> 0..1 (1 = max zoom-in)
 const zR=t=>ZMAX*Math.exp(-Math.max(0,Math.min(1,t))*ZL);
 function zbarGeom(){
@@ -1629,16 +1678,16 @@ function setHTML(id,v){const e=$(id);if(e.innerHTML!==v)e.innerHTML=v;}
 function hud(now){
   if(now-hudT<150)return;hudT=now;
   if(mid){
-    setHTML('mid','$'+mid.toFixed(5));
+    setHTML('mid','<span class="cu">'+COIN+'</span>$'+fmtP(mid));
     const sp=bestAsk-bestBid;setHTML('spread',`${(sp/mid*1e4).toFixed(2)}bp`);
-    setHTML('bbid',bestBid.toFixed(5));setHTML('bask',bestAsk.toFixed(5));
+    setHTML('bbid',fmtP(bestBid));setHTML('bask',fmtP(bestAsk));
     let bq=0,bu=0,aq=0,au=0;for(const[p,q]of sortedB){bq+=q;bu+=p*q;}for(const[p,q]of sortedA){aq+=q;au+=p*q;}
-    setHTML('bdep',`${fmtQ(bq)} XRP · ${fmtUSD(bu)}`);setHTML('adep',`${fmtQ(aq)} XRP · ${fmtUSD(au)}`);
+    setHTML('bdep',`${fmtQ(bq)} ${UNIT} · ${fmtUSD(bu)}`);setHTML('adep',`${fmtQ(aq)} ${UNIT} · ${fmtUSD(au)}`);
     const imb=(bq-aq)/(bq+aq||1);
     setHTML('imb',`<span class="${imb>=0?'gr':'mg'}">${imb>=0?'+':''}${(imb*100).toFixed(0)}%</span>`);
     const ib=$('imbbar');ib.style.left=imb>=0?'50%':(50+imb*50)+'%';ib.style.width=Math.abs(imb*50)+'%';ib.style.background=imb>=0?'#2bff9a':'#ff2bd6';ib.style.boxShadow=`0 0 8px ${imb>=0?'#2bff9a':'#ff2bd6'}`;
     const bw=topBySize(sortedB,1)[0], aw=topBySize(sortedA,1)[0];
-    if(bw)setHTML('bwall',`${fmtQ(bw[1])} @ ${bw[0].toFixed(5)}`);if(aw)setHTML('awall',`${fmtQ(aw[1])} @ ${aw[0].toFixed(5)}`);
+    if(bw)setHTML('bwall',`${fmtQ(bw[1])} @ ${fmtH(bw[0])}`);if(aw)setHTML('awall',`${fmtQ(aw[1])} @ ${fmtH(aw[0])}`);
     // glitch on new dominant wall
     if(VIEW==='limit'&&bw&&wallsPrev.bid&&bw[0]!==wallsPrev.bid&&bw[1]>wallsPrev.bidq*1.2)triggerGlitch(200);
     if(VIEW==='limit'&&aw&&wallsPrev.ask&&aw[0]!==wallsPrev.ask&&aw[1]>wallsPrev.askq*1.2)triggerGlitch(200);
@@ -1647,9 +1696,9 @@ function hud(now){
   }
   if(ind.rsi!=null){const r=ind.rsi,cl=r>=70?'mg':r<=30?'gr':'yl';
     setHTML('rsiTop',`<span class="${cl}">${r.toFixed(1)}</span>`);setHTML('rsi',`<span class="${cl}">${r.toFixed(1)} ${r>=70?'OVERBOUGHT':r<=30?'OVERSOLD':'NEUTRAL'}</span>`);}
-  if(lastTrade)setHTML('last',`<span class="${lastTrade.side==='buy'?'gr':'mg'}">${lastTrade.side.toUpperCase()} ${fmtQ(lastTrade.qty)} @ ${lastTrade.px.toFixed(5)}</span>${lastTrade.v?` <span style="color:${VEN[lastTrade.v].col}">${VEN[lastTrade.v].t}</span>`:''}`);
+  if(lastTrade)setHTML('last',`<span class="${lastTrade.side==='buy'?'gr':'mg'}">${lastTrade.side.toUpperCase()} ${fmtQ(lastTrade.qty)} @ ${fmtP(lastTrade.px)}</span>${lastTrade.v?` <span style="color:${VEN[lastTrade.v].col}">${VEN[lastTrade.v].t}</span>`:''}`);
   const f=flow(winSec);
-  setHTML('bvol',fmtQ(f.b)+' XRP');setHTML('svol',fmtQ(f.s)+' XRP');
+  setHTML('bvol',fmtQ(f.b)+' '+UNIT);setHTML('svol',fmtQ(f.s)+' '+UNIT);
   setHTML('dlt',`<span class="${f.d>=0?'gr':'mg'}">${f.r>=0?'+':''}${(f.r*100).toFixed(0)}%</span>`);
   const db=$('dltbar');db.style.left=f.r>=0?'50%':(50+f.r*50)+'%';db.style.width=Math.abs(f.r*50)+'%';db.style.background=f.r>=0?'#2bff9a':'#ff2bd6';
   syncZA();
@@ -1667,7 +1716,7 @@ function renderSources(force){const n=performance.now();if(!force&&n-srcT<700)re
   const bt=$('srcBtns');if(bt&&!bt.childElementCount){bt.innerHTML=['all',...Object.keys(VEN)].map(k=>`<button data-s="${k}">${k==='all'?'ALL':VEN[k].t}</button>`).join('');
     bt.querySelectorAll('button').forEach(b=>b.onclick=e=>{e.stopPropagation();setSource(b.dataset.s);});}
   if(bt)bt.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.s===SRC));
-  setHTML('srcSel',SRC==='all'?'ALL':VEN[SRC].n);setHTML('depLbl',SRC==='all'?'ALL VENUES · 0.0001 BUCKETS':VEN[SRC].n);
+  setHTML('srcSel',SRC==='all'?'ALL':VEN[SRC].n);setHTML('depLbl',CC.band?(SRC==='all'?'ALL VENUES · $'+BUCK+' BUCKETS':VEN[SRC].n+' · $'+(BUCK/2)+' BUCKETS'):(SRC==='all'?'ALL VENUES · '+BUCK+' BUCKETS':VEN[SRC].n));
   setHTML('srcList',Object.entries(VEN).map(([k,v])=>{const up=v.st==='LIVE'&&BOOKS.some(B=>B.v===k&&B.ready),c=up?'#2bff9a':v.st==='LIVE'||v.st==='CONN'?'#ffe600':'#ff3b6b';
     const dim=SRC!=='all'&&SRC!==k?' style="opacity:.45"':'';
     return `<div class="row"${dim}><span><i class="dot" style="background:${c};box-shadow:0 0 6px ${c}"></i><span class="vt" style="color:${v.col}">${v.t}</span>${v.n}</span><span>${up?'':`<span class="rd">${v.st} </span>`}${(v.share*100).toFixed(0)}%</span></div>`;}).join(''));}
