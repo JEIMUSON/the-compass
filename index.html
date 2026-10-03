@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261003-1030';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261003-1055';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -204,7 +204,8 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <h3>AUTO ZOOM</h3>
  <ul><li><b>MARKET:</b> normal traffic shows ~30s, dead-slow up to 60s. Price moves tighten it; volume bursts snap to a 15s vortex.</li>
  <li><b>LIMIT:</b> the reverse, same traffic measure: dead-slow = 15s, normal ~30s, twice normal or a burst zooms out to 1m so you see walls get hit.</li>
- <li><b>AUTO off</b> = full zoom out; then zoom by pinch, wheel or the zoom bar.</li></ul>
+ <li><b>AUTO off</b> = full zoom out; then zoom by pinch, wheel or the zoom bar.</li>
+ <li>Needs ~2 min after load to learn normal traffic.</li></ul>
  <h3>ALSO</h3>
  <ul><li><b>RSI arc</b> (bottom): momentum. Left = oversold, right = overbought.</li>
  <li><b>SRC</b>: venues feeding the book. Pick ALL or one exchange. Each exchange merges its USD pair with its <b>USDT / USDC / RLUSD</b> pairs where listed (chips show which are live). Stablecoin prices are converted to USD at that exchange's live stable/USD rate; a quote more than ~0.3% off-peg is left out.</li>
