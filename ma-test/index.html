@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='MA-TEST-20261003-1745';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='MA-TEST-20261003-1750';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -1714,13 +1714,17 @@ function drawTrail(now){
       ctx.strokeStyle=`rgba(255,240,150,${(0.85*(1-k)).toFixed(3)})`;ctx.lineWidth=1.2;ctx.shadowColor='rgba(255,230,80,1)';ctx.shadowBlur=Q>0?8:0;
       ctx.beginPath();ctx.arc(p.x,p.y,R,0,Math.PI*2);ctx.stroke();ctx.fillStyle=`rgba(255,255,220,${(0.9*(1-k)).toFixed(3)})`;ctx.beginPath();ctx.arc(p.x,p.y,1.6*(1-k)+0.6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
     // NOW needle (MOCKUP): outer ring -> hub on the ray through the head (age 0). Trail head, MA end and both band ends all sit on this ray
-    // (same angle ang(0), tunnel centre = CX,CY at depth 0), so everything converges into it. Pale ~2px line (no arrowhead), cap tick on the ring; behind the trail.
-    {const th=ang(0),cx=Math.cos(th),sy=Math.sin(th),r1=RMAX*0.995,r0=R0*1.15;
-      const g=ctx.createLinearGradient(CX+cx*r1,CY+sy*r1,CX+cx*r0,CY+sy*r0);g.addColorStop(0,'rgba(225,240,255,.55)');g.addColorStop(0.55,'rgba(225,240,255,.28)');g.addColorStop(1,'rgba(225,240,255,.5)');
+    // (same angle ang(0), tunnel centre = CX,CY at depth 0), so everything converges into it. Pale ~2px swirled line (no arrowhead) into the hub ring, cap tick on the ring; behind the trail.
+    {const th=ang(0),r1=RMAX*0.995,r0=R0,rf=RMAX*0.78,TWn=Math.max(TWIST_MAX*VSP.w,TWIST_MAX*0.85);
+      // swirl like the vortex rails (counter-clockwise inward, max twist = TWIST_MAX, more while the vortex spins); straight on the head's ray in the outer band so
+      // the trail head / MA / band ends still land on it, then curves counter-clockwise inward and attaches to the hub ring (R0) with no gap
+      const NP=40,NDP=[];   // smooth ease (zero slope where the bend starts -> no kink)
+      for(let k=0;k<=NP;k++){const r=r1*Math.pow(r0/r1,k/NP),u=Math.max(0,Math.min(1,(rf-r)/(rf-r0))),tw=TWn*u*u*(1.6-0.6*u),a=th-tw;NDP.push([CX+Math.cos(a)*r,CY+Math.sin(a)*r]);}
+      const E=NDP[NP],g=ctx.createLinearGradient(NDP[0][0],NDP[0][1],E[0],E[1]);g.addColorStop(0,'rgba(225,240,255,.55)');g.addColorStop(0.55,'rgba(225,240,255,.3)');g.addColorStop(1,'rgba(225,240,255,.6)');
       ctx.strokeStyle=g;ctx.lineWidth=WIDE?2:2.3;ctx.shadowColor='rgba(190,225,255,.9)';ctx.shadowBlur=Q>0?5:0;
-      ctx.beginPath();ctx.moveTo(CX+cx*r1,CY+sy*r1);ctx.lineTo(CX+cx*r0,CY+sy*r0);ctx.stroke();
-      ctx.lineWidth=1;ctx.strokeStyle='rgba(235,245,255,.6)';ctx.beginPath();ctx.moveTo(CX+cx*r1-sy*4,CY+sy*r1+cx*4);ctx.lineTo(CX+cx*r1+sy*4,CY+sy*r1-cx*4);ctx.stroke();   // small cap tick on the ring
-      ctx.shadowBlur=0;window.__ofcND={th:+th.toFixed(4)};}
+      ctx.beginPath();ctx.moveTo(NDP[0][0],NDP[0][1]);for(let k=1;k<=NP;k++)ctx.lineTo(NDP[k][0],NDP[k][1]);ctx.stroke();
+      const cx=Math.cos(th),sy=Math.sin(th);ctx.lineWidth=1;ctx.strokeStyle='rgba(235,245,255,.6)';ctx.beginPath();ctx.moveTo(CX+cx*r1-sy*4,CY+sy*r1+cx*4);ctx.lineTo(CX+cx*r1+sy*4,CY+sy*r1-cx*4);ctx.stroke();   // small cap tick on the ring
+      ctx.shadowBlur=0;window.__ofcND={th:+th.toFixed(4),tw:+TWn.toFixed(3),end:[+(Math.hypot(E[0]-CX,E[1]-CY)).toFixed(1),R0]};}
     window.__ofcMA={tau,ma:MAE[0],sd:MAV[0],bwPct:+(4*MAV[0]/MAE[0]*100).toFixed(4),px:PR[0],ev:MAX.ev.length,crosses:MAX.n};}
   // centreline spine: thin continuous track that fades into the vanishing point
   ctx.lineWidth=1;
