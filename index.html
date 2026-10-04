@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261003-2045';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261004-0700';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -160,7 +160,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 #infoBox ul{list-style:none}
 #infoBox li{position:relative;padding-left:12px;margin:2px 0}
 #infoBox li:before{content:'›';position:absolute;left:0;color:var(--cy)}
-#infoBox b{color:#fff;font-weight:700}#infoBox b.gr{color:var(--gr)}#infoBox b.rd{color:var(--rd)}
+#infoBox b{color:#fff;font-weight:700}#infoBox b.gr{color:var(--gr)}#infoBox b.rd{color:var(--rd)}#infoBox b.yl{color:var(--yl)}#infoBox b.vi{color:#b9a0ff}
 #infoX,#tipX,#coinX{flex:0 0 auto;position:relative;z-index:2;width:44px;height:40px;margin-right:4px;padding:0;background:rgba(5,3,12,.85);border:1px solid rgba(0,240,255,.6);color:var(--cy);font-size:18px;line-height:38px;font-family:system-ui,sans-serif;cursor:pointer;touch-action:manipulation;box-shadow:0 0 8px rgba(0,240,255,.3)}
 .infoCred{font-family:Orbitron,sans-serif;font-size:10px;letter-spacing:2px;color:var(--cy);text-align:center;margin-top:12px;text-shadow:0 0 6px rgba(0,240,255,.6)}
 #credit{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);z-index:9;pointer-events:none;white-space:nowrap;font-size:8px;letter-spacing:1px;color:rgba(160,200,230,.32)}
@@ -191,14 +191,19 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
 <div id="info" role="dialog" aria-modal="true" aria-labelledby="infoT"><div id="infoBox" class="panel">
  <div id="infoHd"><h2 id="infoT">// WHAT YOU'RE SEEING</h2><button id="infoX" aria-label="close">✕</button></div>
  <div id="infoBody">
- <h3>MARKET VIEW · LIVE TRADES</h3>
- <ul><li>Every trade lands on a <b>spiral</b>: newest on the outer ring, older ones wind into the center.</li>
- <li>One lap = the time window (15–60s, shown on the zoom bar).</li>
- <li>Trail swings <b>out</b> = price up, <b>in</b> = price down.</li>
- <li><b class="gr">Green</b> = buyers, <b class="rd">red</b> = sellers. Thicker trail = more volume.</li>
- <li><b>Flares</b> mark the spots with the heaviest trading.</li>
- <li><b class="yl">Yellow line</b> = moving average (~window/6); a small ring flashes where the trail crosses it. <b>Violet bands</b> = Bollinger bands (±2 standard deviations): narrow = squeeze, wide = expansion. Toggle both in <b>TECH</b>.</li>
- <li>The pale <b>NOW line</b> runs from the newest trade into the hub; the average and bands end on it.</li></ul>
+ <h3>MARKET VIEW · HOW THE TIME TUNNEL WORKS</h3>
+ <ul><li><b>Into the past:</b> you look down the time tunnel, walking backwards through time. <b>NOW</b> is the outer edge; older trades sit deeper and shrink toward the center.</li>
+ <li><b>One loop</b> of the coil = the zoom window (15–60s). The rings are marked −5s, −10s, −15s… back to the window's end.</li>
+ <li><b>Price:</b> a point pushed <b>outward</b> from its loop traded <b>higher</b> than the latest trade, <b>inward</b> = lower. Big spikes are softened.</li>
+ <li><b>Colour</b> = who hit the market: <b class="gr">green</b> = buyers, <b class="rd">red</b> = sellers, blends = mixed. <b>Thicker, brighter</b> = more volume. <b>Flares</b> = the most-traded prices of the last few minutes.</li>
+ <li><b>Time tunnel wall:</b> the glowing ring at the window's end. Zooming in spins it counter-clockwise and twists the time tunnel: still at 60s, full spin at 15s. In AUTO, a volume burst snaps it to full.</li>
+ <li><b>Hub ring</b> = traffic: a slow, soft pulse at normal trading; busier than the 10-minute norm, it pulses faster and glows harder, with a corona around the hub when it's very busy or bursting. Its colour follows the diamond (buyers / sellers / balanced).</li>
+ <li><b>NOW needle:</b> the pale line from the newest trade into the hub. It turns once a minute; the hub's dashes turn with it.</li>
+ <li><b class="yl">Yellow line</b> = moving average (~window/6). <b class="vi">Violet bands</b> = Bollinger bands (±2 standard deviations): narrow = squeeze, wide = expansion. Each has an on/off switch in <b>TECH</b>.</li>
+ <li>A small <b>ring flashes</b> when price crosses the average; <b>sparks</b> glint where the average and bands meet the NOW needle.</li>
+ <li><b>Diamond</b> on the outer coloured arc = last 30s of market buys vs sells: left/<b class="gr">green</b> = buyers in control, right/<b class="rd">red</b> = sellers, top/<b class="yl">yellow</b> = balanced.</li>
+ <li><b>RSI arc</b> (bottom): RSI 14 on 1-minute candles; left = oversold (&lt;30), right = overbought (&gt;70).</li>
+ <li><b>Zoom:</b> AUTO picks the window from traffic. Swipe <b>up</b> = zoom in (shorter), <b>down</b> = out; pinch, wheel or the zoom bar also work. A manual zoom turns AUTO off; double-tap or ZOOM ▸ AUTO turns it back on.</li></ul>
  <h3>LIMIT VIEW · ORDER-BOOK WALLS</h3>
  <ul><li>Arcs are <b>walls</b> of waiting orders: <b class="gr">buyers left</b>, <b class="rd">sellers right</b>.</li>
  <li>Distance from the middle = distance from the current price.</li>
@@ -208,13 +213,12 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <li><b class="gr">SUPPORT</b> / <b class="rd">RESISTANCE</b> = the strongest nearby wall on each side.</li>
  <li><b>EATEN</b> (bright bite flash) = a wall shrank while trades hit its price. <b>PULLED</b> (ghostly dashed outline) = it vanished with little trading there; repeat pulls in one zone = <b>SPOOF?</b> Just a hint: intent can't be proven.</li></ul>
  <h3>AUTO ZOOM</h3>
- <ul><li><b>MARKET:</b> normal traffic shows ~30s, dead-slow up to 60s. Price moves tighten it; volume bursts snap to a 15s vortex.</li>
+ <ul><li><b>MARKET:</b> normal traffic shows ~30s, dead-slow up to 60s. Price moves tighten it; volume bursts snap to a tight 15s time tunnel.</li>
  <li><b>LIMIT:</b> the reverse, same traffic measure: dead-slow = 15s, normal ~30s, twice normal or a burst zooms out to 1m so you see walls get hit.</li>
  <li><b>AUTO off</b> = full zoom out; then zoom by swipe up/down (both views; pinch also works in MARKET), wheel or the zoom bar. In LIMIT the AUTO button drives both time and price zoom.</li>
  <li>Needs ~2 min after load to learn normal traffic.</li></ul>
  <h3>ALSO</h3>
- <ul><li><b>RSI arc</b> (bottom): momentum. Left = oversold, right = overbought.</li>
- <li><b>SRC</b>: venues feeding the book. Pick ALL or one exchange. Each exchange merges its USD pair with its <b>USDT / USDC / RLUSD</b> pairs where listed (chips show which are live). Stablecoin prices are converted to USD at that exchange's live stable/USD rate; a quote more than ~0.3% off-peg is left out.</li>
+ <ul><li><b>SRC</b>: venues feeding the book. Pick ALL or one exchange. Each exchange merges its USD pair with its <b>USDT / USDC / RLUSD</b> pairs where listed (chips show which are live). Stablecoin prices are converted to USD at that exchange's live stable/USD rate; a quote more than ~0.3% off-peg is left out.</li>
  <li><b>COIN</b>: switch between BTC, ETH, XRP, SOL and other big coins (USD and stablecoin pairs from all five exchanges). Your pick is remembered; links can use <b>?coin=ETH</b>.</li></ul>
  <div class="infoCred">Made by JEIMUSON &amp; Grok Bot</div>
  <div class="infoFoot">tap outside, ✕ or Esc to close</div>
@@ -1831,10 +1835,29 @@ function drawMouthHead(now){
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(h.x,h.y,R,0,Math.PI*2);ctx.fill();
   ctx.globalCompositeOperation='source-over';ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:5;ctx.beginPath();ctx.arc(h.x,h.y,(WIDE?3:2.2)+1.2*pl,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
   ctx.restore();}
-function drawTrailHead(now){   // hub accent: thin dominance-coloured ring (the glowing head itself sits at the tunnel mouth)
-  const c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260);
-  ctx.save();ctx.strokeStyle=rgba(c,0.35+0.3*pl);ctx.lineWidth=1.5;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?12:4;
-  ctx.beginPath();ctx.arc(CX,CY,R0+3+2*pl,0,Math.PI*2);ctx.stroke();ctx.restore();
+// hub traffic ring (MARKET): pulse rate + glow follow the SAME traffic measure AUTO zoom uses (LT.q = 60 s USD rate / 10-min EMA, ~4 s smoothed; volume burst = max).
+// level T: q<=1 (dead..normal) -> 0 = slow soft pulse; q>=2.5 or burst -> 1. Eased (~1.5 s), pulse phase integrated (rate changes never jump), colour eased toward aggressor flow
+// (same rule as the diamond: green buyers / magenta sellers / yellow balanced). Corona (soft halo + slow streamers) fades in above T~0.45.
+let HUB={T:0,ph:0,t:0,c:null};
+function drawTrailHead(now){
+  const dt=HUB.t?Math.min(0.1,Math.max(0,(now-HUB.t)/1000)):0;HUB.t=now;
+  const q=(typeof LT!=='undefined'&&LT.q)||1, raw=window.__hubT!=null?+window.__hubT:(burst.on?1:Math.max(0,Math.min(1,Math.log2(Math.max(1,q))/Math.log2(2.5))));   // __hubT: test hook only
+  HUB.T+=(raw-HUB.T)*Math.min(1,dt/1.5);const T=HUB.T, Te=T*T*(3-2*T);
+  HUB.ph+=dt*2*Math.PI*(0.3+1.5*Te);const pl=0.5+0.5*Math.sin(HUB.ph);   // 0.3 Hz calm -> 1.8 Hz at full traffic
+  const fr=flow(winSec).r,tc=fr>0.05?COL.bid:fr<-0.05?COL.ask:COL.yl;if(!HUB.c)HUB.c=tc.slice();for(let k=0;k<3;k++)HUB.c[k]+=(tc[k]-HUB.c[k])*Math.min(1,dt/0.6);
+  const c=HUB.c.map(Math.round);window.__ofcHub2={q:+q.toFixed(3),burst:burst.on,T:+T.toFixed(3),raw:+raw.toFixed(3),hz:+(0.3+1.5*Te).toFixed(2),c};
+  ctx.save();
+  const kc=Math.max(0,Math.min(1,(T-0.45)/0.55)),kk=kc*kc*(3-2*kc);
+  if(kk>0.01){ctx.globalCompositeOperation='lighter';   // eclipse corona: soft halo + faint slow-wobbling streamers, breathing with the pulse
+    const RC=R0*(1.6+1.0*kk+0.15*pl*kk),g=ctx.createRadialGradient(CX,CY,R0*0.95,CX,CY,RC);
+    g.addColorStop(0,rgba(c,(0.48*kk*(0.75+0.25*pl)).toFixed(3)));g.addColorStop(0.3,rgba(c,(0.2*kk).toFixed(3)));g.addColorStop(1,rgba(c,0));
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,CY,RC,0,Math.PI*2);ctx.arc(CX,CY,R0*0.95,0,Math.PI*2,true);ctx.fill();
+    ctx.lineCap='round';const NR=14;for(let i=0;i<NR;i++){const a=i/NR*Math.PI*2+0.15*Math.sin(now/5200+i*1.7),L=R0*(0.5+0.95*kk)*(0.55+0.45*Math.sin(now/1900+i*2.3))*(0.8+0.2*pl);
+      const x0=CX+Math.cos(a)*(R0+2),y0=CY+Math.sin(a)*(R0+2),x1=CX+Math.cos(a)*(R0+2+L),y1=CY+Math.sin(a)*(R0+2+L),gl=ctx.createLinearGradient(x0,y0,x1,y1);
+      gl.addColorStop(0,rgba(c,(0.5*kk).toFixed(3)));gl.addColorStop(1,rgba(c,0));ctx.strokeStyle=gl;ctx.lineWidth=(WIDE?3:2.2)*(0.7+0.3*kk);ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();}
+    ctx.globalCompositeOperation='source-over';}
+  ctx.strokeStyle=rgba(c,((0.28+0.22*Te)+(0.18+0.3*Te)*pl).toFixed(3));ctx.lineWidth=1.4+1.3*Te;ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?(8+18*Te)*(0.7+0.3*pl):4;
+  ctx.beginPath();ctx.arc(CX,CY,R0+3+(1.5+1.5*Te)*pl,0,Math.PI*2);ctx.stroke();ctx.restore();
 }
 
 
