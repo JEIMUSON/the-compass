@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1910';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1915';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2225,12 +2225,18 @@ function sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW){const key=[W,H,top,bot,HTW,
 let SMX={sg:0,ev:[]},SNSP=[],SNSPt=0,SSPK={h:[],typ:0,tt:0,k0:Date.now()};
 function drawSide(now){
   if(!SDS.P||SDS.span!==SPAN||SDS.tr!==TRUE)sideSeries();if(!SDS.P)return;
-  SDS.c+=(SDS.tc-SDS.c)*0.06;SDS.h*=Math.exp(Math.log(SDS.th/SDS.h)*0.06);
+  // eased price scale (no 'shrink in on itself' on ticks): centre pans smoothly (~1.5 s); half-height GROWS fairly fast (~0.9 s) but smoothly,
+  // SHRINKS only after an 8 s hold and then slowly (~6 s), ignoring changes under 6%; the head is pinned to the live price (soft-clamped by pnOf)
+  {const pn=performance.now(),dts=SDS.lt?Math.min(0.1,Math.max(0,(pn-SDS.lt)/1000)):0;SDS.lt=pn;const r=SDS.th/SDS.h;
+    SDS.c+=(SDS.tc-SDS.c)*(1-Math.exp(-dts/1.5));
+    if(r>1.0){SDS.h*=Math.exp(Math.log(r)*(1-Math.exp(-dts/0.9)));SDS.hg=pn;}
+    else if(r<0.94&&pn-(SDS.hg||0)>8000)SDS.h*=Math.exp(Math.log(r)*(1-Math.exp(-dts/6)));}
   const s=ROT*ROT*(3-2*ROT), L=(a,b)=>a+(b-a)*s, N=SDS.N, P=SDS.P, MA=SDS.MA, SD=SDS.SD, dt=SDS.dt/1000;
   const top=WIDE?58:44, bot=WIDE?64:74, CYs=(top+H-bot)/2;
   const RTf=RMAX, Dcf=RMAX*2.4, Lzf=Dcf*HIST_SEC/Math.max(1,FOCAL);   // front end = the front view's own tunnel: mouth radius RMAX, depth perspective FOCAL/(FOCAL+dz)
   const PS=65*Math.PI/180, FS2=11*Math.PI/180, Dcs=Math.max(W,H)*2.6;
-  ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const HTW=Math.ceil(ctx.measureText(hubTxt()).width);ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;const BLW=Math.ceil(ctx.measureText('SELLERS').width);ctx.restore();
+  ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const HTW=Math.ceil(ctx.measureText(hubTxt().replace(/\d/g,'8')).width/8)*8;   // widest-digit, 8 px steps: the fit never re-sizes the tube on price ticks
+  ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;const BLW=Math.ceil(ctx.measureText('SELLERS').width);ctx.restore();
   const FIT=sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW), RTs=FIT.RT, Ls=FIT.Ls, Lzs=Ls/Math.sin(PS);
   // camera turn runs on sc (reaches 0 already at s~0.22): over the whole crossfade/landing the tube axis IS the front dial's axis (centre CX,CY,
   // ring radii = the front's rings), so the coils wind down the tunnel straight into the front geometry instead of landing off-axis
@@ -2399,7 +2405,7 @@ function drawSide(now){
   d.addEventListener('pointerdown',e=>e.stopPropagation());
   d.addEventListener('click',e=>{const t=e.target;if(t.dataset.s){SPAN=+t.dataset.s;try{localStorage.setItem('ofc.sideSpan',SPAN);}catch(_){}sideSeries();}if(t.dataset.t){TRUE=!TRUE;try{localStorage.setItem('ofc.sideTrue',TRUE?'1':'0');}catch(_){}sideSeries();}sync();});
   setInterval(sync,200);sync();
-  window.__side={get rot(){return ROT},set rot(v){SANI=null;sideBlur(0);ROT=ROTT=v;},swap(){sideSwap();},get anim(){return SANI?{...SANI}:null},get mix(){return sideMix()},get blur(){return SBLUR},get span(){return SPAN},setSpan(v){SPAN=v;sideSeries();},get trueLine(){return TRUE},set trueLine(v){TRUE=!!v;sideSeries();},series(tr){const o=TRUE;TRUE=tr;sideSeries();const r={t0:SDS.t0,dt:SDS.dt,N:SDS.N,P:Array.from(SDS.P),MA:Array.from(SDS.MA),c:SDS.c,h:SDS.h,th:SDS.th};TRUE=o;sideSeries();return r;},raw(){const t0=Date.now()-SPAN*1000;return RAW.filter(t=>t.ts>=t0).map(t=>[t.ts,t.px,t.v,t.q||'']);},get sds(){return SDS.P?{N:SDS.N,c:SDS.c,h:SDS.h,last:SDS.P[SDS.N-1],first:SDS.P[0]}:null}};})();
+  window.__side={get rot(){return ROT},set rot(v){SANI=null;sideBlur(0);ROT=ROTT=v;},swap(){sideSwap();},get anim(){return SANI?{...SANI}:null},get mix(){return sideMix()},get blur(){return SBLUR},get span(){return SPAN},setSpan(v){SPAN=v;sideSeries();},get trueLine(){return TRUE},set trueLine(v){TRUE=!!v;sideSeries();},series(tr){const o=TRUE;TRUE=tr;sideSeries();const r={t0:SDS.t0,dt:SDS.dt,N:SDS.N,P:Array.from(SDS.P),MA:Array.from(SDS.MA),c:SDS.c,h:SDS.h,th:SDS.th};TRUE=o;sideSeries();return r;},raw(){const t0=Date.now()-SPAN*1000;return RAW.filter(t=>t.ts>=t0).map(t=>[t.ts,t.px,t.v,t.q||'']);},get sds(){return SDS.P?{N:SDS.N,c:SDS.c,h:SDS.h,th:SDS.th,last:SDS.P[SDS.N-1],first:SDS.P[0]}:null}};})();
 // ===================== /SIDE-TEST =====================
 
 connect();seedREST();
