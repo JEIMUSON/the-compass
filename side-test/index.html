@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1915';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1925';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2250,11 +2250,15 @@ function drawSide(now){
   const sst=v=>v<=0?0:v>=1?1:v*v*(3-2*v), zS=sst(s/0.4), LPf=Math.max(5,MWIN*trailStep), PPf=60*trailStep, SPe=Math.exp(Math.log(LPf)+(Math.log(SPAN)-Math.log(LPf))*zS);
   const iLP=(1-zS)/LPf+zS/LPs, phF=(tNow/PPf)%1, phD=(((tNow/(SPAN/4))%1-phF)%1+1.5)%1-0.5, PH=phF+zS*phD;   // head phase = the front's clock, easing by at most half a turn toward the side clock (no spin, no offset at FRONT)
   const zOf=a=>-a/SPe*Lz, thOf=a=>-Math.PI/2+2*Math.PI*(PH-a*iLP);
-  const TRW=SANI?4*s*(1-s):0;   // transition weight (peaks mid-turn): thicker, glowing, see-through gold MA coils
+  // side->front: no big coil rings - the straight side-view line/tube just turns and shrinks toward the dial (SGW=1); front->side keeps the uncoil (SGW=0).
+  // SGW eases (~0.2 s) so a mid-turn reversal never snaps the geometry; at the side end both are identical, so the switch is invisible.
+  {const pn=performance.now(),dts=SDS.gt?Math.min(0.1,(pn-SDS.gt)/1000):0;SDS.gt=pn;const tg=SANI?(SANI.to===0?1:0):(ROT>=0.999?1:0);SDS.gw=SDS.gw==null?tg:SDS.gw+(tg-SDS.gw)*(1-Math.exp(-dts/0.2));}
+  const SGW=SDS.gw, TRW=SANI?4*s*(1-s)*(1-SGW):0;   // transition weight (peaks mid-turn): thicker, glowing, see-through gold MA coils
   const pnOf=p=>Math.max(-1.15,Math.min(1.15,(p-SDS.c)/SDS.h));
   const ptAt=(a,p,swirl)=>{const th=thOf(a),pn=pnOf(p),rf=RT*((0.98-0.38*zS)+(0.14+0.14*zS)*Math.max(-1,Math.min(1,pn))),xf=rf*Math.cos(th),yf=-rf*Math.sin(th);
-    const r2=swirl?rs:0,xs=r2*Math.cos(th),ys=Hh*pn-r2*Math.sin(th);return pr(L(xf,xs),L(yf,ys),zOf(a));};
-  const gS=Math.min(1,Math.max(0,(s-0.3)/0.4)), hK=TRUE?1-Math.min(1,Math.max(0,(s-0.72)/0.26))**2*(3-2*Math.min(1,Math.max(0,(s-0.72)/0.26))):1;   // TRUE LINE: the coil stays visible while it unwinds (amplitude -> 0 with the turn), fading only at the very end
+    const r2=swirl?rs:0,xs=r2*Math.cos(th),ys=Hh*pn-r2*Math.sin(th);const mg=s+(1-s)*SGW;return pr(xf+(xs-xf)*mg,yf+(ys-yf)*mg,zOf(a));};
+  const gS=Math.min(1,Math.max(0,(s-0.3)/0.4)), hK0=TRUE?1-Math.min(1,Math.max(0,(s-0.72)/0.26))**2*(3-2*Math.min(1,Math.max(0,(s-0.72)/0.26))):1;   // TRUE LINE: the coil stays visible while it unwinds (amplitude -> 0 with the turn), fading only at the very end
+  const hK=hK0*(1-SGW)+SGW*(1-gS);   // side->front: the line itself carries the trail as the side-view centre line fades (no coil)
   const TAU=Math.PI*2, ga=gS, dn=Date.now(), pn0=performance.now(), FD=Math.min(1,s/0.3);
   const ringPath=(r,z,a0,a1,n)=>{ctx.beginPath();for(let i=0;i<=n;i++){const an=a0+(a1-a0)*i/n,q=pr(r*Math.cos(an),r*Math.sin(an),z);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}};
   const SDIM=1-0.4*ga;   // side-on: walls/rings a little dimmer so the price line stays the star
