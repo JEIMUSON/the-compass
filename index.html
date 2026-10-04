@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261004-1020';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261004-1045';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -1055,8 +1055,8 @@ function drawGrid(t){
   const MK=VIEW==='market', RINGS=MK?mRingAges().map(a=>({d:mZ(a),maj:[30,60].includes(a)}))
                                   :Array.from({length:12},(_,i)=>({d:(i+1)*10,maj:(i+1)%3===0}));
   for(const RG of RINGS){if(MK&&RG.d>HIST_SEC-1)continue;const p=proj(RG.d),s=p.s,fade=Math.pow(s,0.8);
-    if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${0.04+0.08*fade})`;ctx.lineWidth=2+7*s;ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();}   // time rings: on par with / just above the walls
-    ctx.strokeStyle=`rgba(60,245,255,${0.08+(RG.maj?0.42:0.36)*fade})`;ctx.lineWidth=0.6+(RG.maj?1.7:1.4)*s;
+    if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${0.03+0.06*fade})`;ctx.lineWidth=2+6*s;ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();}
+    ctx.strokeStyle=`rgba(0,240,255,${0.05+(RG.maj?0.30:0.18)*fade})`;ctx.lineWidth=0.5+(RG.maj?1.4:0.9)*s;
     ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();
   }
   if(MK){ // vortex: smooth solid glowing ring pinned at the window end (constant depth d=HIST_SEC -> same on-screen size at every zoom 60 s..15 s / burst);
@@ -1082,7 +1082,7 @@ function drawGrid(t){
       if(put.some(q=>bx<q.x+q.w&&bx+bw>q.x&&by<q.y+q.h&&by+bh>q.y)||lblHit(bx,by,bw,bh))continue;
       put.push({x:bx,y:by,w:bw,h:bh,t:txt});lblReserve(bx,by,bw,bh);
       ctx.fillStyle='rgba(5,3,12,.6)';ctx.fillRect(bx,by,bw,bh);
-      ctx.fillStyle=a===0?'rgba(255,230,0,.9)':`rgba(150,250,255,${0.72+0.28*s})`;ctx.fillText(txt,x,y);}
+      ctx.fillStyle=a===0?'rgba(255,230,0,.9)':`rgba(0,240,255,${0.45+0.45*s})`;ctx.fillText(txt,x,y);}
     window.__ofcTL=put.map(q=>q.t);ctx.textAlign='left';}
   ctx.restore();
   ctx.restore();
