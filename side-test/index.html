@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1745';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1815';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2172,6 +2172,7 @@ function sideSeries(){const n=Date.now(),NB=400,N=TRUE?NB*2:NB,dt=SPAN*1000/N,dB
   SDS.t=n;SDS.t0=t0;SDS.tr=TRUE;SDS.N=N;SDS.P=P;SDS.MA=MA;SDS.SD=SD;SDS.dt=dt;SDS.tc=(lo+hi)/2;SDS.th=Math.max((hi-lo)/2,P[N-1]*0.0004);
   if(SDS.span!==SPAN||!SDS.c){SDS.c=SDS.tc;SDS.h=SDS.th;SDS.span=SPAN;}}
 setInterval(()=>{if(SIDE_ON())sideSeries();},500);
+let SMX={sg:0,ev:[]},SNSP=[],SNSPt=0,SSPK={h:[],typ:0,tt:0,k0:Date.now()};
 function drawSide(now){
   if(!SDS.P||SDS.span!==SPAN||SDS.tr!==TRUE)sideSeries();if(!SDS.P)return;
   ROT+=(ROTT-ROT)*0.18;if(Math.abs(ROTT-ROT)<0.002)ROT=ROTT;
@@ -2189,35 +2190,136 @@ function drawSide(now){
   const ptAt=(a,p,swirl)=>{const th=thOf(a),pn=pnOf(p),rf=RT*(0.60+0.28*Math.max(-1,Math.min(1,pn))),xf=rf*Math.cos(th),yf=-rf*Math.sin(th);
     const r2=swirl?rs:0,xs=r2*Math.cos(th),ys=Hh*pn-r2*Math.sin(th);return pr(L(xf,xs),L(yf,ys),zOf(a));};
   const gS=Math.min(1,Math.max(0,(s-0.3)/0.4)), hK=TRUE?1-gS:1;   // TRUE LINE: coil fades out as the tube turns side-on
+  const TAU=Math.PI*2, ga=gS, dn=Date.now(), pn0=performance.now(), FD=Math.min(1,s/0.3);
+  const ringPath=(r,z,a0,a1,n)=>{ctx.beginPath();for(let i=0;i<=n;i++){const an=a0+(a1-a0)*i/n,q=pr(r*Math.cos(an),r*Math.sin(an),z);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}};
+  const SDIM=1-0.4*ga;   // side-on: walls/rings a little dimmer so the price line stays the star
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-  // rails (tube walls) + time rings, fading into the past
-  const RAILS=8;for(let j=0;j<RAILS;j++){const an=j/RAILS*Math.PI*2+Math.PI/RAILS,x=RT*Math.cos(an),y=RT*Math.sin(an);
-    for(let q=0;q<6;q++){const a0=pr(x,y,-q/6*Lz),a1=pr(x,y,-(q+1)/6*Lz);ctx.strokeStyle=`rgba(0,240,255,${(0.16*(1-q/6.5)).toFixed(3)})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();}}
-  const NR=6;ctx.font=`${Math.round(WIDE?11:10)}px "Share Tech Mono",monospace`;ctx.textAlign='center';
-  for(let k=NR;k>=0;k--){const a=k/NR*SPAN,z=zOf(a),al=k===0?0.75:(0.30-0.12*s)*(1-k/NR*0.75);ctx.strokeStyle=`rgba(0,240,255,${al.toFixed(3)})`;ctx.lineWidth=k===0?(WIDE?2:1.6):1;ctx.beginPath();
-    for(let i=0;i<=64;i++){const an=i/64*Math.PI*2,q=pr(RT*Math.cos(an),RT*Math.sin(an),z);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}ctx.stroke();
-    if(s>0.3){const q=pr(0,-RT,z);ctx.fillStyle=`rgba(150,220,255,${(Math.min(1,(s-0.3)/0.4)*(k===0?0.9:0.6)).toFixed(3)})`;ctx.fillText(k===0?'NOW':fmtAge(Math.round(a)),q[0],q[1]+(WIDE?16:14));}}
-  // price grid (side view): faint level lines along the tube + labels at the NOW end
-  if(s>0.35){const ga=Math.min(1,(s-0.35)/0.4);ctx.textAlign='left';
-    for(const g of [-0.75,0,0.75]){const p=SDS.c+g*SDS.h/0.8*0.8,y=Hh*g;const a0=pr(0,y,0),a1=pr(0,y,-Lz);ctx.strokeStyle=`rgba(120,170,255,${(0.10*ga).toFixed(3)})`;ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();ctx.setLineDash([]);
-      const q=pr(0,y,-Lz*0.985);ctx.fillStyle=`rgba(150,190,255,${(0.75*ga).toFixed(3)})`;ctx.fillText(fmtP(SDS.c+g*SDS.h),q[0]+4,q[1]-4);}}
-  // bands + MA (smooth centre lines in the side view, spiral with the trail in the front view)
+  // tunnel walls: 10 rails running along the tube (the front view's inward lines): wide soft glow + thin core, fading toward the PAST
+  {const NRL=10,NSG=14;for(let j=0;j<NRL;j++){const an=(j+0.5)/NRL*TAU,x=RT*Math.cos(an),y=RT*Math.sin(an);
+    for(let pass=(Q>0?0:1);pass<2;pass++)for(let q=0;q<NSG;q++){const a0=pr(x,y,-q/NSG*Lz),a1=pr(x,y,-(q+1)/NSG*Lz),f=Math.pow(1-(q+0.5)/NSG*0.82,0.8),k=Math.min(1.3,a0[2]);
+      ctx.strokeStyle=pass?`rgba(0,240,255,${((0.06+0.30*f)*SDIM).toFixed(3)})`:`rgba(0,240,255,${((0.035+0.06*f)*SDIM).toFixed(3)})`;ctx.lineWidth=(pass?0.5+1.3*f:2+6*f)*k;
+      ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();}}}
+  // dim time rings (front style: soft glow pass + thin ring; majors at half / full window)
+  const NR=6;
+  for(let k=1;k<NR;k++){const z=zOf(k/NR*SPAN),f=Math.pow(1-k/NR*0.8,0.8),maj=k===3;
+    if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${((0.03+0.06*f)*SDIM).toFixed(3)})`;ctx.lineWidth=2+5*f;ringPath(RT,z,0,TAU,64);ctx.stroke();}
+    ctx.strokeStyle=`rgba(0,240,255,${((0.05+(maj?0.30:0.18)*f)*SDIM).toFixed(3)})`;ctx.lineWidth=0.5+(maj?1.4:0.9)*f;ringPath(RT,z,0,TAU,64);ctx.stroke();}
+  // PAST ring at the far (left) end: the front view's glowing vortex ring (halo + solid base + two soft sweeps turning with the zoom spin)
+  {const z=-Lz,g=VSP.w,k=(0.6+0.4*g)*(0.88+0.12*Math.sin(now/400))*(1-0.45*ga);ctx.save();ctx.lineCap='butt';ctx.shadowColor='rgba(0,240,255,1)';ctx.shadowBlur=Q>0?14+8*g:0;
+    ctx.strokeStyle=`rgba(0,240,255,${(0.10*k).toFixed(3)})`;ctx.lineWidth=6+3*g;ringPath(RT,z,0,TAU,72);ctx.stroke();
+    ctx.strokeStyle=`rgba(170,250,255,${(0.42*k).toFixed(3)})`;ctx.lineWidth=1.6+0.5*g;ringPath(RT,z,0,TAU,72);ctx.stroke();
+    const A=0.25+0.55*g;ctx.shadowBlur=Q>0?10+10*g:0;const NS2=72;
+    for(let i=0;i<NS2;i++){const a0=i*TAU/NS2,a1=a0+TAU/NS2+0.004,am=(a0+a1)/2;let f=0;for(let h=0;h<2;h++){const dd=(((-am-VSP.ph-h*Math.PI)%TAU)+TAU)%TAU;f=Math.max(f,dd<=Math.PI?Math.exp(-dd/0.9):Math.exp(-(TAU-dd)/0.12));}
+      if(f<0.02)continue;ctx.strokeStyle=`rgba(210,253,255,${(A*f*k).toFixed(3)})`;ctx.lineWidth=(1.8+1.2*g)*(0.7+0.3*f);ringPath(RT,z,a0,a1,2);ctx.stroke();}
+    ctx.restore();}
+  // time labels (front style: bold mono on a dark plate; NOW yellow), under each ring, skipped on collision
+  if(s>0.3){const la=Math.min(1,(s-0.3)/0.4),fsT=WIDE?11:9,put=[];ctx.font=`700 ${fsT}px "Share Tech Mono",monospace`;ctx.textAlign='center';
+    for(let k=0;k<=NR;k++){const a=k/NR*SPAN,q=pr(0,-RT,zOf(a)),txt=k===0?'NOW':k===NR?'PAST '+fmtAge(Math.round(a)):fmtAge(Math.round(a)),w=ctx.measureText(txt).width+6,x=q[0],y=q[1]+fsT+6,bx=x-w/2,by=y-fsT,bh=fsT+4;
+      if(put.some(r=>bx<r.x+r.w&&bx+w>r.x&&by<r.y+r.h&&by+bh>r.y))continue;put.push({x:bx,y:by,w,h:bh});
+      ctx.globalAlpha=la;ctx.fillStyle='rgba(5,3,12,.6)';ctx.fillRect(bx,by,w,bh);ctx.fillStyle=k===0?'rgba(255,230,0,.9)':`rgba(0,240,255,${(0.9-0.45*k/NR).toFixed(3)})`;ctx.fillText(txt,x,y);ctx.globalAlpha=1;}}
+  // price grid (side view): faint level lines along the tube + labels at the PAST end
+  if(s>0.35){const gq=Math.min(1,(s-0.35)/0.4);ctx.textAlign='left';ctx.font=`${WIDE?11:10}px "Share Tech Mono",monospace`;
+    for(const g of [-0.75,0,0.75]){const y=Hh*g;const a0=pr(0,y,0),a1=pr(0,y,-Lz);ctx.strokeStyle=`rgba(120,170,255,${(0.10*gq).toFixed(3)})`;ctx.lineWidth=1;ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();ctx.setLineDash([]);
+      const q=pr(0,y,-Lz*0.985);ctx.fillStyle=`rgba(150,190,255,${(0.75*gq).toFixed(3)})`;ctx.fillText(fmtP(SDS.c+g*SDS.h),q[0]+4,q[1]-4);}}
+  // NOW mouth = the front view's outer bezel: glowing ring + 72 ticks, BUYERS/SELLERS gauge arc on its upper half with the single aggressor diamond riding it
+  const GRs=RT*1.075;
+  {ctx.save();ctx.strokeStyle='rgba(0,240,255,0.55)';ctx.lineWidth=WIDE?2:1.8;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?14:0;ringPath(RT,0,0,TAU,96);ctx.stroke();ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(0,240,255,0.4)';ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<72;i++){const an=i/72*TAU,l=(i%6===0?10:4)/Math.max(1,RT)*RT,c=Math.cos(an),sn=Math.sin(an),a=pr(RT*c,RT*sn,0),b=pr((RT+l)*c,(RT+l)*sn,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}ctx.stroke();
+    const AH=0.75,NA=40;ctx.lineWidth=WIDE?6:5;ctx.globalAlpha=.55;ctx.lineCap='butt';
+    for(let i=0;i<NA;i++){const a0=Math.PI/2-AH+2*AH*i/NA,a1=Math.PI/2-AH+2*AH*(i+1)/NA+0.003,t=1-(i+0.5)/NA,c=t<0.5?COL.ask.map((x,k)=>Math.round(x+(COL.yl[k]-x)*t*2)):COL.yl.map((x,k)=>Math.round(x+(COL.bid[k]-x)*(t-0.5)*2));
+      ctx.strokeStyle=rgba(c,t<0.5?0.9-0.6*t:0.3+0.6*(t-0.5)*2);ringPath(GRs,0,a0,a1,2);ctx.stroke();}
+    ctx.globalAlpha=1;ctx.restore();
+    // diamond (same spring / colour rule as the front view's drawNeedle)
+    const f=flow(winSec),target=-f.r*Math.PI*0.47;needleV+=(target-needle)*0.012;needleV*=0.86;needle+=needleV;
+    const an=Math.PI/2-needle*(0.75/(Math.PI/2)),c0=Math.cos(an),s0=Math.sin(an),p=pr(GRs*c0,GRs*s0,0),po=pr((GRs+10)*c0,(GRs+10)*s0,0);let ux=po[0]-p[0],uy=po[1]-p[1];const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;const vx=-uy,vy=ux;
+    const HL=WIDE?10.5:11.5,HW=HL*0.62,col=f.r>0.05?COL.bid:f.r<-0.05?COL.ask:COL.yl;
+    const dia=k=>{ctx.beginPath();ctx.moveTo(p[0]+ux*HL*k,p[1]+uy*HL*k);ctx.lineTo(p[0]+vx*HW*k,p[1]+vy*HW*k);ctx.lineTo(p[0]-ux*HL*k,p[1]-uy*HL*k);ctx.lineTo(p[0]-vx*HW*k,p[1]-vy*HW*k);ctx.closePath();};
+    // BUYERS / SELLERS just outside the arc (lit when that side leads), drawn first so the diamond sits on top
+    if(s>0.3){const la=Math.min(1,(s-0.3)/0.4);ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;ctx.textAlign='center';
+      for(const [txt,a,cc,on] of [['BUYERS',Math.PI/2+0.62,COL.bid,f.r>0.15],['SELLERS',Math.PI/2-0.62,COL.ask,f.r<-0.15]]){const q=pr((GRs+16)*Math.cos(a),(GRs+16)*Math.sin(a),0);
+        ctx.fillStyle=rgba(cc,((on?0.95:0.5)*la).toFixed(3));if(on){ctx.shadowColor=rgba(cc,1);ctx.shadowBlur=Q>0?8:0;}ctx.fillText(txt,q[0],q[1]-4);ctx.shadowBlur=0;}}
+    ctx.save();ctx.shadowColor=rgba(col,1);ctx.shadowBlur=Q>0?22:10;ctx.fillStyle=rgba(col,1);dia(1);ctx.fill();ctx.shadowBlur=0;ctx.lineWidth=1.2;ctx.strokeStyle='rgba(255,255,255,.7)';dia(1);ctx.stroke();ctx.fillStyle='rgba(255,255,255,.55)';dia(0.32);ctx.fill();ctx.restore();}
+  // logo hub at the centre of the NOW ring, lying in the ring plane (turns with the tube): solid-ish disc, 24 turning ticks locked to the head's clock,
+  // traffic pulse ring + corona (same HUB state/rules as the front view). Drawn BEHIND the price line so the head is never covered.
+  {const C0=pr(0,0,0),d=RT*0.01,ex=pr(d,0,0),ey=pr(0,d,0),R0s=Math.max(16,RT*0.17);
+    ctx.save();ctx.transform((ex[0]-C0[0])/d,(ex[1]-C0[1])/d,-(ey[0]-C0[0])/d,-(ey[1]-C0[1])/d,C0[0],C0[1]);const LWk=1/Math.max(0.35,Math.cos(psi));
+    ctx.fillStyle=`rgba(6,9,20,${(0.45+0.4*(1-ga)).toFixed(3)})`;ctx.beginPath();ctx.arc(0,0,R0s+1,0,TAU);ctx.fill();
+    const g=ctx.createRadialGradient(0,0,0,0,0,R0s);g.addColorStop(0,'rgba(0,240,255,0.22)');g.addColorStop(1,'rgba(0,240,255,0.02)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,R0s,0,TAU);ctx.fill();
+    ctx.strokeStyle='#00f0ff';ctx.lineWidth=1.5*LWk;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?16:0;ctx.stroke();ctx.shadowBlur=0;
+    const nA=-Math.PI/2+2*Math.PI*(((Date.now()/1000/trailStep)%60)/60);ctx.lineWidth=1*LWk;ctx.strokeStyle='rgba(0,240,255,0.5)';ctx.beginPath();
+    for(let i=0;i<24;i++){const a=i/24*TAU+nA;ctx.moveTo(Math.cos(a)*R0s*0.80,Math.sin(a)*R0s*0.80);ctx.lineTo(Math.cos(a)*R0s*0.96,Math.sin(a)*R0s*0.96);}ctx.stroke();
+    if(LOGO.complete&&LOGO.naturalWidth>0){const L2=R0s*1.25;ctx.globalAlpha=0.55+0.35*(1-ga);ctx.drawImage(LOGO,-L2/2,-L2/2,L2,L2);ctx.globalAlpha=1;}
+    // traffic ring
+    const hd=HUB.t?Math.min(0.1,Math.max(0,(now-HUB.t)/1000)):0;HUB.t=now;const qq=(typeof LT!=='undefined'&&LT.q)||1,raw=burst.on?1:Math.max(0,Math.min(1,Math.log2(Math.max(1,qq))/Math.log2(2.5)));
+    HUB.T+=(raw-HUB.T)*Math.min(1,hd/1.5);const T=HUB.T,Te=T*T*(3-2*T);HUB.ph+=hd*2*Math.PI*(0.3+1.5*Te);const pl=0.5+0.5*Math.sin(HUB.ph);
+    const ka=(dn-SPK.t)/1000,kick=ka<1?1-ka:0,kp=ka<0.35?Math.sin(Math.PI*ka/0.35):0;
+    const fr=flow(winSec).r,tc=fr>0.05?COL.bid:fr<-0.05?COL.ask:COL.yl;if(!HUB.c)HUB.c=tc.slice();for(let k=0;k<3;k++)HUB.c[k]+=(tc[k]-HUB.c[k])*Math.min(1,hd/0.6);const hc=HUB.c.map(Math.round);
+    const kc=Math.max(0,Math.min(1,(T-0.45)/0.55)),kk=kc*kc*(3-2*kc);
+    if(kk>0.01){ctx.globalCompositeOperation='lighter';const RC=R0s*(1.5+0.8*kk+0.12*pl*kk),g2=ctx.createRadialGradient(0,0,R0s*0.95,0,0,RC);
+      g2.addColorStop(0,rgba(hc,(0.40*kk*(0.75+0.25*pl)).toFixed(3)));g2.addColorStop(0.3,rgba(hc,(0.16*kk).toFixed(3)));g2.addColorStop(1,rgba(hc,0));ctx.fillStyle=g2;ctx.beginPath();ctx.arc(0,0,RC,0,TAU);ctx.arc(0,0,R0s*0.95,0,TAU,true);ctx.fill();
+      for(let i=0;i<14;i++){const a=i/14*TAU+0.15*Math.sin(now/5200+i*1.7),L3=R0s*(0.5+0.8*kk)*(0.55+0.45*Math.sin(now/1900+i*2.3))*(0.8+0.2*pl),x0=Math.cos(a)*(R0s+2),y0=Math.sin(a)*(R0s+2),x1=Math.cos(a)*(R0s+2+L3),y1=Math.sin(a)*(R0s+2+L3),gl=ctx.createLinearGradient(x0,y0,x1,y1);
+        gl.addColorStop(0,rgba(hc,(0.45*kk).toFixed(3)));gl.addColorStop(1,rgba(hc,0));ctx.strokeStyle=gl;ctx.lineWidth=(WIDE?3:2.2)*LWk*(0.7+0.3*kk);ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();}
+      ctx.globalCompositeOperation='source-over';}
+    const Tk=Math.max(Te,0.9*kick);ctx.strokeStyle=rgba(hc,Math.min(1,(0.28+0.22*Tk)+(0.18+0.3*Tk)*pl+0.35*kick).toFixed(3));ctx.lineWidth=(1.4+1.3*Tk+1.2*kp)*LWk;ctx.shadowColor=rgba(hc,1);ctx.shadowBlur=Q>0?(8+18*Tk)*(0.7+0.3*pl)+12*kp:4;
+    ctx.beginPath();ctx.arc(0,0,R0s+3+(1.5+1.5*Tk)*pl+6*kp,0,TAU);ctx.stroke();ctx.restore();window.__sideHub={T:+T.toFixed(2),c:hc};}
+  // NOW needle: the vertical through the NOW ring; head, MA end and band ends all land on it (pale line like the front's needle, behind the trail)
+  if(s>0.3){const la=Math.min(1,(s-0.3)/0.4),a=pr(0,RT*0.995,0),b=pr(0,-RT*0.995,0),g=ctx.createLinearGradient(a[0],a[1],b[0],b[1]);g.addColorStop(0,`rgba(225,240,255,${(0.40*la).toFixed(3)})`);g.addColorStop(0.5,`rgba(225,240,255,${(0.16*la).toFixed(3)})`);g.addColorStop(1,`rgba(225,240,255,${(0.40*la).toFixed(3)})`);
+    ctx.strokeStyle=g;ctx.lineWidth=WIDE?1.6:1.4;ctx.shadowColor='rgba(190,225,255,.9)';ctx.shadowBlur=Q>0?5:0;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();ctx.shadowBlur=0;}
+  // bands + MA (front styling: violet fill + glowing violet edges; MA = dark keyline + glowing yellow)
   const step=2,idx=[];for(let b=N-1;b>=0;b-=step)idx.push(b);if(idx[idx.length-1]!==0)idx.push(0);
   const ageB=b=>(N-1-b)*dt, fadeA=a=>1-0.72*a/SPAN;
-  if(SHOWBB){const U=idx.map(b=>ptAt(ageB(b),MA[b]+2*SD[b],false)),D=idx.map(b=>ptAt(ageB(b),MA[b]-2*SD[b],false)),S0=Math.floor(idx.length*0.06);
-    for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.fillStyle=`rgba(165,135,255,${((WIDE?0.10:0.13)*al*s+0.03*(1-s)).toFixed(3)})`;ctx.beginPath();ctx.moveTo(U[i][0],U[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(U[i+j][0],U[i+j][1]);for(let j=6;j>=0;j--)ctx.lineTo(D[i+j][0],D[i+j][1]);ctx.closePath();ctx.fill();
-      ctx.strokeStyle=`rgba(185,160,255,${(0.45*al).toFixed(3)})`;ctx.lineWidth=WIDE?1:0.9;for(const Q of [U,D]){ctx.beginPath();ctx.moveTo(Q[i][0],Q[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(Q[i+j][0],Q[i+j][1]);ctx.stroke();}}}
-  if(SHOWMA){const M=idx.map(b=>ptAt(ageB(b),MA[b],false)),S0=Math.floor(idx.length*0.04);for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.strokeStyle=`rgba(255,226,90,${(0.75*al).toFixed(3)})`;ctx.lineWidth=WIDE?1.5:1.3;ctx.beginPath();ctx.moveTo(M[i][0],M[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(M[i+j][0],M[i+j][1]);ctx.stroke();}}
-  // the price trail (star): swirl coiled around the price line; glow pass + bright core, fading into the past
+  let UE=null,DE=null,ME=null;
+  if(SHOWBB){const U=idx.map(b=>ptAt(ageB(b),MA[b]+2*SD[b],false)),D=idx.map(b=>ptAt(ageB(b),MA[b]-2*SD[b],false)),S0=Math.floor(idx.length*0.06);UE=U[0];DE=D[0];
+    for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.fillStyle=`rgba(165,135,255,${((WIDE?0.10:0.13)*al*s+0.03*(1-s)).toFixed(3)})`;ctx.beginPath();ctx.moveTo(U[i][0],U[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(U[i+j][0],U[i+j][1]);for(let j=6;j>=0;j--)ctx.lineTo(D[i+j][0],D[i+j][1]);ctx.closePath();ctx.fill();}
+    ctx.lineWidth=WIDE?1:0.9;ctx.shadowColor='rgba(175,145,255,.8)';
+    for(const Qb of [U,D])for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.shadowBlur=Q>0&&al>0.6?(WIDE?5:4):0;ctx.strokeStyle=`rgba(185,160,255,${((WIDE?0.55:0.62)*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(Qb[i][0],Qb[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(Qb[i+j][0],Qb[i+j][1]);ctx.stroke();}
+    ctx.shadowBlur=0;}
+  if(SHOWMA){const M=idx.map(b=>ptAt(ageB(b),MA[b],false)),S0=Math.floor(idx.length*0.04);ME=M[0];
+    for(const [lw,blur,col,am] of [[(WIDE?1.5:1.3)+2,0,'5,3,12',0.55],[WIDE?1.5:1.3,Q>0?8:0,'255,226,90',0.8]]){ctx.lineWidth=lw;ctx.shadowColor='rgba(255,215,50,.9)';
+      for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.shadowBlur=blur*al;ctx.strokeStyle=`rgba(${col},${(am*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(M[i][0],M[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(M[i+j][0],M[i+j][1]);ctx.stroke();}}
+    ctx.shadowBlur=0;}
+  // the price trail (star): front-view coil (fades out side-on in TRUE LINE) + the price line itself
   const T=[];for(let b=N-1;b>=0;b--){const a=ageB(b);T.push(ptAt(a,P[b],!TRUE));}if(!isFinite(T[0][0])||!isFinite(T[0][1])){window.__sideDbg={c:SDS.c,h:SDS.h,p:P[N-1],RT,Dc,Lz,Cx,Cy,s};ctx.restore();return;}
   const kH=L(1,0.7);for(const [lw,al0,col] of [[WIDE?7:6,0.10*kH,'0,240,255'],[WIDE?3:2.6,0.28*kH,'0,240,255'],[WIDE?1.5:1.3,0.95*L(1,0.55),s>0.5?'120,235,255':'215,252,255']]){
     if(hK>0.01)for(let i=0;i+8<T.length;i+=8){const a=i*dt,al=al0*hK*Math.pow(fadeA(a),1.4);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.4,Math.max(0.55,T[i][2]));ctx.beginPath();ctx.moveTo(T[i][0],T[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(T[i+j][0],T[i+j][1]);ctx.stroke();}}
-  if(s>0.3){const ga=Math.min(1,(s-0.3)/0.4),C=[];for(let b=N-1;b>=0;b--)C.push(ptAt(ageB(b),P[b],false));   // side view: the price line itself (the star), swirl coils around it
-    for(const [lw,al0,col] of (TRUE?[[WIDE?5:4,0.14,'0,240,255'],[WIDE?1.6:1.4,1,'235,253,255']]:[[WIDE?6:5,0.12,'0,240,255'],[WIDE?2:1.8,1,'235,253,255']]))for(let i=0;i+8<C.length;i+=8){const al=al0*ga*Math.pow(fadeA(i*dt),1.2);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.3,Math.max(0.6,C[i][2]));ctx.beginPath();ctx.moveTo(C[i][0],C[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(C[i+j][0],C[i+j][1]);ctx.stroke();}}
-  // head + live price
-  {const h=T[0],pu=0.6+0.4*Math.sin(now/260),g=ctx.createRadialGradient(h[0],h[1],0,h[0],h[1],WIDE?16:13);g.addColorStop(0,`rgba(230,255,255,${(0.9*pu).toFixed(3)})`);g.addColorStop(1,'rgba(0,240,255,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(h[0],h[1],WIDE?16:13,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(h[0],h[1],WIDE?3:2.6,0,Math.PI*2);ctx.fill();
-    if(s>0.4){ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;ctx.textAlign=h[0]>W-70?'right':'left';ctx.fillStyle=`rgba(230,252,255,${Math.min(1,(s-0.4)/0.3).toFixed(3)})`;ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=6;ctx.fillText(hubTxt(),h[0]+(h[0]>W-70?-14:14),h[1]-10);ctx.shadowBlur=0;}}
+  let C=null;
+  if(s>0.3){C=[];for(let b=N-1;b>=0;b--)C.push(ptAt(ageB(b),P[b],false));
+    const passes=TRUE?[[WIDE?12:9,0.05,'0,240,255'],[WIDE?5:4,0.14,'0,240,255'],[WIDE?1.6:1.4,1,'235,253,255']]:[[WIDE?6:5,0.12,'0,240,255'],[WIDE?2:1.8,1,'235,253,255']];
+    for(const [lw,al0,col] of passes)for(let i=0;i+8<C.length;i+=8){const al=al0*ga*Math.pow(fadeA(i*dt),1.2);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.3,Math.max(0.6,C[i][2]));ctx.beginPath();ctx.moveTo(C[i][0],C[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(C[i+j][0],C[i+j][1]);ctx.stroke();}}
+  const LN=C||T, ixA=a=>Math.max(0,Math.min(LN.length-1,Math.round(a/dt)));   // screen point of the line at age a (s)
+  // spike detector (side): fresh ~3 s move of the live price vs the typical 3 s move over the last minutes -> front's flare (white-hot segment + sparks + shake)
+  {const lp=hubPx();if(lp>0&&(!SSPK.h.length||dn-SSPK.h[SSPK.h.length-1][0]>=100))SSPK.h.push([dn,lp]);while(SSPK.h.length&&dn-SSPK.h[0][0]>300000)SSPK.h.shift();
+    const H2=SSPK.h;if(H2.length>600&&dn-SSPK.k0>20000){const pAt=t=>{let lo=0,hi=H2.length-1;while(lo<hi){const m=(lo+hi)>>1;if(H2[m][0]<t)lo=m+1;else hi=m;}return H2[lo][1];};
+      const md=(t0,t1)=>{const v=H2.filter(x=>x[0]>=t0&&x[0]<=t1).map(x=>x[1]).sort((a,b)=>a-b);return v.length?v[v.length>>1]:NaN;},J=md(dn-600,dn)-md(dn-3600,dn-2400);
+      if(!SSPK.typ||dn-SSPK.tt>2000){const dv=[];for(let i=H2.length-1;i>=0;i-=30){const t=H2[i][0];if(t-3000<H2[0][0])break;dv.push(Math.abs(H2[i][1]-pAt(t-3000)));}dv.sort((a,b)=>a-b);SSPK.typ=dv[dv.length>>1]||0;SSPK.tt=dn;}
+      window.__sideSpk={J,typ:SSPK.typ,n:SPK.n};if(isFinite(J)&&Math.abs(J)>Math.max(4*SSPK.typ,0.35*SDS.h,lp*0.00004)&&dn-SPK.t>3000)spkFire(Math.sign(J));}}
+  if(C&&dn-SPK.t<1500){const k=(dn-SPK.t)/1500,hw=1-k*k*(3-2*k),a1=3+(dn-SPK.t)/1000,n=ixA(a1),cw=mixCol(trailDom()).map(x=>Math.round(x+(255-x)*0.7*hw));ctx.save();ctx.globalCompositeOperation='lighter';
+    for(const [w,al,bl] of [[WIDE?14:11,0.28,Q>0?22:0],[WIDE?4.5:3.6,0.9,Q>0?10:0]]){ctx.strokeStyle=rgba(cw,(al*hw).toFixed(3));ctx.lineWidth=w;ctx.shadowColor=rgba(cw,1);ctx.shadowBlur=bl*hw;ctx.beginPath();ctx.moveTo(C[0][0],C[0][1]);for(let j=1;j<=n;j++)ctx.lineTo(C[j][0],C[j][1]);ctx.stroke();}
+    ctx.restore();}
+  // cross-flash: tiny ring where the line crosses the MA (dead band vs chatter), riding the line as it ages
+  if(SHOWMA){const d0=P[N-1]-MA[N-1],db=SDS.h*0.05;if(Math.abs(d0)>db){const sg=d0>0?1:-1;if(SMX.sg&&sg!==SMX.sg)SMX.ev.push({t:dn});SMX.sg=sg;}SMX.ev=SMX.ev.filter(o=>dn-o.t<900);
+    for(const o of SMX.ev){const k=(dn-o.t)/900,q=LN[ixA((dn-o.t)/1000)],R=(WIDE?3:2.4)+(WIDE?9:7)*k;ctx.strokeStyle=`rgba(255,240,150,${(0.85*(1-k)).toFixed(3)})`;ctx.lineWidth=1.2;ctx.shadowColor='rgba(255,230,80,1)';ctx.shadowBlur=Q>0?8:0;
+      ctx.beginPath();ctx.arc(q[0],q[1],R,0,TAU);ctx.stroke();ctx.fillStyle=`rgba(255,255,220,${(0.9*(1-k)).toFixed(3)})`;ctx.beginPath();ctx.arc(q[0],q[1],1.6*(1-k)+0.6,0,TAU);ctx.fill();ctx.shadowBlur=0;}}
+  else{SMX.sg=0;SMX.ev.length=0;}
+  // MA / band end sparkles where they meet the NOW needle (front's contact sparks + twinkling glints, in each line's colour)
+  {const dts=SNSPt?Math.min(0.05,(pn0-SNSPt)/1000):0;SNSPt=pn0;const sc=WIDE?1:0.8,ends=[...(ME?[[ME,'255,230,110']]:[]),...(UE?[[UE,'200,175,255'],[DE,'200,175,255']]:[])];
+    if(s>0.3)for(const [q,col] of ends){const n=Math.random()<dts*14?1+(Math.random()<0.3?1:0):0;for(let k=0;k<n;k++){const a=Math.random()*TAU,v=(14+Math.random()*30)*sc;SNSP.push({x:q[0],y:q[1],vx:Math.cos(a)*v,vy:Math.sin(a)*v,t0:pn0,life:260+Math.random()*320,sz:(0.8+Math.random()*1.1)*sc,col});}}
+    if(SNSP.length>90)SNSP.splice(0,SNSP.length-90);SNSP=SNSP.filter(p=>pn0-p.t0<p.life);
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+    for(const p of SNSP){p.x+=p.vx*dts;p.y+=p.vy*dts;const k=(pn0-p.t0)/p.life,al=Math.pow(1-k,1.4);ctx.strokeStyle=`rgba(${p.col},${(0.85*al).toFixed(3)})`;ctx.lineWidth=p.sz;ctx.beginPath();ctx.moveTo(p.x-p.vx*0.04,p.y-p.vy*0.04);ctx.lineTo(p.x,p.y);ctx.stroke();
+      ctx.fillStyle=`rgba(255,255,240,${(0.7*al).toFixed(3)})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz*0.55,0,TAU);ctx.fill();}
+    if(s>0.3)for(const [q,col] of ends){const tw=0.55+0.45*Math.sin(pn0/90+q[0]),r=WIDE?5:4,g2=ctx.createRadialGradient(q[0],q[1],0,q[0],q[1],r);g2.addColorStop(0,`rgba(${col},${(0.55*tw).toFixed(3)})`);g2.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g2;ctx.beginPath();ctx.arc(q[0],q[1],r,0,TAU);ctx.fill();}
+    ctx.restore();}
+  // head (front's mouth head: flow-coloured bloom + white pulsing core), fresh-print sparks + burst particles + spike sparks from it
+  {const h=T[0],c=mixCol(trailDom()),pl=0.5+0.5*Math.sin(now/260),R=(WIDE?18:14)*(0.85+0.3*pl);TRHEAD={x:h[0],y:h[1]};
+    ctx.save();ctx.globalCompositeOperation='lighter';const g=ctx.createRadialGradient(h[0],h[1],0,h[0],h[1],R);g.addColorStop(0,rgba([255,255,255],0.6+0.3*pl));g.addColorStop(0.3,rgba(c,0.75));g.addColorStop(1,rgba(c,0));ctx.fillStyle=g;ctx.beginPath();ctx.arc(h[0],h[1],R,0,TAU);ctx.fill();
+    impacts=impacts.filter(m=>now-m.t<(m.life||700));const RR=WIDE?34:26;
+    for(const m of impacts){const k=(now-m.t)/(m.life||700),cc=m.side==='buy'?COL.bid:COL.ask,big=Math.min(1,Math.sqrt(m.qty*(m.px||1)/whaleUSD));if(big<0.08)continue;
+      const th=(m.t*0.0137)%TAU,d0=RR*(0.15+0.9*k),d1=d0+RR*(0.25+0.8*big)*(1-k),BU=m.bu?1:0;ctx.strokeStyle=rgba(cc,((BU?1:0.9)*(1-k)).toFixed(3));ctx.lineWidth=(1+2*big)*(1+0.8*BU)*(WIDE?1:0.85);
+      if(BU&&!m.sp){m.sp=1;spawnBP(m,cc,big);}ctx.beginPath();ctx.moveTo(h[0]+Math.cos(th)*d0,h[1]+Math.sin(th)*d0);ctx.lineTo(h[0]+Math.cos(th)*d1,h[1]+Math.sin(th)*d1);ctx.stroke();}
+    ctx.globalCompositeOperation='source-over';ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:5;ctx.beginPath();ctx.arc(h[0],h[1],(WIDE?3:2.2)+1.2*pl,0,TAU);ctx.fill();ctx.shadowBlur=0;ctx.restore();
+    drawBP(now);drawSpkSparks();
+    if(s>0.4){ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const rt=h[0]>W-90;ctx.textAlign=rt?'right':'left';ctx.fillStyle=`rgba(230,252,255,${Math.min(1,(s-0.4)/0.3).toFixed(3)})`;ctx.shadowColor='rgba(0,0,0,.95)';ctx.shadowBlur=6;ctx.fillText(hubTxt(),h[0]+(rt?-16:16),h[1]-10);ctx.restore();}}
   // title
   ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle='rgba(255,230,0,.85)';ctx.fillText(`SIDE TEST · ${SPAN/60} MIN WINDOW · `+(TRUE?'TRUE LINE (RAW HI/LO, NO COIL)':`${Math.round(SPAN/(24-20*(ROT*ROT*(3-2*ROT))))}s / LOOP`),WIDE?16:10,top-18);
   ctx.restore();}
