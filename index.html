@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261004-0800';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261004-0820';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -192,11 +192,11 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <div id="infoHd"><h2 id="infoT">// WHAT YOU'RE SEEING</h2><button id="infoX" aria-label="close">✕</button></div>
  <div id="infoBody">
  <h3>MARKET VIEW · HOW THE TIME TUNNEL WORKS</h3>
- <ul><li><b>Into the past:</b> you look down the time tunnel, walking backwards through time. <b>NOW</b> is the outer edge; older trades sit deeper, shrinking into the past.</li>
+ <ul><li><b>Into the past:</b> you look down the time tunnel, walking backwards through time. <b>NOW</b> is the outer edge; older trades sit deeper, shrinking into the <b>past</b>.</li>
  <li><b>One loop</b> of the coil = the zoom window (15–60s). The rings are marked −5s, −10s, −15s… back to the window's end.</li>
  <li><b>Price:</b> a point pushed <b>outward</b> from its loop traded <b>higher</b> than the latest trade, <b>inward</b> = lower. Big spikes are softened.</li>
  <li><b>Colour</b> = who hit the market: <b class="gr">green</b> = buyers, <b class="rd">red</b> = sellers, blends = mixed. <b>Thicker, brighter</b> = more volume. <b>Flares</b> = the most-traded prices of the last few minutes.</li>
- <li><b>Tunnel walls:</b> the 10 lines running inward are the tunnel walls. They lead to a glowing ring at the far end: the oldest moment on screen. The shorter the zoom, the more the walls twist and the faster the ring spins (still at 60s, full speed at 15s; in AUTO a volume burst jumps straight to full), so a 15s zoom feels like speeding through time.</li>
+ <li><b>Tunnel walls:</b> the lines running inward carry you from <b>NOW</b> at the edge to the <b>past</b> at the glowing far ring.</li>
  <li><b>Hub ring</b> = traffic: a slow, soft pulse at normal trading; busier than the 10-minute norm, it pulses faster and glows harder, with a corona around the hub when it's very busy or bursting. Its colour follows the diamond (buyers / sellers / balanced).</li>
  <li><b>NOW needle:</b> the pale line from the newest trade into the hub. It turns once a minute; the hub's dashes turn with it.</li>
  <li><b class="yl">Yellow line</b> = moving average (~window/6). <b class="vi">Violet bands</b> = Bollinger bands (±2 standard deviations): narrow = squeeze, wide = expansion. Each has an on/off switch in <b>TECH</b>.</li>
