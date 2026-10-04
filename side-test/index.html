@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1935';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1950';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2343,12 +2343,12 @@ function drawSide(now){
   const A2=AG.filter((_,i)=>i%2===0);if(A2[A2.length-1]!==AG[AG.length-1])A2.push(AG[AG.length-1]);
   const fadeA=a=>1-0.72*a/SPe;
   let UE=null,DE=null,ME=null;
-  if(SHOWBB){const U=A2.map(a=>ptAt(a,MAv(a)+2*SDv(a),false)),D=A2.map(a=>ptAt(a,MAv(a)-2*SDv(a),false)),S0=Math.floor(A2.length*0.06);UE=U[0];DE=D[0];
+  if(SHOWBB){const U=A2.map(a=>ptAt(a,MAv(a)+2*SDv(a),false)),D=A2.map(a=>ptAt(a,MAv(a)-2*SDv(a),false)),S0=0;UE=U[0];DE=D[0];
     for(let i=S0;i+6<A2.length;i+=6){const al=fadeA(A2[i]);ctx.fillStyle=`rgba(165,135,255,${((WIDE?0.10:0.13)*al*s+0.03*(1-s)).toFixed(3)})`;ctx.beginPath();ctx.moveTo(U[i][0],U[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(U[i+j][0],U[i+j][1]);for(let j=6;j>=0;j--)ctx.lineTo(D[i+j][0],D[i+j][1]);ctx.closePath();ctx.fill();}
     ctx.lineWidth=WIDE?1:0.9;ctx.shadowColor='rgba(175,145,255,.8)';
     for(const Qb of [U,D])for(let i=S0;i+6<A2.length;i+=6){const al=fadeA(A2[i]);ctx.shadowBlur=Q>0&&al>0.6?(WIDE?5:4):0;ctx.strokeStyle=`rgba(185,160,255,${((WIDE?0.55:0.62)*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(Qb[i][0],Qb[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(Qb[i+j][0],Qb[i+j][1]);ctx.stroke();}
     ctx.shadowBlur=0;}
-  if(SHOWMA){const M=A2.map(a=>ptAt(a,MAv(a),false)),S0=Math.floor(A2.length*0.04);ME=M[0];const lw0=(WIDE?1.5:1.3)*(1+1.6*TRW);
+  if(SHOWMA){const M=A2.map(a=>ptAt(a,MAv(a),false)),S0=0;ME=M[0];const lw0=(WIDE?1.5:1.3)*(1+1.6*TRW);
     // static: dark keyline + glowing yellow; mid-turn: keyline fades, the gold coil gets thicker, a wide soft halo and goes see-through
     for(const [lw,blur,col,am] of [[lw0+2,0,'5,3,12',0.55*(1-TRW)],[lw0*3.4,0,'255,215,70',0.13*TRW],[lw0,Q>0?8+14*TRW:0,'255,226,90',0.8-0.32*TRW]]){if(am<0.01)continue;ctx.lineWidth=lw;ctx.shadowColor='rgba(255,215,50,.9)';
       for(let i=S0;i+6<A2.length;i+=6){const al=fadeA(A2[i]);ctx.shadowBlur=blur*al;ctx.strokeStyle=`rgba(${col},${(am*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(M[i][0],M[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(M[i+j][0],M[i+j][1]);ctx.stroke();}}
@@ -2400,10 +2400,11 @@ function drawSide(now){
   ctx.restore();}
 // controls: one FRONT<->SIDE swap button (timed eased turn, label = target view) + 5M/15M/60M + TRUE. Drag-to-rotate removed (it fought the front view's swipe/pinch).
 (function(){const st=$('stage');if(!st)return;const d=document.createElement('div');d.id='sidectl';
-  d.style.cssText='position:absolute;left:50%;transform:translateX(-50%);bottom:8px;z-index:30;display:flex;gap:8px;align-items:center;font:11px "Share Tech Mono",monospace;color:#00f0ff;background:rgba(6,9,20,.78);border:1px solid rgba(0,240,255,.35);border-radius:6px;padding:4px 8px;white-space:nowrap;touch-action:manipulation';
-  const bs='height:28px;padding:0 12px;font-family:Orbitron,sans-serif;font-weight:700;font-size:9px;letter-spacing:1px;line-height:1;white-space:nowrap;color:#ffe600;border:1px solid rgba(255,230,0,.55);background:rgba(255,230,0,.08);cursor:pointer;min-width:'+(innerWidth<600?84:96)+'px';
+  // own row in the bottom sheet, right above ZOOM/VIEW/COIN (phone: between the volume strip and the buttons, the stage shrinks to make room; desktop: right column under the header) -> never over the tube/dial
+  d.style.cssText='position:static;display:flex;gap:8px;align-items:center;justify-content:center;box-sizing:border-box;width:100%;height:32px;margin:0 0 4px;font:11px "Share Tech Mono",monospace;color:#00f0ff;background:rgba(6,9,20,.78);border:1px solid rgba(0,240,255,.3);padding:0 6px;white-space:nowrap;touch-action:manipulation';
+  const bs='height:24px;padding:0 12px;font-family:Orbitron,sans-serif;font-weight:700;font-size:9px;letter-spacing:1px;line-height:1;white-space:nowrap;color:#ffe600;border:1px solid rgba(255,230,0,.55);background:rgba(255,230,0,.08);cursor:pointer;min-width:'+(innerWidth<600?84:96)+'px';
   d.innerHTML='<button id="sideV" type="button" style="'+bs+'"></button><span style="opacity:.4">|</span>'+[300,900,3600].map(v=>'<b data-s="'+v+'" style="cursor:pointer;padding:1px 4px;border:1px solid rgba(255,230,0,.0)">'+v/60+'M</b>').join('')+'<span style="opacity:.4">|</span><b data-t="1" style="cursor:pointer;padding:1px 4px;border:1px solid rgba(255,230,0,0)">'+(innerWidth<600?'TRUE':'TRUE LINE')+'</b>';
-  st.appendChild(d);const vb=d.querySelector('#sideV');let lastL='';
+  {const wn=$('win');if(wn&&wn.parentNode)wn.parentNode.insertBefore(d,wn);else st.appendChild(d);}const vb=d.querySelector('#sideV');let lastL='';
   const sync=()=>{const tgt=(SANI?SANI.to:ROTT)>0.5?'FRONT':'SIDE',L='<b style="font-size:11px;letter-spacing:2px">'+tgt+'</b> ▸';if(L!==lastL){vb.innerHTML=L;lastL=L;}vb.setAttribute('aria-label','turn to '+tgt.toLowerCase()+' view');
     d.querySelectorAll('[data-s]').forEach(e=>{const on=+e.dataset.s===SPAN;e.style.color=on?'#ffe600':'#00f0ff';e.style.borderColor=on?'rgba(255,230,0,.6)':'rgba(255,230,0,0)';});{const e=d.querySelector('[data-t]');e.style.color=TRUE?'#ffe600':'rgba(0,240,255,.6)';e.style.borderColor=TRUE?'rgba(255,230,0,.6)':'rgba(0,240,255,.25)';}d.style.display=VIEW==='market'?'flex':'none';};
   vb.addEventListener('click',e=>{e.stopPropagation();sideSwap();sync();});
