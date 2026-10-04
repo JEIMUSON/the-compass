@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1545';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1745';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2155,23 +2155,25 @@ function frame(){
 // (the swirl coils tightly around the price line). ROT morphs both camera and geometry, so it reads as the same object turning.
 let ROT=(()=>{const m=location.search.match(/[?&]rot=([\d.]+)/);return m?Math.max(0,Math.min(1,+m[1])):1;})(),ROTT=ROT;
 let SPAN=(()=>{const m=location.search.match(/[?&]span=(\d+)/);if(m&&[300,900,3600].includes(+m[1]))return +m[1];try{const v=+localStorage.getItem('ofc.sideSpan');return [300,900,3600].includes(v)?v:900;}catch(e){return 900;}})();
+let TRUE=(()=>{const m=location.search.match(/[?&]true=([01])/);if(m)return m[1]==='1';try{const v=localStorage.getItem('ofc.sideTrue');return v==null?true:v==='1';}catch(e){return true;}})();   // TRUE LINE: raw hi/lo price line, no coil, no smoothing (default on)
 const SIDE_ON=()=>VIEW==='market'&&ROT>0.02;
 const SDS={t:0,span:0,N:0,P:null,MA:null,SD:null,c:0,h:0,tc:0,th:0};
-function sideSeries(){const n=Date.now(),N=400,dt=SPAN*1000/N,t0=n-SPAN*1000;const P=new Float64Array(N).fill(NaN),PS0=new Float64Array(N),PN=new Float64Array(N);
-  for(let i=RAW.length-1;i>=0;i--){const t=RAW[i];if(t.ts<t0)break;if(SRC!=='all'&&t.v!==SRC)continue;if(t.q&&t.q!=='USD')continue;const b=Math.floor((t.ts-t0)/dt);if(b>=0&&b<N){PS0[b]+=t.px;PN[b]++;}}
-  for(let b=0;b<N;b++)if(PN[b])P[b]=PS0[b]/PN[b];   // mean USD trade price per bucket (no bid/ask bounce bars)
+function sideSeries(){const n=Date.now(),NB=400,N=TRUE?NB*2:NB,dt=SPAN*1000/N,dB=SPAN*1000/NB,t0=n-SPAN*1000;const P=new Float64Array(N).fill(NaN),PS0=new Float64Array(NB),PN=new Float64Array(NB),LO=new Float64Array(NB).fill(Infinity),HI=new Float64Array(NB).fill(-Infinity),TL=new Float64Array(NB),TH=new Float64Array(NB);
+  for(let i=RAW.length-1;i>=0;i--){const t=RAW[i];if(t.ts<t0)break;if(SRC!=='all'&&t.v!==SRC)continue;if(t.q&&t.q!=='USD')continue;const b=Math.floor((t.ts-t0)/dB);if(b>=0&&b<NB){PS0[b]+=t.px;PN[b]++;if(t.px<LO[b]){LO[b]=t.px;TL[b]=t.ts;}if(t.px>HI[b]){HI[b]=t.px;TH[b]=t.ts;}}}
+  if(TRUE){for(let b=0;b<NB;b++)if(PN[b]){const lf=TL[b]<=TH[b];P[2*b]=lf?LO[b]:HI[b];P[2*b+1]=lf?HI[b]:LO[b];}}   // raw: every bucket's real low and high, in time order
+  else for(let b=0;b<NB;b++)if(PN[b])P[b]=PS0[b]/PN[b];   // mean USD trade price per bucket (no bid/ask bounce bars)
   for(let b=0;b<N;b++)if(isNaN(P[b])){const c=candles.get(minuteOf(t0+b*dt));if(c&&c.c>0&&!(b>0&&!isNaN(P[b-1])))P[b]=c.c;}   // older than the trade buffer: Kraken 1-min closes
   let f=NaN;for(let b=0;b<N;b++){if(isNaN(P[b]))P[b]=f;else f=P[b];}let g=NaN;for(let b=0;b<N;b++)if(!isNaN(P[b])){g=P[b];break;}for(let b=0;b<N&&isNaN(P[b]);b++)P[b]=g;
-  {const Q=Float64Array.from(P),K=[1,4,6,4,1];for(let b=0;b<N;b++){let a=0,w=0;for(let k=-2;k<=2;k++){const j=b+k;if(j<0||j>=N)continue;a+=Q[j]*K[k+2];w+=K[k+2];}P[b]=a/w;}}   // 5-tap smoothing (tick bounce would draw as hatching)
+  if(!TRUE){const Q=Float64Array.from(P),K=[1,4,6,4,1];for(let b=0;b<N;b++){let a=0,w=0;for(let k=-2;k<=2;k++){const j=b+k;if(j<0||j>=N)continue;a+=Q[j]*K[k+2];w+=K[k+2];}P[b]=a/w;}}   // 5-tap smoothing (coil mode only)
   const lp=typeof hubPx==='function'?hubPx():mid;if(lp>0)P[N-1]=lp;if(isNaN(P[N-1]))return;
   const tau=SPAN/12,al=1-Math.exp(-(dt/1000)/tau),MA=new Float64Array(N),SD=new Float64Array(N);let e=P[0],v=0;
   for(let b=0;b<N;b++){const d=P[b]-e;e+=d*al;v=(1-al)*(v+al*d*d);MA[b]=e;SD[b]=Math.sqrt(v);}
   let lo=Infinity,hi=-Infinity;for(let b=0;b<N;b++){lo=Math.min(lo,P[b]);hi=Math.max(hi,P[b]);if(SHOWBB&&b>N*0.1){lo=Math.min(lo,MA[b]-2*SD[b]);hi=Math.max(hi,MA[b]+2*SD[b]);}}
-  SDS.t=n;SDS.N=N;SDS.P=P;SDS.MA=MA;SDS.SD=SD;SDS.dt=dt;SDS.tc=(lo+hi)/2;SDS.th=Math.max((hi-lo)/2,P[N-1]*0.0004);
+  SDS.t=n;SDS.t0=t0;SDS.tr=TRUE;SDS.N=N;SDS.P=P;SDS.MA=MA;SDS.SD=SD;SDS.dt=dt;SDS.tc=(lo+hi)/2;SDS.th=Math.max((hi-lo)/2,P[N-1]*0.0004);
   if(SDS.span!==SPAN||!SDS.c){SDS.c=SDS.tc;SDS.h=SDS.th;SDS.span=SPAN;}}
 setInterval(()=>{if(SIDE_ON())sideSeries();},500);
 function drawSide(now){
-  if(!SDS.P||SDS.span!==SPAN)sideSeries();if(!SDS.P)return;
+  if(!SDS.P||SDS.span!==SPAN||SDS.tr!==TRUE)sideSeries();if(!SDS.P)return;
   ROT+=(ROTT-ROT)*0.18;if(Math.abs(ROTT-ROT)<0.002)ROT=ROTT;
   SDS.c+=(SDS.tc-SDS.c)*0.06;SDS.h*=Math.exp(Math.log(SDS.th/SDS.h)*0.06);
   const s=ROT*ROT*(3-2*ROT), L=(a,b)=>a+(b-a)*s, N=SDS.N, P=SDS.P, MA=SDS.MA, SD=SDS.SD, dt=SDS.dt/1000;
@@ -2186,6 +2188,7 @@ function drawSide(now){
   const pnOf=p=>Math.max(-1.15,Math.min(1.15,(p-SDS.c)/SDS.h));
   const ptAt=(a,p,swirl)=>{const th=thOf(a),pn=pnOf(p),rf=RT*(0.60+0.28*Math.max(-1,Math.min(1,pn))),xf=rf*Math.cos(th),yf=-rf*Math.sin(th);
     const r2=swirl?rs:0,xs=r2*Math.cos(th),ys=Hh*pn-r2*Math.sin(th);return pr(L(xf,xs),L(yf,ys),zOf(a));};
+  const gS=Math.min(1,Math.max(0,(s-0.3)/0.4)), hK=TRUE?1-gS:1;   // TRUE LINE: coil fades out as the tube turns side-on
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   // rails (tube walls) + time rings, fading into the past
   const RAILS=8;for(let j=0;j<RAILS;j++){const an=j/RAILS*Math.PI*2+Math.PI/RAILS,x=RT*Math.cos(an),y=RT*Math.sin(an);
@@ -2206,32 +2209,32 @@ function drawSide(now){
       ctx.strokeStyle=`rgba(185,160,255,${(0.45*al).toFixed(3)})`;ctx.lineWidth=WIDE?1:0.9;for(const Q of [U,D]){ctx.beginPath();ctx.moveTo(Q[i][0],Q[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(Q[i+j][0],Q[i+j][1]);ctx.stroke();}}}
   if(SHOWMA){const M=idx.map(b=>ptAt(ageB(b),MA[b],false)),S0=Math.floor(idx.length*0.04);for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.strokeStyle=`rgba(255,226,90,${(0.75*al).toFixed(3)})`;ctx.lineWidth=WIDE?1.5:1.3;ctx.beginPath();ctx.moveTo(M[i][0],M[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(M[i+j][0],M[i+j][1]);ctx.stroke();}}
   // the price trail (star): swirl coiled around the price line; glow pass + bright core, fading into the past
-  const T=[];for(let b=N-1;b>=0;b--){const a=ageB(b);T.push(ptAt(a,P[b],true));}if(!isFinite(T[0][0])||!isFinite(T[0][1])){window.__sideDbg={c:SDS.c,h:SDS.h,p:P[N-1],RT,Dc,Lz,Cx,Cy,s};ctx.restore();return;}
+  const T=[];for(let b=N-1;b>=0;b--){const a=ageB(b);T.push(ptAt(a,P[b],!TRUE));}if(!isFinite(T[0][0])||!isFinite(T[0][1])){window.__sideDbg={c:SDS.c,h:SDS.h,p:P[N-1],RT,Dc,Lz,Cx,Cy,s};ctx.restore();return;}
   const kH=L(1,0.7);for(const [lw,al0,col] of [[WIDE?7:6,0.10*kH,'0,240,255'],[WIDE?3:2.6,0.28*kH,'0,240,255'],[WIDE?1.5:1.3,0.95*L(1,0.55),s>0.5?'120,235,255':'215,252,255']]){
-    for(let i=0;i+8<T.length;i+=8){const a=i*dt,al=al0*Math.pow(fadeA(a),1.4);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.4,Math.max(0.55,T[i][2]));ctx.beginPath();ctx.moveTo(T[i][0],T[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(T[i+j][0],T[i+j][1]);ctx.stroke();}}
+    if(hK>0.01)for(let i=0;i+8<T.length;i+=8){const a=i*dt,al=al0*hK*Math.pow(fadeA(a),1.4);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.4,Math.max(0.55,T[i][2]));ctx.beginPath();ctx.moveTo(T[i][0],T[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(T[i+j][0],T[i+j][1]);ctx.stroke();}}
   if(s>0.3){const ga=Math.min(1,(s-0.3)/0.4),C=[];for(let b=N-1;b>=0;b--)C.push(ptAt(ageB(b),P[b],false));   // side view: the price line itself (the star), swirl coils around it
-    for(const [lw,al0,col] of [[WIDE?6:5,0.12,'0,240,255'],[WIDE?2:1.8,1,'235,253,255']])for(let i=0;i+8<C.length;i+=8){const al=al0*ga*Math.pow(fadeA(i*dt),1.2);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.3,Math.max(0.6,C[i][2]));ctx.beginPath();ctx.moveTo(C[i][0],C[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(C[i+j][0],C[i+j][1]);ctx.stroke();}}
+    for(const [lw,al0,col] of (TRUE?[[WIDE?5:4,0.14,'0,240,255'],[WIDE?1.6:1.4,1,'235,253,255']]:[[WIDE?6:5,0.12,'0,240,255'],[WIDE?2:1.8,1,'235,253,255']]))for(let i=0;i+8<C.length;i+=8){const al=al0*ga*Math.pow(fadeA(i*dt),1.2);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.3,Math.max(0.6,C[i][2]));ctx.beginPath();ctx.moveTo(C[i][0],C[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(C[i+j][0],C[i+j][1]);ctx.stroke();}}
   // head + live price
   {const h=T[0],pu=0.6+0.4*Math.sin(now/260),g=ctx.createRadialGradient(h[0],h[1],0,h[0],h[1],WIDE?16:13);g.addColorStop(0,`rgba(230,255,255,${(0.9*pu).toFixed(3)})`);g.addColorStop(1,'rgba(0,240,255,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(h[0],h[1],WIDE?16:13,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(h[0],h[1],WIDE?3:2.6,0,Math.PI*2);ctx.fill();
     if(s>0.4){ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;ctx.textAlign=h[0]>W-70?'right':'left';ctx.fillStyle=`rgba(230,252,255,${Math.min(1,(s-0.4)/0.3).toFixed(3)})`;ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=6;ctx.fillText(hubTxt(),h[0]+(h[0]>W-70?-14:14),h[1]-10);ctx.shadowBlur=0;}}
   // title
-  ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle='rgba(255,230,0,.85)';ctx.fillText(`SIDE TEST · ${SPAN/60} MIN WINDOW · ${Math.round(SPAN/(24-20*(ROT*ROT*(3-2*ROT))))}s / LOOP`,WIDE?16:10,top-18);
+  ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle='rgba(255,230,0,.85)';ctx.fillText(`SIDE TEST · ${SPAN/60} MIN WINDOW · `+(TRUE?'TRUE LINE (RAW HI/LO, NO COIL)':`${Math.round(SPAN/(24-20*(ROT*ROT*(3-2*ROT))))}s / LOOP`),WIDE?16:10,top-18);
   ctx.restore();}
 // controls: FRONT [slider] SIDE + 5M/15M/60M, and horizontal drag on the compass rotates
 (function(){const st=$('stage');if(!st)return;const d=document.createElement('div');d.id='sidectl';
   d.style.cssText='position:absolute;left:50%;transform:translateX(-50%);bottom:8px;z-index:30;display:flex;gap:8px;align-items:center;font:11px "Share Tech Mono",monospace;color:#00f0ff;background:rgba(6,9,20,.78);border:1px solid rgba(0,240,255,.35);border-radius:6px;padding:5px 8px;white-space:nowrap;touch-action:none';
-  d.innerHTML='<b data-r="0" style="cursor:pointer">FRONT</b><input id="rotS" type="range" min="0" max="100" value="'+Math.round(ROT*100)+'" style="width:'+(innerWidth<600?90:150)+'px;accent-color:#00f0ff"><b data-r="1" style="cursor:pointer">SIDE</b><span style="opacity:.4">|</span>'+[300,900,3600].map(v=>'<b data-s="'+v+'" style="cursor:pointer;padding:1px 4px;border:1px solid rgba(255,230,0,.0)">'+v/60+'M</b>').join('');
+  d.innerHTML='<b data-r="0" style="cursor:pointer">FRONT</b><input id="rotS" type="range" min="0" max="100" value="'+Math.round(ROT*100)+'" style="width:'+(innerWidth<600?90:150)+'px;accent-color:#00f0ff"><b data-r="1" style="cursor:pointer">SIDE</b><span style="opacity:.4">|</span>'+[300,900,3600].map(v=>'<b data-s="'+v+'" style="cursor:pointer;padding:1px 4px;border:1px solid rgba(255,230,0,.0)">'+v/60+'M</b>').join('')+'<span style="opacity:.4">|</span><b data-t="1" style="cursor:pointer;padding:1px 4px;border:1px solid rgba(255,230,0,0)">'+(innerWidth<600?'TRUE':'TRUE LINE')+'</b>';
   st.appendChild(d);const rs=d.querySelector('#rotS');
-  const sync=()=>{rs.value=Math.round(ROTT*100);d.querySelectorAll('[data-s]').forEach(e=>{const on=+e.dataset.s===SPAN;e.style.color=on?'#ffe600':'#00f0ff';e.style.borderColor=on?'rgba(255,230,0,.6)':'rgba(255,230,0,0)';});d.style.display=VIEW==='market'?'flex':'none';};
+  const sync=()=>{rs.value=Math.round(ROTT*100);d.querySelectorAll('[data-s]').forEach(e=>{const on=+e.dataset.s===SPAN;e.style.color=on?'#ffe600':'#00f0ff';e.style.borderColor=on?'rgba(255,230,0,.6)':'rgba(255,230,0,0)';});{const e=d.querySelector('[data-t]');e.style.color=TRUE?'#ffe600':'rgba(0,240,255,.6)';e.style.borderColor=TRUE?'rgba(255,230,0,.6)':'rgba(0,240,255,.25)';}d.style.display=VIEW==='market'?'flex':'none';};
   rs.addEventListener('input',()=>{ROTT=rs.value/100;ROT+=(ROTT-ROT)*0.6;});
-  d.addEventListener('click',e=>{const t=e.target;if(t.dataset.r!=null){ROTT=+t.dataset.r;}if(t.dataset.s){SPAN=+t.dataset.s;try{localStorage.setItem('ofc.sideSpan',SPAN);}catch(_){}sideSeries();}sync();});
+  d.addEventListener('click',e=>{const t=e.target;if(t.dataset.r!=null){ROTT=+t.dataset.r;}if(t.dataset.s){SPAN=+t.dataset.s;try{localStorage.setItem('ofc.sideSpan',SPAN);}catch(_){}sideSeries();}if(t.dataset.t){TRUE=!TRUE;try{localStorage.setItem('ofc.sideTrue',TRUE?'1':'0');}catch(_){}sideSeries();}sync();});
   setInterval(sync,500);sync();
   let D=null;cv.addEventListener('pointerdown',e=>{if(VIEW!=='market')return;D={x:e.clientX,y:e.clientY,r:ROTT,ax:null};});
   addEventListener('pointermove',e=>{if(!D)return;const dx=e.clientX-D.x,dy=e.clientY-D.y;if(!D.ax){if(Math.hypot(dx,dy)<12)return;D.ax=Math.abs(dx)>Math.abs(dy)*1.2?'x':'y';}
     if(D.ax==='x'){ROTT=Math.max(0,Math.min(1,D.r+dx/(W*0.7)));ROT=ROTT;rs.value=Math.round(ROTT*100);}});
   addEventListener('pointerup',()=>{if(D&&D.ax==='x'){ROTT=ROTT<0.06?0:ROTT>0.94?1:ROTT;}D=null;});addEventListener('pointercancel',()=>{D=null;});
-  window.__side={get rot(){return ROT},set rot(v){ROT=ROTT=v;},get span(){return SPAN},setSpan(v){SPAN=v;sideSeries();},get sds(){return SDS.P?{N:SDS.N,c:SDS.c,h:SDS.h,last:SDS.P[SDS.N-1],first:SDS.P[0]}:null}};})();
+  window.__side={get rot(){return ROT},set rot(v){ROT=ROTT=v;},get span(){return SPAN},setSpan(v){SPAN=v;sideSeries();},get trueLine(){return TRUE},set trueLine(v){TRUE=!!v;sideSeries();},series(tr){const o=TRUE;TRUE=tr;sideSeries();const r={t0:SDS.t0,dt:SDS.dt,N:SDS.N,P:Array.from(SDS.P),MA:Array.from(SDS.MA),c:SDS.c,h:SDS.h,th:SDS.th};TRUE=o;sideSeries();return r;},raw(){const t0=Date.now()-SPAN*1000;return RAW.filter(t=>t.ts>=t0).map(t=>[t.ts,t.px,t.v,t.q||'']);},get sds(){return SDS.P?{N:SDS.N,c:SDS.c,h:SDS.h,last:SDS.P[SDS.N-1],first:SDS.P[0]}:null}};})();
 // ===================== /SIDE-TEST =====================
 
 connect();seedREST();
