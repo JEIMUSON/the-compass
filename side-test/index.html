@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1900';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1910';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2228,18 +2228,21 @@ function drawSide(now){
   SDS.c+=(SDS.tc-SDS.c)*0.06;SDS.h*=Math.exp(Math.log(SDS.th/SDS.h)*0.06);
   const s=ROT*ROT*(3-2*ROT), L=(a,b)=>a+(b-a)*s, N=SDS.N, P=SDS.P, MA=SDS.MA, SD=SDS.SD, dt=SDS.dt/1000;
   const top=WIDE?58:44, bot=WIDE?64:74, CYs=(top+H-bot)/2;
-  const RTf=RMAX*0.92, Dcf=RMAX*2.4, Lzf=Dcf*6;
+  const RTf=RMAX, Dcf=RMAX*2.4, Lzf=Dcf*HIST_SEC/Math.max(1,FOCAL);   // front end = the front view's own tunnel: mouth radius RMAX, depth perspective FOCAL/(FOCAL+dz)
   const PS=65*Math.PI/180, FS2=11*Math.PI/180, Dcs=Math.max(W,H)*2.6;
   ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const HTW=Math.ceil(ctx.measureText(hubTxt()).width);ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;const BLW=Math.ceil(ctx.measureText('SELLERS').width);ctx.restore();
   const FIT=sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW), RTs=FIT.RT, Ls=FIT.Ls, Lzs=Ls/Math.sin(PS);
-  const RT=L(RTf,RTs), Dc=L(Dcf,Dcs), Lz=L(Lzf,Lzs), Cx=L(CX,FIT.Cx), Cy=L(CY,CYs), psi=s*PS, phi=s*FS2, pivot=s*Lz/2;
+  // camera turn runs on sc (reaches 0 already at s~0.22): over the whole crossfade/landing the tube axis IS the front dial's axis (centre CX,CY,
+  // ring radii = the front's rings), so the coils wind down the tunnel straight into the front geometry instead of landing off-axis
+  const sc=(v=>v<=0?0:v>=1?1:v*v*(3-2*v))((s-0.22)/0.78), Lc=(a,b)=>a+(b-a)*sc;
+  const RT=Lc(RTf,RTs), Dc=Lc(Dcf,Dcs), Lz=Lc(Lzf,Lzs), Cx=Lc(CX,FIT.Cx), Cy=Lc(CY,CYs), psi=sc*PS, phi=sc*FS2, pivot=sc*Lz/2;
   const cp=Math.cos(psi),sp=Math.sin(psi),cf=Math.cos(phi),sf=Math.sin(phi);
   const pr=(x,y,z)=>{const zr=z+pivot,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Y2=y*cf-Z1*sf,Z2=y*sf+Z1*cf,d=Math.max(Dc*0.15,Dc-Z2),k=Dc/d;return [Cx+X1*k,Cy-Y2*k,k];};
   const NL=24-20*s, LPs=SPAN/NL, tNow=Date.now()/1000, Hh=RT*0.8, rs=RT*0.07;
   // landing zoom: near FRONT the tube shows exactly what the front view shows (its window, 1 coil per window, head on the front's clock),
   // opening out to the full SPAN by s~0.4, so the morph converges onto the live front view instead of popping into it.
   const sst=v=>v<=0?0:v>=1?1:v*v*(3-2*v), zS=sst(s/0.4), LPf=Math.max(5,MWIN*trailStep), PPf=60*trailStep, SPe=Math.exp(Math.log(LPf)+(Math.log(SPAN)-Math.log(LPf))*zS);
-  const iLP=(1-zS)/LPf+zS/LPs, PH=(1-zS)*((tNow/PPf)%4096)+zS*((tNow/(SPAN/4))%4096);   // blended phase from two steady clocks (never tNow % a changing period -> no spin jumps mid-turn)
+  const iLP=(1-zS)/LPf+zS/LPs, phF=(tNow/PPf)%1, phD=(((tNow/(SPAN/4))%1-phF)%1+1.5)%1-0.5, PH=phF+zS*phD;   // head phase = the front's clock, easing by at most half a turn toward the side clock (no spin, no offset at FRONT)
   const zOf=a=>-a/SPe*Lz, thOf=a=>-Math.PI/2+2*Math.PI*(PH-a*iLP);
   const TRW=SANI?4*s*(1-s):0;   // transition weight (peaks mid-turn): thicker, glowing, see-through gold MA coils
   const pnOf=p=>Math.max(-1.15,Math.min(1.15,(p-SDS.c)/SDS.h));
@@ -2278,7 +2281,7 @@ function drawSide(now){
     for(const g of [-0.75,0,0.75]){const y=Hh*g;const a0=pr(0,y,0),a1=pr(0,y,-Lz);ctx.strokeStyle=`rgba(120,170,255,${(0.10*gq).toFixed(3)})`;ctx.lineWidth=1;ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();ctx.setLineDash([]);
       const q=pr(0,y,-Lz*0.985);ctx.fillStyle=`rgba(150,190,255,${(0.75*gq).toFixed(3)})`;ctx.fillText(fmtP(SDS.c+g*SDS.h),q[0]+4,q[1]-4);}}
   // NOW mouth = the front view's outer bezel: glowing ring + 72 ticks, BUYERS/SELLERS gauge arc on its upper half with the single aggressor diamond riding it
-  const GRs=RT*1.075;
+  const GRs=RT+Lc(30,RT*0.075);   // = the front's gauge radius (RMAX+30) at the FRONT end
   {ctx.save();ctx.strokeStyle='rgba(0,240,255,0.55)';ctx.lineWidth=WIDE?2:1.8;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?14:0;ringPath(RT,0,0,TAU,96);ctx.stroke();ctx.shadowBlur=0;
     ctx.strokeStyle='rgba(0,240,255,0.4)';ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<72;i++){const an=i/72*TAU,l=(i%6===0?10:4)/Math.max(1,RT)*RT,c=Math.cos(an),sn=Math.sin(an),a=pr(RT*c,RT*sn,0),b=pr((RT+l)*c,(RT+l)*sn,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}ctx.stroke();
     const AH=0.75,NA=40;ctx.lineWidth=WIDE?6:5;ctx.globalAlpha=SA*.55;ctx.lineCap='butt';
