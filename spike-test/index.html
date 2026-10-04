@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='SPIKE-TEST-20261004-0935';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='SPIKE-TEST-20261004-1000';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -451,8 +451,11 @@ const HEATS={30:{hl:420,m:new Map()}};   // impact heat, ~7 min half-life
 // accelerating rise (0 -> +6% over 60 s, exponential, with jitter), flow is faked ~90% buy, traffic is forced to burst, trail volume is forced heavy. Real feeds untouched.
 const MOON_SIM=/[?&]moon=1\b/.test(location.search), MOON_T0=Date.now()+8000;
 const moonOn=()=>MOON_SIM&&Date.now()>=MOON_T0;
-function moonPct(tk){if(!MOON_SIM||tk<MOON_T0)return 0;const c=((tk-MOON_T0)/1000)%60,base=0.06*(Math.exp(c/15)-1)/(Math.exp(4)-1);
-  const j=0.00035*(Math.sin(tk/700)+0.6*Math.sin(tk/230+1)+0.35*Math.sin(tk/97+2))*(0.4+1.6*c/60);return base+j;}
+function moonPct(tk){if(!MOON_SIM||tk<MOON_T0)return 0;const c=((tk-MOON_T0)/1000)%60,x=c/60;   // ~+13% per 60 s cycle: gently accelerating drift + 6 steep legs (growing), compounding; resets each cycle
+  const ss=v=>v<=0?0:v>=1?1:v*v*(3-2*v);let m=1+0.02*(Math.exp(1.2*x)-1)/(Math.exp(1.2)-1);
+  for(const [t,a] of MOON_LEGS)m*=1+a*ss((c-t)/0.5);
+  const j=0.00035*(Math.sin(tk/700)+0.6*Math.sin(tk/230+1)+0.35*Math.sin(tk/97+2))*(0.4+1.6*x);return m-1+j;}
+const MOON_LEGS=[[12,0.009],[21,0.012],[30,0.015],[39,0.019],[48,0.023],[57,0.027]];   // [s into cycle, size]: 6 steep legs (0.5 s each), 9 s apart, growing
 const SPIKE_SIM=/[?&]spike=1\b/.test(location.search), SPIKE_T0=Date.now()+12000;   // first synthetic jump ~22 s after load   // debug hook: ?spike=1
 let PR=new Float64Array(0), impacts=[], trail=[], trailDirty=true, trailT=0, trailStep=1;
 function heatAdd(px,side,qty,ageSec){
@@ -976,9 +979,19 @@ const mWinOf=r=>Math.max(WMIN,Math.min(MWMAX,MWMAX*Math.pow(WMIN/MWMAX,zT(r))));
 const lWinOf=r=>Math.max(WMIN,Math.min(LWMAX,LWMAX*Math.pow(WMIN/LWMAX,zT(r))));
 const TWIST_MAX=28*Math.PI/180;   // max tunnel twist at the vanishing point (MARKET, 15 s / burst)
 let LWIN=HIST_SEC, VSP={w:0,ph:0,t:0};   // VSP = vortex-ring spin (eased speed 0..1, phase)
-const mRingAges=()=>[5,10,15,20,30,45,60].filter(a=>a<=MWIN+0.5);
+const mRingAges=()=>[5,10,15,20,30,45,60];   // SPIKE TEST: every ring to -60 s at every zoom (older ones sit in the compressed coils)
+// SPIKE TEST: PAST ring = 60 s ago at every zoom. The newest MWIN seconds get the front of the tunnel (depth Dw, ~1 coil per window as before);
+// MWIN..60 s is squeezed into the rest of the depth with a slope-matched ease, so the extra coils get progressively tighter into the far ring.
+const MPAST=60;
+const mDw=()=>HIST_SEC*Math.pow(Math.min(1,MWIN/MPAST),0.35);
+function mZ(age){const Dw=mDw(),full=MWIN>=MPAST-0.01;if(full)return age*HIST_SEC/MPAST;if(age<=MWIN)return age*Dw/MWIN;
+  if(age>=MPAST)return HIST_SEC+(age-MPAST)*0.15*Dw/MWIN;
+  const R=MPAST-MWIN,H2=HIST_SEC-Dw,k=Math.max(1,(Dw/MWIN)*R/H2),x=(age-MWIN)/R;return Dw+H2*(1-Math.pow(1-x,k));}
+let MZC={w:-1,t:null};
+function mAge(dz){if(MZC.w!==MWIN){const t=new Float32Array(241);let a=0;for(let i=0;i<=240;i++){const d=i*HIST_SEC/240;while(a<MPAST&&mZ(a+0.05)<=d)a+=0.05;t[i]=a;}MZC={w:MWIN,t};}   // depth -> age table, rebuilt when the window changes
+  const f=Math.max(0,Math.min(240,dz*240/HIST_SEC)),i=Math.floor(f),k=f-i;return i>=240?MZC.t[240]:MZC.t[i]*(1-k)+MZC.t[i+1]*k;}
 const fmtAge=a=>a===0?'NOW':a<60?'-'+a+'s':'-'+Math.floor(a/60)+'m'+(a%60?String(a%60).padStart(2,'0'):'');
-function proj(dz){const s=FOCAL/(FOCAL+dz);const age=INBOUND?(HIST_SEC-dz)*LWIN/HIST_SEC:dz*MWIN/HIST_SEC;const lim=Math.max(0,RMAX*(0.97-s));
+function proj(dz){const s=FOCAL/(FOCAL+dz);const age=INBOUND?(HIST_SEC-dz)*LWIN/HIST_SEC:VIEW==='market'?mAge(dz):dz*MWIN/HIST_SEC;const lim=Math.max(0,RMAX*(0.97-s));
   const off=Math.max(-lim,Math.min(lim,offAtAge(age)*Math.min(1,dz/12)));return {s,x:CX,y:CY+off};}
 // side half-plane: bids LEFT (angle π), asks RIGHT (angle 0)
 const baseAng=side=>side==='bid'||side==='buy'?Math.PI:0;
@@ -1038,7 +1051,7 @@ function drawGrid(t){
   }
   // time rings: smooth, same soft style, tapered with depth
   ctx.font='10px "Share Tech Mono",monospace';ctx.textAlign='left';
-  const MK=VIEW==='market', RINGS=MK?mRingAges().map(a=>({d:a*HIST_SEC/MWIN,maj:[30,60,90,120].includes(a)||a===mRingAges().slice(-1)[0]}))
+  const MK=VIEW==='market', RINGS=MK?mRingAges().map(a=>({d:mZ(a),maj:[30,60].includes(a)}))
                                   :Array.from({length:12},(_,i)=>({d:(i+1)*10,maj:(i+1)%3===0}));
   for(const RG of RINGS){if(MK&&RG.d>HIST_SEC-1)continue;const p=proj(RG.d),s=p.s,fade=Math.pow(s,0.8);
     if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${0.03+0.06*fade})`;ctx.lineWidth=2+6*s;ctx.beginPath();ctx.arc(p.x,p.y,TR*s,0,Math.PI*2);ctx.stroke();}
@@ -1060,7 +1073,7 @@ function drawGrid(t){
     ctx.restore();}
   // time labels at the top of each ring, nearest-first, skipped on collision (hub / earlier label / reserved)
   // MARKET: NOW at the mouth (newest trade) -> older inward.  LIMIT: NOW at the vanishing point -> older outward to the ring.
-  {const L=MK?[0,...mRingAges()].map(a=>({a,d:a*HIST_SEC/MWIN})):[0,1,2,3,4].map(k=>({a:Math.round(k*LWIN/4),d:HIST_SEC-k*HIST_SEC/4})).sort((x,y)=>x.d-y.d);
+  {const L=MK?[0,...mRingAges()].map(a=>({a,d:mZ(a)})):[0,1,2,3,4].map(k=>({a:Math.round(k*LWIN/4),d:HIST_SEC-k*HIST_SEC/4})).sort((x,y)=>x.d-y.d);
     const fsT=WIDE?11:9,put=[];ctx.font=`700 ${fsT}px "Share Tech Mono",monospace`;ctx.textAlign='center';
     for(const {a,d} of L){const p=proj(d),s=p.s,txt=fmtAge(a),w=ctx.measureText(txt).width+6;
       const x=p.x,y=p.y-TR*s+fsT+3,bx=x-w/2,by=y-fsT,bw=w,bh=fsT+4;
@@ -1728,31 +1741,35 @@ function drawTrail(now){
   // INTO the tunnel: each sample sits on the tunnel ring at depth = its age (same proj() as the rails: trend-bent centre,
   // radius RMAX*s). Newest (head) orbits near the mouth; older coils shrink with perspective, bunch up and fade into the vanishing point.
   // price vs current mid bulges each point outward (higher) / inward (lower) by up to ~35% of the local coil gap so coils never cross
-  const NW=Math.min(trail.length-1,Math.ceil(MWIN)+1);
+  const NW=Math.min(trail.length-1,MPAST+1), NWW=Math.min(trail.length-1,Math.ceil(MWIN)+1);   // draw to -60 s; scale/spike stats over the zoom window
   const prAt=f=>{const k=Math.max(0,Math.min(PR.length-1,Math.round(f*10)));return PR.length?PR[k]:mid;}, P0=PR.length?PR[0]:mid;   // raw last-trade price at sample age f (s)
-  let BSP=span/4.5; {const dv=[];for(let k=0;k<=Math.min(PR.length-1,NW*10);k+=2)dv.push(Math.abs(PR[k]-P0));dv.sort((a,b)=>a-b);
+  let BSP=span/4.5; {const dv=[];for(let k=0;k<=Math.min(PR.length-1,NWW*10);k+=2)dv.push(Math.abs(PR[k]-P0));dv.sort((a,b)=>a-b);
     const bt=Math.max(mid*0.00002,0.6*(dv[Math.floor(dv.length*0.9)]||0)),bdt=SPK.bt?Math.min(0.5,(dn-SPK.bt)/1000):0;SPK.bt=dn;
     // SPIKE TEST: scale eases up slowly (~25 s) and down faster (~8 s), so a sudden big move is drawn big before the auto-scale catches up
-    if(!SPK.bsp||!(SPK.bsp>0)||SPK.k!==mid0Key()||dn-SPK.t0<20000)SPK.bsp=bt,SPK.k=mid0Key();else SPK.bsp+=(bt-SPK.bsp)*Math.min(1,bdt/(bt>SPK.bsp?25:8));BSP=SPK.bsp;}   // AUTO: ~90th-pct move maps to ~1.6x amplitude (tanh softens outliers)
+    if(!SPK.bsp||!(SPK.bsp>0)||SPK.k!==mid0Key()||dn-SPK.t0<20000)SPK.bsp=bt,SPK.k=mid0Key();else SPK.bsp+=(bt-SPK.bsp)*Math.min(1,bdt/(bt>SPK.bsp?(MOON_SIM?150:25):8));BSP=SPK.bsp;}   // AUTO: ~90th-pct move maps to ~1.6x amplitude (tanh softens outliers)
   const WIG=[];
-  const AMAX=Math.max(1,Math.min(trail.length-1+lag,MWIN)), DZ=HIST_SEC/MWIN, KO=0.985, sMin=FOCAL/(FOCAL+AMAX*DZ);
-  const pt=(f,pf)=>{const age=f===0?0:f+lag,dz=age*DZ,p=proj(dz),s=p.s,sT=FOCAL/(FOCAL+dz+TURN*DZ);
-    const u=Math.max(0,Math.min(1,(s-sMin)/(1-sMin)))*Math.min(1,(AMAX-age)/6+0.0);
+  const AMAX=Math.max(1,Math.min(trail.length-1+lag,MPAST)), KO=0.985, sMin=FOCAL/(FOCAL+mZ(AMAX));
+  // PAST ring: once the trail spans the whole window, its oldest end tapers onto the far ring (price offset eases to 0, radius onto the ring,
+  // same centre/bob as the ring) instead of fading out short of it; the trail also follows the walls' zoom twist (TW at the far ring)
+  const FULL=trail.length-1+lag>=MPAST-0.5, TW=VIEW==='market'?TWIST_MAX*VSP.w:0, TL=Math.max(2.5,0.12*AMAX), UF=0.24, sst=v=>v<=0?0:v>=1?1:v*v*(3-2*v);
+  const pt=(f,pf)=>{const age0=f===0?0:f+lag,age=FULL?Math.min(age0,AMAX):age0,dz=mZ(age),p=proj(dz),s=p.s,sT=FOCAL/(FOCAL+mZ(age+TURN));
+    const lin=Math.max(0,Math.min(1,(s-sMin)/(1-sMin))),ub=lin*Math.min(1,(AMAX-age)/6+0.0),e=FULL?sst((age-(AMAX-TL))/TL):0;
+    const u=!FULL?ub:age0>AMAX+1e-6?0:Math.max(lin,UF*sst((age/AMAX-0.3)/0.35));
     // radial wiggle = (trade price - newest trade) / bulge scale, amplitude scales with perspective; soft (tanh) limit ~0.55 coil gap
-    const raw=((pf||prAt)(f)-P0)/BSP*RMAX*KO*s*0.22, gap=RMAX*KO*(s-sT), L=Math.max(2,0.55*gap), off=brk(raw,L,gap,0.5*RMAX*KO*s);
-    const r=Math.max(RMAX*KO*s*0.3,RMAX*KO*s+off), th=ang(age);   // head (f=0) = newest trade -> off 0 -> rides the outer ring
+    const raw=((pf||prAt)(f)-P0)/BSP*RMAX*KO*s*0.22, gap=RMAX*KO*(s-sT), L=Math.max(2,0.55*gap), off=brk(raw,L,gap,0.5*RMAX*KO*s)*(1-e), KE=KO+(1-KO)*e;
+    const r=Math.max(RMAX*KE*s*0.3,RMAX*KE*s+off), th=ang(age)-TW*Math.pow(dz/HIST_SEC,0.9);   // head (f=0) = newest trade -> off 0 -> rides the outer ring
     let x=p.x+Math.cos(th)*r, y=p.y+Math.sin(th)*r;
     {const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.995,k0=0.975*m;if(d>k0){const dd=k0+(m-k0)*Math.tanh((d-k0)/(m-k0));x=CX+dx*dd/d;y=CY+dy*dd/d;}}   // soft outer edge
     if(!pf){if(WIG.length<4000)WIG.push(off); if(f===3||f===8)(window.__ofcR=window.__ofcR||{})['o'+f]=off;}
-    return {x,y,s,u};};
+    return {x,y,s,u,ub,e};};
   {if(PR.length>40&&dn-SPK.t0>20000){const md=(a,b)=>{const t=[];for(let k=a;k<=b;k++)t.push(PR[k]);t.sort((x,y)=>x-y);return t[t.length>>1];},J=md(0,6)-md(26,36);   // fresh move: median of the last 0.6 s vs median ~3 s ago (single off-venue prints can't trigger it)
-    const dq=[];for(let k=31;k+30<=Math.min(PR.length-1,NW*10+30);k+=3)dq.push(Math.abs(PR[k]-PR[k+30]));dq.sort((x,y)=>x-y);   // typical 3 s move BEFORE now (median: a few big steps can't inflate it)
+    const dq=[];for(let k=31;k+30<=Math.min(PR.length-1,NWW*10+30);k+=3)dq.push(Math.abs(PR[k]-PR[k+30]));dq.sort((x,y)=>x-y);   // typical 3 s move BEFORE now (median: a few big steps can't inflate it)
     const bMed=4*(dq[Math.floor(dq.length*0.5)]||0),bD=Math.max(BSP,bMed);window.__ofcSpkS=[BSP,bMed];   // judge the jump vs the larger of the drawn scale and 4x the median 3 s move
-    const age=3+lag,dz=age*DZ,s3=proj(dz).s,sT3=FOCAL/(FOCAL+dz+TURN*DZ),L3=Math.max(2,0.55*RMAX*KO*(s3-sT3)),raw3=Math.abs(J)/bD*RMAX*KO*s3*0.22;
+    const age=3+lag,dz=mZ(age),s3=proj(dz).s,sT3=FOCAL/(FOCAL+mZ(age+TURN)),L3=Math.max(2,0.55*RMAX*KO*(s3-sT3)),raw3=Math.abs(J)/bD*RMAX*KO*s3*0.22;
     window.__ofcSpkR=+(raw3/L3).toFixed(2);window.__ofcSpkB=[BSP,J,L3,raw3];if(raw3>1.8*L3&&dn-SPK.t>3000)spkFire(Math.sign(J));}}
   const SUB=MWIN<=20?10:MWIN<=45?6:MWIN<=90?4:3, sub=a=>{const o=[];for(let j=0;j<=SUB;j++)o.push(pt(a+j/SUB));return o;};
   const P=[];for(let a=0;a<=NW;a++)P.push(pt(a));
-  if(MOON_SIM){let sr=0,mn=9,mx=0,nr=0;for(let a=1;a<P.length;a++){const r=Math.hypot(P[a].x-CX,P[a].y-CY)/RMAX,rb=proj(a*DZ).s*KO;sr+=r/rb;nr++;mn=Math.min(mn,r/rb);mx=Math.max(mx,r/rb);}   // debug: trail radius vs its no-move ring radius
+  if(MOON_SIM){let sr=0,mn=9,mx=0,nr=0;for(let a=1;a<P.length;a++){const r=Math.hypot(P[a].x-CX,P[a].y-CY)/RMAX,rb=proj(mZ(a)).s*KO;sr+=r/rb;nr++;mn=Math.min(mn,r/rb);mx=Math.max(mx,r/rb);}   // debug: trail radius vs its no-move ring radius
     window.__ofcMoon={mwin:+MWIN.toFixed(1),vsp:+VSP.w.toFixed(2),rel:+(sr/Math.max(1,nr)).toFixed(3),relMin:+mn.toFixed(3),relMax:+mx.toFixed(3),bspPct:+(BSP/mid*100).toFixed(4),pct:+(moonPct(Date.now())*100).toFixed(2),fires:SPK.n};}
   if((window.__wf=(window.__wf||0)+1)%30===0){const S2=[];for(let a=0;a<NW;a++)for(let j=0;j<SUB;j++)S2.push(a+j/SUB);WIG.length=0;for(const f of S2)pt(f);
     let ss=0,fl=0;for(let i=0;i<WIG.length;i++){ss+=WIG[i]*WIG[i];if(i>1&&(WIG[i]-WIG[i-1])*(WIG[i-1]-WIG[i-2])<0)fl++;}
@@ -1816,14 +1833,29 @@ function drawTrail(now){
       ctx.beginPath();ctx.moveTo(q[0].x,q[0].y);for(let j=1;j<q.length;j++)ctx.lineTo(q[j].x,q[j].y);ctx.stroke();}}
   // volume ribbon: colour = buy/sell dominance, width = volume; thins and fades with depth
   ctx.globalCompositeOperation='lighter';
+  const p0e=a=>P[a]&&P[a].e||0;
   for(let a=P.length-2;a>=0;a--){const b=trail[a],v=b.bs+b.ss;if(v<=0)continue;
-    const hw=spkHot(a),c0=mixCol((b.bs-b.ss)/v),c=hw>0?c0.map(x=>Math.round(x+(255-x)*0.85*hw)):c0,rel=Math.min(1,Math.sqrt(v/vref)+0.5*hw),p0=P[a],p1=P[a+1],u=p0.u;if(u<=0.01)continue;
+    const hw=spkHot(a),c0=mixCol((b.bs-b.ss)/v),c1=p0e(a)>0?c0.map((x,k)=>Math.round(x+([170,250,255][k]-x)*0.7*p0e(a))):c0,c=hw>0?c1.map(x=>Math.round(x+(255-x)*0.85*hw)):c1,rel=Math.min(1,Math.sqrt(v/vref)+0.5*hw),p0=P[a],p1=P[a+1],u=p0.u;if(u<=0.01)continue;
     const ht=hot[a],LW=(2.4+RMAX*0.07*rel+RMAX*0.05*ht)*(0.12+0.88*u)*(1+0.3*hw);
     {const q=S[a];ctx.shadowBlur=0;ctx.strokeStyle=rgba(c,(0.16*Math.pow(u,0.9)).toFixed(3));ctx.lineWidth=LW*2.4+6*(0.3+0.7*u);ctx.beginPath();ctx.moveTo(q[0].x,q[0].y);for(let j=1;j<q.length;j++)ctx.lineTo(q[j].x,q[j].y);ctx.stroke();}   // wide soft glow underlay
     ctx.strokeStyle=rgba(c,Math.min(1,(0.4+0.45*rel+0.45*ht)*Math.pow(u,0.9)));ctx.lineWidth=LW;
     if(Q>0&&(rel>0.25||ht>0.3)&&u>0.3){ctx.shadowColor=rgba(c,1);ctx.shadowBlur=(18*rel+26*ht*(0.7+0.3*pulse))*u;}else ctx.shadowBlur=0;
     {const q=S[a];ctx.beginPath();ctx.moveTo(q[0].x,q[0].y);for(let j=1;j<q.length;j++)ctx.lineTo(q[j].x,q[j].y);ctx.stroke();}}
   ctx.shadowBlur=0;
+  // PAST ring melt: from the trail's oldest end (always -60 s) a short arc continues CCW along the far ring
+  // (the walls' twist direction), shaded by the ring's own spin sweep, fading out into the ring glow
+  if(FULL&&P.length>1){const pr=proj(HIST_SEC),rr=RMAX*pr.s,th0=ang(AMAX)-TW,g=VSP.w,WL=0.5,NWp=Math.max(10,Math.ceil(WL*16)),TAU=2*Math.PI,
+    bE=trail[Math.min(trail.length-1,Math.max(0,Math.floor(AMAX)))],vE=bE?bE.bs+bE.ss:0,cE=vE>0?mixCol((bE.bs-bE.ss)/vE):mixCol(trailDom()),RC=[170,250,255];
+    ctx.lineCap='round';
+    for(let i=0;i<NWp;i++){const q0=i/NWp,q1=(i+1)/NWp,qm=(q0+q1)/2,a0=th0-WL*q0,a1=th0-WL*q1,r0=rr,r1=rr;
+      let f=0;for(let h=0;h<2;h++){const dd=(((a0-VSP.ph-h*Math.PI)%TAU)+TAU)%TAU;f=Math.max(f,dd<=Math.PI?Math.exp(-dd/0.9):Math.exp(-(TAU-dd)/0.12));}
+      const al=0.32*Math.pow(1-qm,1.3)*(0.7+0.6*f*g),c=cE.map((x,k)=>Math.round(x+(RC[k]-x)*Math.min(1,0.7+0.3*qm)));
+      ctx.strokeStyle=rgba(c,al.toFixed(3));ctx.lineWidth=(WIDE?2.6:2.2)*(1-0.55*qm);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?8*(1-qm):0;
+      ctx.beginPath();ctx.moveTo(pr.x+Math.cos(a0)*r0,pr.y+Math.sin(a0)*r0);ctx.lineTo(pr.x+Math.cos(a1)*r1,pr.y+Math.sin(a1)*r1);ctx.stroke();}
+    ctx.shadowBlur=0;const L=P.filter(q=>q.u>0.01).pop()||P[0];
+    window.__ofcPast={full:1,mwin:+MWIN.toFixed(1),vsp:+g.toFixed(2),ring:[+pr.x.toFixed(1),+pr.y.toFixed(1),+rr.toFixed(1)],endGap:+Math.abs(Math.hypot(L.x-pr.x,L.y-pr.y)-rr).toFixed(2),
+      endPt:[+L.x.toFixed(1),+L.y.toFixed(1)],wrapStart:[+(pr.x+Math.cos(th0)*rr).toFixed(1),+(pr.y+Math.sin(th0)*rr).toFixed(1)],loops:+(MPAST/MWIN).toFixed(2),dw:+mDw().toFixed(1),endU:+L.u.toFixed(3)};}
+  else window.__ofcPast={full:0,n:trail.length,mwin:+MWIN.toFixed(1)};
   // SPIKE TEST: white-hot pass over the jump segment (independent of volume), fading back to the trail colour over ~1.5 s
   if(Date.now()-SPK.t<1500){ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
     for(let a=0;a<S.length;a++){const hw=spkHot(a);if(hw<=0.01)continue;const q=S[a],u=P[a].u,b=trail[a],v=b?b.bs+b.ss:0,c0=v>0?mixCol((b.bs-b.ss)/v):mixCol(trailDom()),cw=c0.map(x=>Math.round(x+(255-x)*0.7*hw));
@@ -1832,7 +1864,7 @@ function drawTrail(now){
     ctx.restore();}
   // bloom + twinkling sparks where the trail crosses the most-traded levels
   TRHOT=[];
-  for(let a=1;a<P.length;a++){const ht=hot[a],p=P[a];if(ht<0.3||p.u<0.08)continue;const b=trail[a],v=b.bs+b.ss,c=v>0?mixCol((b.bs-b.ss)/v):COL.yl;
+  for(let a=1;a<P.length;a++){const ht=hot[a],p=P[a];if(ht<0.3||p.ub<0.08)continue;const b=trail[a],v=b.bs+b.ss,c=v>0?mixCol((b.bs-b.ss)/v):COL.yl;
     const R=(5+RMAX*0.05*ht)*(0.3+0.7*p.u)*(0.85+0.3*pulse);
     const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);g.addColorStop(0,rgba(c,0.38*ht*p.u));g.addColorStop(0.4,rgba(c,0.2*ht*p.u));g.addColorStop(1,rgba(c,0));
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,R,0,Math.PI*2);ctx.fill();
@@ -1850,7 +1882,7 @@ function drawTrail(now){
   ctx.shadowBlur=0;
   drawBP(now);
   // whale nodes: small bright dots along the trail
-  trail.forEach((b,a)=>{if(!b.wh||a>=P.length)return;const p=P[a];if(p.u<=0.03)return;const c=b.wh.side==='buy'?COL.bid:COL.ask;
+  trail.forEach((b,a)=>{if(!b.wh||a>=P.length)return;const p=P[a];if(p.ub<=0.03)return;const c=b.wh.side==='buy'?COL.bid:COL.ask;
     const r=(1.8+Math.min(4,1.6*Math.sqrt(b.wh.usd/whaleUSD)))*(0.4+0.6*p.u);
     ctx.fillStyle=rgba([255,255,255],0.9*p.u);ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:6;
     ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
