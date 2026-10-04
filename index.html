@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261004-0700';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261004-0800';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -192,11 +192,11 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <div id="infoHd"><h2 id="infoT">// WHAT YOU'RE SEEING</h2><button id="infoX" aria-label="close">✕</button></div>
  <div id="infoBody">
  <h3>MARKET VIEW · HOW THE TIME TUNNEL WORKS</h3>
- <ul><li><b>Into the past:</b> you look down the time tunnel, walking backwards through time. <b>NOW</b> is the outer edge; older trades sit deeper and shrink toward the center.</li>
+ <ul><li><b>Into the past:</b> you look down the time tunnel, walking backwards through time. <b>NOW</b> is the outer edge; older trades sit deeper, shrinking into the past.</li>
  <li><b>One loop</b> of the coil = the zoom window (15–60s). The rings are marked −5s, −10s, −15s… back to the window's end.</li>
  <li><b>Price:</b> a point pushed <b>outward</b> from its loop traded <b>higher</b> than the latest trade, <b>inward</b> = lower. Big spikes are softened.</li>
  <li><b>Colour</b> = who hit the market: <b class="gr">green</b> = buyers, <b class="rd">red</b> = sellers, blends = mixed. <b>Thicker, brighter</b> = more volume. <b>Flares</b> = the most-traded prices of the last few minutes.</li>
- <li><b>Time tunnel wall:</b> the glowing ring at the window's end. Zooming in spins it counter-clockwise and twists the time tunnel: still at 60s, full spin at 15s. In AUTO, a volume burst snaps it to full.</li>
+ <li><b>Tunnel walls:</b> the 10 lines running inward are the tunnel walls. They lead to a glowing ring at the far end: the oldest moment on screen. The shorter the zoom, the more the walls twist and the faster the ring spins (still at 60s, full speed at 15s; in AUTO a volume burst jumps straight to full), so a 15s zoom feels like speeding through time.</li>
  <li><b>Hub ring</b> = traffic: a slow, soft pulse at normal trading; busier than the 10-minute norm, it pulses faster and glows harder, with a corona around the hub when it's very busy or bursting. Its colour follows the diamond (buyers / sellers / balanced).</li>
  <li><b>NOW needle:</b> the pale line from the newest trade into the hub. It turns once a minute; the hub's dashes turn with it.</li>
  <li><b class="yl">Yellow line</b> = moving average (~window/6). <b class="vi">Violet bands</b> = Bollinger bands (±2 standard deviations): narrow = squeeze, wide = expansion. Each has an on/off switch in <b>TECH</b>.</li>
@@ -1727,10 +1727,10 @@ function drawTrail(now){
     const MS=Math.max(2,SUB),Q2=[];for(let a=0;a<NW;a++)for(let j=0;j<MS;j++)Q2.push(pt(a+j/MS,maAt));Q2.push(pt(NW,maAt));
     // Bollinger bands (soft violet so they read apart from the yellow MA): EMA ± 2 SD on the same spiral/price scale; very light fill + faint thin edges, behind the MA and the trail
     CPT=[];if(SHOWBB){const QU=[],QL=[];for(let a=0;a<NW;a++)for(let j=0;j<MS;j++){QU.push(pt(a+j/MS,upAt));QL.push(pt(a+j/MS,loAt));}QU.push(pt(NW,upAt));QL.push(pt(NW,loAt));CPT=[[QU[0],'200,175,255'],[QL[0],'200,175,255']];
-      for(let i=0;i+MS<QU.length;i+=MS){const u=Q2[i].u;if(u<=0.02)continue;ctx.fillStyle=`rgba(165,135,255,${((WIDE?0.08:0.11)*Math.pow(u,0.9)).toFixed(3)})`;ctx.beginPath();
+      for(let i=0;i+MS<QU.length;i+=MS){const u=Q2[i].u;if(u<=0.02)continue;ctx.fillStyle=`rgba(165,135,255,${((WIDE?0.115:0.155)*Math.pow(u,0.9)).toFixed(3)})`;ctx.beginPath();
         ctx.moveTo(QU[i].x,QU[i].y);for(let j=1;j<=MS;j++)ctx.lineTo(QU[i+j].x,QU[i+j].y);for(let j=MS;j>=0;j--)ctx.lineTo(QL[i+j].x,QL[i+j].y);ctx.closePath();ctx.fill();}
-      ctx.lineWidth=WIDE?1:0.9;ctx.shadowBlur=0;
-      for(const QB of [QU,QL])for(let i=0;i+MS<QB.length;i+=MS){const u=Q2[i].u;if(u<=0.02)continue;ctx.strokeStyle=`rgba(185,160,255,${((WIDE?0.44:0.52)*Math.pow(u,0.8)).toFixed(3)})`;
+      ctx.lineWidth=WIDE?1:0.9;ctx.shadowColor='rgba(175,145,255,.8)';ctx.shadowBlur=Q>0?(WIDE?5:4):0;   // soft violet edge glow
+      for(const QB of [QU,QL])for(let i=0;i+MS<QB.length;i+=MS){const u=Q2[i].u;if(u<=0.02)continue;ctx.strokeStyle=`rgba(185,160,255,${((WIDE?0.62:0.72)*Math.pow(u,0.8)).toFixed(3)})`;
         ctx.beginPath();ctx.moveTo(QB[i].x,QB[i].y);for(let j=1;j<=MS;j++)ctx.lineTo(QB[i+j].x,QB[i+j].y);ctx.stroke();}}
     const maSeg=(i)=>{ctx.beginPath();ctx.moveTo(Q2[i].x,Q2[i].y);for(let j=1;j<=MS;j++)ctx.lineTo(Q2[i+j].x,Q2[i+j].y);ctx.stroke();};
     if(SHOWMA)for(const [lw,blur,col,am] of [[(WIDE?1.5:1.3)+2,0,'5,3,12',0.55],[WIDE?1.5:1.3,Q>0?8:0,'255,226,90',0.8]]){ctx.lineWidth=lw;ctx.shadowColor='rgba(255,215,50,.9)';ctx.shadowBlur=blur;   // dark keyline, then the dim yellow ghost
