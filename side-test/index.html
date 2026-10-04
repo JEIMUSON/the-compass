@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1950';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-2000';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2160,7 +2160,7 @@ function frame(){
 // (the swirl coils tightly around the price line). ROT morphs both camera and geometry, so it reads as the same object turning.
 let ROT=(()=>{const m=location.search.match(/[?&]rot=([\d.]+)/);return m?Math.max(0,Math.min(1,+m[1])):1;})(),ROTT=ROT;
 let SPAN=(()=>{const m=location.search.match(/[?&]span=(\d+)/);if(m&&[300,900,3600].includes(+m[1]))return +m[1];try{const v=+localStorage.getItem('ofc.sideSpan');return [300,900,3600].includes(v)?v:900;}catch(e){return 900;}})();
-let TRUE=(()=>{const m=location.search.match(/[?&]true=([01])/);if(m)return m[1]==='1';try{const v=localStorage.getItem('ofc.sideTrue');return v==null?true:v==='1';}catch(e){return true;}})();   // TRUE LINE: raw hi/lo price line, no coil, no smoothing (default on)
+let TRUE=true;   // side view always uses the true line: raw hi/lo, no smoothing, coil only during the swap (TRUE button, saved setting and ?true= removed)
 const SIDE_ON=()=>VIEW==='market'&&ROT>0.002;
 let SANI=null, SA=1;   // SANI = timed FRONT<->SIDE swap {from,to,t0,dur}; SA = side layer alpha (crossfade with the live front view near FRONT)
 const SXF=0.30, sideMix=()=>{if(VIEW!=='market'||ROT<=0.002)return 0;const x=Math.min(1,ROT/SXF);return x*x*(3-2*x);};
@@ -2396,22 +2396,22 @@ function drawSide(now){
     drawBP(now);drawSpkSparks();
     if(s>0.4){ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const rt=h[0]+16+ctx.measureText(hubTxt()).width>W-2;ctx.textAlign=rt?'right':'left';ctx.fillStyle=`rgba(230,252,255,${Math.min(1,(s-0.4)/0.3).toFixed(3)})`;ctx.shadowColor='rgba(0,0,0,.95)';ctx.shadowBlur=6;ctx.fillText(hubTxt(),h[0]+(rt?-16:16),h[1]-10);ctx.restore();}}
   // title
-  ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle='rgba(255,230,0,.85)';ctx.fillText(`SIDE TEST · ${SPAN/60} MIN WINDOW · `+(TRUE?'TRUE LINE (RAW HI/LO, NO COIL)':`${Math.round(SPAN/(24-20*(ROT*ROT*(3-2*ROT))))}s / LOOP`),WIDE?16:10,top-18);
+  ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle='rgba(255,230,0,.85)';ctx.fillText(`SIDE TEST · ${SPAN/60} MIN WINDOW`,WIDE?16:10,top-18);
   ctx.restore();}
 // controls: one FRONT<->SIDE swap button (timed eased turn, label = target view) + 5M/15M/60M + TRUE. Drag-to-rotate removed (it fought the front view's swipe/pinch).
 (function(){const st=$('stage');if(!st)return;const d=document.createElement('div');d.id='sidectl';
   // own row in the bottom sheet, right above ZOOM/VIEW/COIN (phone: between the volume strip and the buttons, the stage shrinks to make room; desktop: right column under the header) -> never over the tube/dial
   d.style.cssText='position:static;display:flex;gap:8px;align-items:center;justify-content:center;box-sizing:border-box;width:100%;height:32px;margin:0 0 4px;font:11px "Share Tech Mono",monospace;color:#00f0ff;background:rgba(6,9,20,.78);border:1px solid rgba(0,240,255,.3);padding:0 6px;white-space:nowrap;touch-action:manipulation';
   const bs='height:24px;padding:0 12px;font-family:Orbitron,sans-serif;font-weight:700;font-size:9px;letter-spacing:1px;line-height:1;white-space:nowrap;color:#ffe600;border:1px solid rgba(255,230,0,.55);background:rgba(255,230,0,.08);cursor:pointer;min-width:'+(innerWidth<600?84:96)+'px';
-  d.innerHTML='<button id="sideV" type="button" style="'+bs+'"></button><span style="opacity:.4">|</span>'+[300,900,3600].map(v=>'<b data-s="'+v+'" style="cursor:pointer;padding:1px 4px;border:1px solid rgba(255,230,0,.0)">'+v/60+'M</b>').join('')+'<span style="opacity:.4">|</span><b data-t="1" style="cursor:pointer;padding:1px 4px;border:1px solid rgba(255,230,0,0)">'+(innerWidth<600?'TRUE':'TRUE LINE')+'</b>';
+  d.innerHTML='<button id="sideV" type="button" style="'+bs+'"></button><span style="opacity:.4">|</span>'+[300,900,3600].map(v=>'<b data-s="'+v+'" style="cursor:pointer;padding:1px 4px;border:1px solid rgba(255,230,0,.0)">'+v/60+'M</b>').join('')+'';
   {const wn=$('win');if(wn&&wn.parentNode)wn.parentNode.insertBefore(d,wn);else st.appendChild(d);}const vb=d.querySelector('#sideV');let lastL='';
   const sync=()=>{const tgt=(SANI?SANI.to:ROTT)>0.5?'FRONT':'SIDE',L='<b style="font-size:11px;letter-spacing:2px">'+tgt+'</b> ▸';if(L!==lastL){vb.innerHTML=L;lastL=L;}vb.setAttribute('aria-label','turn to '+tgt.toLowerCase()+' view');
-    d.querySelectorAll('[data-s]').forEach(e=>{const on=+e.dataset.s===SPAN;e.style.color=on?'#ffe600':'#00f0ff';e.style.borderColor=on?'rgba(255,230,0,.6)':'rgba(255,230,0,0)';});{const e=d.querySelector('[data-t]');e.style.color=TRUE?'#ffe600':'rgba(0,240,255,.6)';e.style.borderColor=TRUE?'rgba(255,230,0,.6)':'rgba(0,240,255,.25)';}d.style.display=VIEW==='market'?'flex':'none';};
+    d.querySelectorAll('[data-s]').forEach(e=>{const on=+e.dataset.s===SPAN;e.style.color=on?'#ffe600':'#00f0ff';e.style.borderColor=on?'rgba(255,230,0,.6)':'rgba(255,230,0,0)';});d.style.display=VIEW==='market'?'flex':'none';};
   vb.addEventListener('click',e=>{e.stopPropagation();sideSwap();sync();});
   d.addEventListener('pointerdown',e=>e.stopPropagation());
-  d.addEventListener('click',e=>{const t=e.target;if(t.dataset.s){SPAN=+t.dataset.s;try{localStorage.setItem('ofc.sideSpan',SPAN);}catch(_){}sideSeries();}if(t.dataset.t){TRUE=!TRUE;try{localStorage.setItem('ofc.sideTrue',TRUE?'1':'0');}catch(_){}sideSeries();}sync();});
+  d.addEventListener('click',e=>{const t=e.target;if(t.dataset.s){SPAN=+t.dataset.s;try{localStorage.setItem('ofc.sideSpan',SPAN);}catch(_){}sideSeries();}sync();});
   setInterval(sync,200);sync();
-  window.__side={get rot(){return ROT},set rot(v){SANI=null;sideBlur(0);ROT=ROTT=v;},swap(){sideSwap();},get anim(){return SANI?{...SANI}:null},get mix(){return sideMix()},get blur(){return SBLUR},get span(){return SPAN},setSpan(v){SPAN=v;sideSeries();},get trueLine(){return TRUE},set trueLine(v){TRUE=!!v;sideSeries();},series(tr){const o=TRUE;TRUE=tr;sideSeries();const r={t0:SDS.t0,dt:SDS.dt,N:SDS.N,P:Array.from(SDS.P),MA:Array.from(SDS.MA),c:SDS.c,h:SDS.h,th:SDS.th};TRUE=o;sideSeries();return r;},raw(){const t0=Date.now()-SPAN*1000;return RAW.filter(t=>t.ts>=t0).map(t=>[t.ts,t.px,t.v,t.q||'']);},get sds(){return SDS.P?{N:SDS.N,c:SDS.c,h:SDS.h,th:SDS.th,last:SDS.P[SDS.N-1],first:SDS.P[0]}:null}};})();
+  window.__side={get rot(){return ROT},set rot(v){SANI=null;sideBlur(0);ROT=ROTT=v;},swap(){sideSwap();},get anim(){return SANI?{...SANI}:null},get mix(){return sideMix()},get blur(){return SBLUR},get span(){return SPAN},setSpan(v){SPAN=v;sideSeries();},get trueLine(){return TRUE},set trueLine(v){},series(tr){const o=TRUE;TRUE=tr;sideSeries();const r={t0:SDS.t0,dt:SDS.dt,N:SDS.N,P:Array.from(SDS.P),MA:Array.from(SDS.MA),c:SDS.c,h:SDS.h,th:SDS.th};TRUE=o;sideSeries();return r;},raw(){const t0=Date.now()-SPAN*1000;return RAW.filter(t=>t.ts>=t0).map(t=>[t.ts,t.px,t.v,t.q||'']);},get sds(){return SDS.P?{N:SDS.N,c:SDS.c,h:SDS.h,th:SDS.th,last:SDS.P[SDS.N-1],first:SDS.P[0]}:null}};})();
 // ===================== /SIDE-TEST =====================
 
 connect();seedREST();
