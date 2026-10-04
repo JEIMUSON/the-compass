@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='PAST-TEST-20261004-1100';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='PAST-TEST-20261004-1125';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -1748,13 +1748,14 @@ function drawTrail(now){
   const AMAX=Math.max(1,Math.min(trail.length-1+lag,MWIN)), KO=0.985, sMin=FOCAL/(FOCAL+mZ(AMAX));
   // PAST ring: once the trail spans the whole window, its oldest end tapers onto the far ring (price offset eases to 0, radius onto the ring,
   // same centre/bob as the ring) instead of fading out short of it; the trail also follows the walls' zoom twist (TW at the far ring)
+  const PT_TWS=+(new URLSearchParams(location.search).get('tw')||1.25), PT_TWP=1.25, TWT=VIEW==='market'?PT_TWS*VSP.w*(1+0.12*Math.sin(VSP.ph*0.5)):0;   // swirl amount (rad): 0 at 60 s -> PT_TWS at 15 s / burst, breathing slowly with the wall spin
   const FULL=trail.length-1+lag>=MWIN-0.5, TW=VIEW==='market'?TWIST_MAX*VSP.w:0, TL=Math.max(2.5,0.12*AMAX), UF=0.24, sst=v=>v<=0?0:v>=1?1:v*v*(3-2*v);
   const pt=(f,pf)=>{const age0=f===0?0:f+lag,age=FULL?Math.min(age0,AMAX):age0,dz=mZ(age),p=proj(dz),s=p.s,sT=FOCAL/(FOCAL+mZ(age+TG));
     const lin=Math.max(0,Math.min(1,(s-sMin)/(1-sMin))),ub=lin*Math.min(1,(AMAX-age)/6+0.0),e=FULL?sst((age-(AMAX-TL))/TL):0;
     const u=!FULL?ub:age0>AMAX+1e-6?0:Math.max(lin,UF*sst((age/AMAX-0.3)/0.35));
     // radial wiggle = (trade price - newest trade) / bulge scale, amplitude scales with perspective; soft (tanh) limit ~0.55 coil gap
     const raw=((pf||prAt)(f)-P0)/BSP*RMAX*KO*s*0.22, gap=RMAX*KO*(s-sT), L=Math.max(2,0.55*gap), off=brk(raw,L,gap,0.5*RMAX*KO*s)*(1-e), KE=KO+(1-KO)*e;
-    const r=Math.max(RMAX*KE*s*0.3,RMAX*KE*s+off), th=ang(age);   // PAST TEST: no wall twist on the trail, so it lands exactly on its clock position   // head (f=0) = newest trade -> off 0 -> rides the outer ring
+    const r=Math.max(RMAX*KE*s*0.3,RMAX*KE*s+off), th=ang(age)-TWT*Math.sin(Math.PI*Math.pow(Math.min(1,dz/HIST_SEC),PT_TWP));   // PAST TEST: zoom swirl: CCW twist that is 0 at NOW and 0 at the PAST ring (clock angle kept), peaking mid-deep   // head (f=0) = newest trade -> off 0 -> rides the outer ring
     let x=p.x+Math.cos(th)*r, y=p.y+Math.sin(th)*r;
     {const dx=x-CX,dy=y-CY,d=Math.hypot(dx,dy),m=RMAX*0.995,k0=0.975*m;if(d>k0){const dd=k0+(m-k0)*Math.tanh((d-k0)/(m-k0));x=CX+dx*dd/d;y=CY+dy*dd/d;}}   // soft outer edge
     if(!pf){if(WIG.length<4000)WIG.push(off); if(f===3||f===8)(window.__ofcR=window.__ofcR||{})['o'+f]=off;}
