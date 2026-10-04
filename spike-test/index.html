@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='SPIKE-TEST-20261004-0830';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='SPIKE-TEST-20261004-0935';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -447,6 +447,12 @@ function resyncBook(){
 const HB=CC.BUCK/2;                       // heat buckets = half the book bucket
 // one decaying volume profile per flow window (half-life scales with the window); the selected one is drawn
 const HEATS={30:{hl:420,m:new Map()}};   // impact heat, ~7 min half-life
+// ?moon=1 (debug, DISPLAY ONLY): simulated max-traffic parabolic pump. From ~8 s after load, repeating every 60 s: the trail's price series is lifted by an
+// accelerating rise (0 -> +6% over 60 s, exponential, with jitter), flow is faked ~90% buy, traffic is forced to burst, trail volume is forced heavy. Real feeds untouched.
+const MOON_SIM=/[?&]moon=1\b/.test(location.search), MOON_T0=Date.now()+8000;
+const moonOn=()=>MOON_SIM&&Date.now()>=MOON_T0;
+function moonPct(tk){if(!MOON_SIM||tk<MOON_T0)return 0;const c=((tk-MOON_T0)/1000)%60,base=0.06*(Math.exp(c/15)-1)/(Math.exp(4)-1);
+  const j=0.00035*(Math.sin(tk/700)+0.6*Math.sin(tk/230+1)+0.35*Math.sin(tk/97+2))*(0.4+1.6*c/60);return base+j;}
 const SPIKE_SIM=/[?&]spike=1\b/.test(location.search), SPIKE_T0=Date.now()+12000;   // first synthetic jump ~22 s after load   // debug hook: ?spike=1
 let PR=new Float64Array(0), impacts=[], trail=[], trailDirty=true, trailT=0, trailStep=1;
 function heatAdd(px,side,qty,ageSec){
@@ -494,7 +500,9 @@ function buildTrail(){
     for(let k=0;k<=n;k++)if(PRn[k]==null||isNaN(PRn[k]))PRn[k]=mid||0;
     if(SPIKE_SIM){let b0=NaN;for(let k=n;k>=0;k--)if(PRn[k]>0){b0=PRn[k];break;}   // ?spike=1 (debug): synthetic ±0.4% steps every 10 s: 0 -> +0.4% -> 0 -> -0.4% -> 0 ...
       if(b0>0)for(let k=0;k<=n;k++){const tk=dn-k*100;if(tk<SPIKE_T0)break;const ph=Math.floor((tk-SPIKE_T0)/10000)%4;PRn[k]+=b0*0.004*(ph===1?1:ph===3?-1:0);}}
+    if(MOON_SIM)for(let k=0;k<=n;k++){const tk=dn-k*100;if(tk<MOON_T0)break;PRn[k]*=1+moonPct(tk);}
     PR=PRn;}
+  if(moonOn()){let vm=0;for(const b of bins)vm=Math.max(vm,b.bs+b.ss);vm=vm||1;for(const b of bins){const tk=dn-b.a*1000;if(tk<MOON_T0)continue;const v=vm*(0.75+0.25*Math.abs(Math.sin(b.a*1.7+tk/3000)));b.bs=v*0.92;b.ss=v*0.08;}}   // moon: heavy, buy-dominated volume
   trail=bins;trailDirty=false;trailT=Date.now();
 }
 setInterval(()=>{if(VIEW==='market')buildTrail();},250);
@@ -514,7 +522,7 @@ let MT={w:30,hold:0,q:1,z:0,vb:0,sg:0,t0:0,mp:[]};
 setInterval(()=>{if(!trades.length)return;const n=Date.now();let u3=0,u60=0,old=n;
   for(let i=trades.length-1;i>=0;i--){const t=trades[i],ag=n-t.t;if(ag>63000)break;const u=t.qty*t.px;if(ag<=3000)u3+=u;else u60+=u;old=Math.min(old,t.t);}
   const bspan=Math.min(60,(n-old)/1000-3), base=bspan>=20?u60/bspan:0, r3=u3/3;
-  burst.r3=r3;burst.base=base;burst.usd3=u3;
+  burst.r3=r3;burst.base=base;burst.usd3=u3;if(moonOn()){burst.until=n+BURST_HOLD;if(!intro)rangeAuto=true;}   // moon: traffic forced to burst + AUTO zoom held on (not saved)
   if(base>0&&r3>=BURST_X*base&&u3>=BURST_MIN_USD)burst.until=n+BURST_HOLD;
   {if(!MT.t0)MT.t0=n;const el=(n-MT.t0)/1000,cl=x=>Math.max(0,Math.min(1,x));
     if(mid){MT.mp.push([n,mid]);while(MT.mp.length&&n-MT.mp[0][0]>10000)MT.mp.shift();}
@@ -587,7 +595,8 @@ function processTrades(list,replay){
   const BCAP=LOW?500:1500;if(bubbles.length>BCAP)bubbles.splice(0,bubbles.length-BCAP);
   const SCAP=LOW?80:250;if(sparks.length>SCAP)sparks.splice(0,sparks.length-SCAP);
 }
-function flow(sec){const cut=Date.now()-sec*1000;let b=0,s=0;
+function flow(sec){if(moonOn()){const r=0.86+0.06*Math.sin(Date.now()/900);return {b:1+r,s:1-r,d:2*r,r,cov:1};}   // moon: fake ~90% buy aggressor flow
+  const cut=Date.now()-sec*1000;let b=0,s=0;
   for(let i=trades.length-1;i>=0;i--){const t=trades[i];if(t.t<cut)break;if(t.side==='buy')b+=t.qty;else s+=t.qty;}
   return {b,s,d:b-s,r:(b+s)?(b-s)/(b+s):0,cov:1};}
 function updateWhaleThreshold(){
@@ -1743,6 +1752,8 @@ function drawTrail(now){
     window.__ofcSpkR=+(raw3/L3).toFixed(2);window.__ofcSpkB=[BSP,J,L3,raw3];if(raw3>1.8*L3&&dn-SPK.t>3000)spkFire(Math.sign(J));}}
   const SUB=MWIN<=20?10:MWIN<=45?6:MWIN<=90?4:3, sub=a=>{const o=[];for(let j=0;j<=SUB;j++)o.push(pt(a+j/SUB));return o;};
   const P=[];for(let a=0;a<=NW;a++)P.push(pt(a));
+  if(MOON_SIM){let sr=0,mn=9,mx=0,nr=0;for(let a=1;a<P.length;a++){const r=Math.hypot(P[a].x-CX,P[a].y-CY)/RMAX,rb=proj(a*DZ).s*KO;sr+=r/rb;nr++;mn=Math.min(mn,r/rb);mx=Math.max(mx,r/rb);}   // debug: trail radius vs its no-move ring radius
+    window.__ofcMoon={mwin:+MWIN.toFixed(1),vsp:+VSP.w.toFixed(2),rel:+(sr/Math.max(1,nr)).toFixed(3),relMin:+mn.toFixed(3),relMax:+mx.toFixed(3),bspPct:+(BSP/mid*100).toFixed(4),pct:+(moonPct(Date.now())*100).toFixed(2),fires:SPK.n};}
   if((window.__wf=(window.__wf||0)+1)%30===0){const S2=[];for(let a=0;a<NW;a++)for(let j=0;j<SUB;j++)S2.push(a+j/SUB);WIG.length=0;for(const f of S2)pt(f);
     let ss=0,fl=0;for(let i=0;i<WIG.length;i++){ss+=WIG[i]*WIG[i];if(i>1&&(WIG[i]-WIG[i-1])*(WIG[i-1]-WIG[i-2])<0)fl++;}
     window.__ofcWig={rms:+Math.sqrt(ss/Math.max(1,WIG.length)).toFixed(2),flips:fl,n:WIG.length,bsp:BSP};}
