@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1845';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1900';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2235,10 +2235,15 @@ function drawSide(now){
   const RT=L(RTf,RTs), Dc=L(Dcf,Dcs), Lz=L(Lzf,Lzs), Cx=L(CX,FIT.Cx), Cy=L(CY,CYs), psi=s*PS, phi=s*FS2, pivot=s*Lz/2;
   const cp=Math.cos(psi),sp=Math.sin(psi),cf=Math.cos(phi),sf=Math.sin(phi);
   const pr=(x,y,z)=>{const zr=z+pivot,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Y2=y*cf-Z1*sf,Z2=y*sf+Z1*cf,d=Math.max(Dc*0.15,Dc-Z2),k=Dc/d;return [Cx+X1*k,Cy-Y2*k,k];};
-  const NL=24-20*s, LP=SPAN/NL, tNow=Date.now()/1000, Hh=RT*0.8, rs=RT*0.07;
-  const zOf=a=>-a/SPAN*Lz, thOf=a=>-Math.PI/2+2*Math.PI*((tNow%LP)/LP-a/LP);
+  const NL=24-20*s, LPs=SPAN/NL, tNow=Date.now()/1000, Hh=RT*0.8, rs=RT*0.07;
+  // landing zoom: near FRONT the tube shows exactly what the front view shows (its window, 1 coil per window, head on the front's clock),
+  // opening out to the full SPAN by s~0.4, so the morph converges onto the live front view instead of popping into it.
+  const sst=v=>v<=0?0:v>=1?1:v*v*(3-2*v), zS=sst(s/0.4), LPf=Math.max(5,MWIN*trailStep), PPf=60*trailStep, SPe=Math.exp(Math.log(LPf)+(Math.log(SPAN)-Math.log(LPf))*zS);
+  const iLP=(1-zS)/LPf+zS/LPs, PH=(1-zS)*((tNow/PPf)%4096)+zS*((tNow/(SPAN/4))%4096);   // blended phase from two steady clocks (never tNow % a changing period -> no spin jumps mid-turn)
+  const zOf=a=>-a/SPe*Lz, thOf=a=>-Math.PI/2+2*Math.PI*(PH-a*iLP);
+  const TRW=SANI?4*s*(1-s):0;   // transition weight (peaks mid-turn): thicker, glowing, see-through gold MA coils
   const pnOf=p=>Math.max(-1.15,Math.min(1.15,(p-SDS.c)/SDS.h));
-  const ptAt=(a,p,swirl)=>{const th=thOf(a),pn=pnOf(p),rf=RT*(0.60+0.28*Math.max(-1,Math.min(1,pn))),xf=rf*Math.cos(th),yf=-rf*Math.sin(th);
+  const ptAt=(a,p,swirl)=>{const th=thOf(a),pn=pnOf(p),rf=RT*((0.98-0.38*zS)+(0.14+0.14*zS)*Math.max(-1,Math.min(1,pn))),xf=rf*Math.cos(th),yf=-rf*Math.sin(th);
     const r2=swirl?rs:0,xs=r2*Math.cos(th),ys=Hh*pn-r2*Math.sin(th);return pr(L(xf,xs),L(yf,ys),zOf(a));};
   const gS=Math.min(1,Math.max(0,(s-0.3)/0.4)), hK=TRUE?1-Math.min(1,Math.max(0,(s-0.72)/0.26))**2*(3-2*Math.min(1,Math.max(0,(s-0.72)/0.26))):1;   // TRUE LINE: the coil stays visible while it unwinds (amplitude -> 0 with the turn), fading only at the very end
   const TAU=Math.PI*2, ga=gS, dn=Date.now(), pn0=performance.now(), FD=Math.min(1,s/0.3);
@@ -2252,7 +2257,7 @@ function drawSide(now){
       ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();}}}
   // dim time rings (front style: soft glow pass + thin ring; majors at half / full window)
   const NR=6;
-  for(let k=1;k<NR;k++){const z=zOf(k/NR*SPAN),f=Math.pow(1-k/NR*0.8,0.8),maj=k===3;
+  for(let k=1;k<NR;k++){const z=zOf(k/NR*SPe),f=Math.pow(1-k/NR*0.8,0.8),maj=k===3;
     if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${((0.03+0.06*f)*SDIM).toFixed(3)})`;ctx.lineWidth=2+5*f;ringPath(RT,z,0,TAU,64);ctx.stroke();}
     ctx.strokeStyle=`rgba(0,240,255,${((0.05+(maj?0.30:0.18)*f)*SDIM).toFixed(3)})`;ctx.lineWidth=0.5+(maj?1.4:0.9)*f;ringPath(RT,z,0,TAU,64);ctx.stroke();}
   // PAST ring at the far (left) end: the front view's glowing vortex ring (halo + solid base + two soft sweeps turning with the zoom spin)
@@ -2265,7 +2270,7 @@ function drawSide(now){
     ctx.restore();}
   // time labels (front style: bold mono on a dark plate; NOW yellow), under each ring, skipped on collision
   if(s>0.3){const la=Math.min(1,(s-0.3)/0.4),fsT=WIDE?11:9,put=[];ctx.font=`700 ${fsT}px "Share Tech Mono",monospace`;ctx.textAlign='center';
-    for(const k of [0,NR,...Array.from({length:NR-1},(_,i)=>i+1)]){const a=k/NR*SPAN,q=pr(0,-RT,zOf(a)),txt=k===0?'NOW':k===NR?'PAST '+fmtAge(Math.round(a)):fmtAge(Math.round(a)),w=ctx.measureText(txt).width+6,x=q[0],y=q[1]+fsT+6,bx=x-w/2,by=y-fsT,bh=fsT+4;
+    for(const k of [0,NR,...Array.from({length:NR-1},(_,i)=>i+1)]){const a=k/NR*SPe,q=pr(0,-RT,zOf(a)),txt=k===0?'NOW':k===NR?'PAST '+fmtAge(Math.round(a)):fmtAge(Math.round(a)),w=ctx.measureText(txt).width+6,x=q[0],y=q[1]+fsT+6,bx=x-w/2,by=y-fsT,bh=fsT+4;
       if(put.some(r=>bx<r.x+r.w&&bx+w>r.x&&by<r.y+r.h&&by+bh>r.y))continue;put.push({x:bx,y:by,w,h:bh});
       ctx.globalAlpha=SA*la;ctx.fillStyle='rgba(5,3,12,.6)';ctx.fillRect(bx,by,w,bh);ctx.fillStyle=k===0?'rgba(255,230,0,.9)':`rgba(0,240,255,${(0.9-0.45*k/NR).toFixed(3)})`;ctx.fillText(txt,x,y);ctx.globalAlpha=SA*1;}}
   // price grid (side view): faint level lines along the tube + labels at the PAST end
@@ -2317,27 +2322,32 @@ function drawSide(now){
   if(s>0.3){const la=Math.min(1,(s-0.3)/0.4),a=pr(0,RT*0.995,0),b=pr(0,-RT*0.995,0),g=ctx.createLinearGradient(a[0],a[1],b[0],b[1]);g.addColorStop(0,`rgba(225,240,255,${(0.40*la).toFixed(3)})`);g.addColorStop(0.5,`rgba(225,240,255,${(0.16*la).toFixed(3)})`);g.addColorStop(1,`rgba(225,240,255,${(0.40*la).toFixed(3)})`);
     ctx.strokeStyle=g;ctx.lineWidth=WIDE?1.6:1.4;ctx.shadowColor='rgba(190,225,255,.9)';ctx.shadowBlur=Q>0?5:0;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();ctx.shadowBlur=0;}
   // bands + MA (front styling: violet fill + glowing violet edges; MA = dark keyline + glowing yellow)
-  const step=2,idx=[];for(let b=N-1;b>=0;b-=step)idx.push(b);if(idx[idx.length-1]!==0)idx.push(0);
-  const ageB=b=>(N-1-b)*dt, fadeA=a=>1-0.72*a/SPAN;
+  const AG=[];if(zS>=0.999){for(let b=N-1;b>=0;b--)AG.push((N-1-b)*dt);}else{const M=Math.min(N,500);for(let i=0;i<M;i++)AG.push(SPe*i/(M-1));}   // ages, newest first (full span: the exact buckets -> TRUE LINE unchanged)
+  const dA=AG.length>1?AG[1]:dt, bI=a=>{const x=Math.max(0,Math.min(N-1,N-1-a/dt)),i=Math.floor(x),f=x-i;return [i,Math.min(N-1,i+1),f];}, iv=(A,a)=>{const [i,j,f]=bI(a);return A[i]*(1-f)+A[j]*f;};
+  const PRk=(PR&&PR.length>2)?(PR.length-2)*trailStep/10:0, Pv=a=>{if(zS<0.999&&a<PRk){const x=a/trailStep*10,i=Math.floor(x),f=x-i;return PR[i]*(1-f)+PR[i+1]*f;}return zS>=0.999?P[Math.max(0,Math.min(N-1,Math.round(N-1-a/dt)))]:iv(P,a);};
+  const MAv=a=>iv(MA,a), SDv=a=>iv(SD,a);
+  const A2=AG.filter((_,i)=>i%2===0);if(A2[A2.length-1]!==AG[AG.length-1])A2.push(AG[AG.length-1]);
+  const fadeA=a=>1-0.72*a/SPe;
   let UE=null,DE=null,ME=null;
-  if(SHOWBB){const U=idx.map(b=>ptAt(ageB(b),MA[b]+2*SD[b],false)),D=idx.map(b=>ptAt(ageB(b),MA[b]-2*SD[b],false)),S0=Math.floor(idx.length*0.06);UE=U[0];DE=D[0];
-    for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.fillStyle=`rgba(165,135,255,${((WIDE?0.10:0.13)*al*s+0.03*(1-s)).toFixed(3)})`;ctx.beginPath();ctx.moveTo(U[i][0],U[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(U[i+j][0],U[i+j][1]);for(let j=6;j>=0;j--)ctx.lineTo(D[i+j][0],D[i+j][1]);ctx.closePath();ctx.fill();}
+  if(SHOWBB){const U=A2.map(a=>ptAt(a,MAv(a)+2*SDv(a),false)),D=A2.map(a=>ptAt(a,MAv(a)-2*SDv(a),false)),S0=Math.floor(A2.length*0.06);UE=U[0];DE=D[0];
+    for(let i=S0;i+6<A2.length;i+=6){const al=fadeA(A2[i]);ctx.fillStyle=`rgba(165,135,255,${((WIDE?0.10:0.13)*al*s+0.03*(1-s)).toFixed(3)})`;ctx.beginPath();ctx.moveTo(U[i][0],U[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(U[i+j][0],U[i+j][1]);for(let j=6;j>=0;j--)ctx.lineTo(D[i+j][0],D[i+j][1]);ctx.closePath();ctx.fill();}
     ctx.lineWidth=WIDE?1:0.9;ctx.shadowColor='rgba(175,145,255,.8)';
-    for(const Qb of [U,D])for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.shadowBlur=Q>0&&al>0.6?(WIDE?5:4):0;ctx.strokeStyle=`rgba(185,160,255,${((WIDE?0.55:0.62)*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(Qb[i][0],Qb[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(Qb[i+j][0],Qb[i+j][1]);ctx.stroke();}
+    for(const Qb of [U,D])for(let i=S0;i+6<A2.length;i+=6){const al=fadeA(A2[i]);ctx.shadowBlur=Q>0&&al>0.6?(WIDE?5:4):0;ctx.strokeStyle=`rgba(185,160,255,${((WIDE?0.55:0.62)*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(Qb[i][0],Qb[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(Qb[i+j][0],Qb[i+j][1]);ctx.stroke();}
     ctx.shadowBlur=0;}
-  if(SHOWMA){const M=idx.map(b=>ptAt(ageB(b),MA[b],false)),S0=Math.floor(idx.length*0.04);ME=M[0];
-    for(const [lw,blur,col,am] of [[(WIDE?1.5:1.3)+2,0,'5,3,12',0.55],[WIDE?1.5:1.3,Q>0?8:0,'255,226,90',0.8]]){ctx.lineWidth=lw;ctx.shadowColor='rgba(255,215,50,.9)';
-      for(let i=S0;i+6<idx.length;i+=6){const al=fadeA(ageB(idx[i]));ctx.shadowBlur=blur*al;ctx.strokeStyle=`rgba(${col},${(am*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(M[i][0],M[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(M[i+j][0],M[i+j][1]);ctx.stroke();}}
+  if(SHOWMA){const M=A2.map(a=>ptAt(a,MAv(a),false)),S0=Math.floor(A2.length*0.04);ME=M[0];const lw0=(WIDE?1.5:1.3)*(1+1.6*TRW);
+    // static: dark keyline + glowing yellow; mid-turn: keyline fades, the gold coil gets thicker, a wide soft halo and goes see-through
+    for(const [lw,blur,col,am] of [[lw0+2,0,'5,3,12',0.55*(1-TRW)],[lw0*3.4,0,'255,215,70',0.13*TRW],[lw0,Q>0?8+14*TRW:0,'255,226,90',0.8-0.32*TRW]]){if(am<0.01)continue;ctx.lineWidth=lw;ctx.shadowColor='rgba(255,215,50,.9)';
+      for(let i=S0;i+6<A2.length;i+=6){const al=fadeA(A2[i]);ctx.shadowBlur=blur*al;ctx.strokeStyle=`rgba(${col},${(am*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(M[i][0],M[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(M[i+j][0],M[i+j][1]);ctx.stroke();}}
     ctx.shadowBlur=0;}
   // the price trail (star): front-view coil (fades out side-on in TRUE LINE) + the price line itself
-  const T=[];for(let b=N-1;b>=0;b--){const a=ageB(b);T.push(ptAt(a,P[b],!TRUE));}if(!isFinite(T[0][0])||!isFinite(T[0][1])){window.__sideDbg={c:SDS.c,h:SDS.h,p:P[N-1],RT,Dc,Lz,Cx,Cy,s};ctx.restore();return;}
+  const T=AG.map(a=>ptAt(a,Pv(a),!TRUE));if(!isFinite(T[0][0])||!isFinite(T[0][1])){window.__sideDbg={c:SDS.c,h:SDS.h,p:P[N-1],RT,Dc,Lz,Cx,Cy,s};ctx.restore();return;}
   const kH=L(1,0.7);for(const [lw,al0,col] of [[WIDE?7:6,0.10*kH,'0,240,255'],[WIDE?3:2.6,0.28*kH,'0,240,255'],[WIDE?1.5:1.3,0.95*L(1,0.55),s>0.5?'120,235,255':'215,252,255']]){
-    if(hK>0.01)for(let i=0;i+8<T.length;i+=8){const a=i*dt,al=al0*hK*Math.pow(fadeA(a),1.4);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.4,Math.max(0.55,T[i][2]));ctx.beginPath();ctx.moveTo(T[i][0],T[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(T[i+j][0],T[i+j][1]);ctx.stroke();}}
+    if(hK>0.01)for(let i=0;i+8<T.length;i+=8){const a=AG[i],al=al0*hK*Math.pow(fadeA(a),1.4);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.4,Math.max(0.55,T[i][2]));ctx.beginPath();ctx.moveTo(T[i][0],T[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(T[i+j][0],T[i+j][1]);ctx.stroke();}}
   let C=null;
-  if(s>0.3){C=[];for(let b=N-1;b>=0;b--)C.push(ptAt(ageB(b),P[b],false));
+  if(s>0.3){C=AG.map(a=>ptAt(a,Pv(a),false));
     const passes=TRUE?[[WIDE?12:9,0.05,'0,240,255'],[WIDE?5:4,0.14,'0,240,255'],[WIDE?1.6:1.4,1,'235,253,255']]:[[WIDE?6:5,0.12,'0,240,255'],[WIDE?2:1.8,1,'235,253,255']];
-    for(const [lw,al0,col] of passes)for(let i=0;i+8<C.length;i+=8){const al=al0*ga*Math.pow(fadeA(i*dt),1.2);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.3,Math.max(0.6,C[i][2]));ctx.beginPath();ctx.moveTo(C[i][0],C[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(C[i+j][0],C[i+j][1]);ctx.stroke();}}
-  const LN=C||T, ixA=a=>Math.max(0,Math.min(LN.length-1,Math.round(a/dt)));   // screen point of the line at age a (s)
+    for(const [lw,al0,col] of passes)for(let i=0;i+8<C.length;i+=8){const al=al0*ga*Math.pow(fadeA(AG[i]),1.2);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.3,Math.max(0.6,C[i][2]));ctx.beginPath();ctx.moveTo(C[i][0],C[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(C[i+j][0],C[i+j][1]);ctx.stroke();}}
+  const LN=C||T, ixA=a=>Math.max(0,Math.min(LN.length-1,Math.round(a/dA)));   // screen point of the line at age a (s)
   // spike detector (side): fresh ~3 s move of the live price vs the typical 3 s move over the last minutes -> front's flare (white-hot segment + sparks + shake)
   {const lp=hubPx();if(lp>0&&(!SSPK.h.length||dn-SSPK.h[SSPK.h.length-1][0]>=100))SSPK.h.push([dn,lp]);while(SSPK.h.length&&dn-SSPK.h[0][0]>300000)SSPK.h.shift();
     const H2=SSPK.h;if(H2.length>600&&dn-SSPK.k0>20000){const pAt=t=>{let lo=0,hi=H2.length-1;while(lo<hi){const m=(lo+hi)>>1;if(H2[m][0]<t)lo=m+1;else hi=m;}return H2[lo][1];};
