@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1835';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1845';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2148,6 +2148,7 @@ function frame(){
   if(SM>0){if(SM<1){ctx.save();ctx.globalAlpha=SM;ctx.fillStyle='rgba(5,3,12,1)';ctx.fillRect(0,0,W,H);ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.restore();}   // fade the live front view out under the turning tube
     if(trailDirty)buildTrail();SA=SM;try{drawSide(now);}catch(e){ctx.restore();if(!window.__sideErr){window.__sideErr=String(e&&e.stack||e);console.warn('side',e);}}ctx.globalAlpha=1;SA=1;sparks.length=0;shocks.length=0;if(SM>=1){PLBL=[];drawVolume(now);}}
   if(!mid){ctx.font='14px "Share Tech Mono",monospace';ctx.fillStyle='#ffe600';ctx.textAlign='center';ctx.fillText('ACQUIRING ORDER BOOK… '+connState,CX,CY+R0+30);}
+  drawSideBurst(now);
   drawGlitch(now);
   {const SM2=sideMix();if(SM2>=1)lx.clearRect(0,0,W,H);else drawLogosTop();lcv.style.opacity=SM2>0?(1-SM2).toFixed(3):'';}
   hud(now);
@@ -2165,11 +2166,30 @@ let SANI=null, SA=1;   // SANI = timed FRONT<->SIDE swap {from,to,t0,dur}; SA = 
 const SXF=0.30, sideMix=()=>{if(VIEW!=='market'||ROT<=0.002)return 0;const x=Math.min(1,ROT/SXF);return x*x*(3-2*x);};
 let SBLUR=-1;
 function sideBlur(px){const v=Math.round(px*10)/10;if(v===SBLUR)return;SBLUR=v;const f=v>0.05?`blur(${v}px)`:'';cv.style.filter=f;lcv.style.filter=f;}   // GPU CSS blur on the canvases, only while swapping
-function sideTick(now){if(SANI){const k=Math.min(1,(now-SANI.t0)/SANI.dur),e=k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;ROT=ROTT=SANI.from+(SANI.to-SANI.from)*e;
-    const bk=Math.sin(Math.PI*k);sideBlur((WIDE?3.2:2.2)*Math.min(1,Math.abs(SANI.to-SANI.from)*1.5)*bk*bk);   // soft blur peaking mid-turn, sharp at both ends
-    if(k>=1){ROT=ROTT=SANI.to;SANI=null;sideBlur(0);}}
+// swap timing: f(k)=k-A*sin(4*pi*k)/(4*pi) -> speed 1-A*cos(4*pi*k): gentle start, quick, SLOW-MO mid-turn (watch the coil unwind / wind up), quick, gentle landing
+const SWA=0.86, swF=k=>k-SWA*Math.sin(4*Math.PI*k)/(4*Math.PI), swV=k=>1-SWA*Math.cos(4*Math.PI*k);
+function sideTick(now){if(SANI){const k=window.__sideK0!=null?+window.__sideK0:Math.min(1,(now-SANI.t0)/SANI.dur);   // __sideK0: test hook only (freeze a swap frame)
+    ROT=ROTT=SANI.from+(SANI.to-SANI.from)*swF(k);
+    const v=swV(k);sideBlur(v>1.55&&Math.abs(SANI.to-SANI.from)>0.4?(WIDE?0.7:0.5)*(v-1.55)/(1+SWA-1.55):0);   // only a faint motion smear at the two fastest moments
+    window.__sideK=k;if(k>=1){ROT=ROTT=SANI.to;SANI=null;sideBlur(0);}}
   else{ROT+=(ROTT-ROT)*0.18;if(Math.abs(ROTT-ROT)<0.002)ROT=ROTT;}}
-function sideSwap(){const to=(SANI?SANI.to:ROTT)>0.5?0:1,from=ROT;SANI={from,to,t0:performance.now(),dur:Math.max(450,1300*Math.abs(to-from))};}
+// swap burst: flash + two shockwave rings + sparks from the NOW hub (front: dial centre, side: hub in the NOW ring), site colours
+let SBU=null, SHUB=null;
+function sideBurst(){const n=performance.now(),x=ROT>0.5&&SHUB?SHUB[0]:CX,y=ROT>0.5&&SHUB?SHUB[1]:CY,cols=[COL.cy,COL.yl,COL.bid,COL.ask,[235,253,255]],sp=[],N=LOWDEV()?22:36,sc=WIDE?1:0.8;
+  for(let i=0;i<N;i++){const a=Math.random()*Math.PI*2,v=(140+Math.random()*320)*sc;sp.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:450+Math.random()*550,sz:(1+Math.random()*1.6)*sc,c:cols[i%cols.length]});}
+  SBU={t0:n,x,y,sp,pt:n};}
+function drawSideBurst(now){if(!SBU)return;const t=window.__sideBT!=null?+window.__sideBT:now-SBU.t0;   // __sideBT: test hook only
+  if(t>1100){SBU=null;return;}const dt=Math.min(0.05,(now-SBU.pt)/1000);SBU.pt=now;const {x,y}=SBU,R=Math.max(W,H);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  if(t<260){const k=t/260,g=ctx.createRadialGradient(x,y,0,x,y,R*0.35*(0.4+0.6*k));g.addColorStop(0,`rgba(235,253,255,${(0.55*(1-k)).toFixed(3)})`);g.addColorStop(0.25,`rgba(0,240,255,${(0.22*(1-k)).toFixed(3)})`);g.addColorStop(1,'rgba(0,240,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}   // flash
+  for(const [d,c,m] of [[0,COL.yl,1],[90,COL.cy,0.75]]){const k=(t-d)/800;if(k<=0||k>=1)continue;const e=1-Math.pow(1-k,3);ctx.strokeStyle=rgba(c,(0.85*(1-k)).toFixed(3));ctx.lineWidth=(WIDE?3.5:2.6)*(1-k)+0.5;
+    ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?18:0;ctx.beginPath();ctx.arc(x,y,(14+R*0.42*e)*m,0,Math.PI*2);ctx.stroke();}   // shockwave rings
+  ctx.shadowBlur=0;ctx.lineCap='round';
+  for(const p of SBU.sp){const k=t/p.life;if(k>=1)continue;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.94;p.vy*=0.94;const al=Math.pow(1-k,1.3);
+    ctx.strokeStyle=rgba(p.c,(0.35*al).toFixed(3));ctx.lineWidth=p.sz*3;ctx.beginPath();ctx.moveTo(p.x-p.vx*0.06,p.y-p.vy*0.06);ctx.lineTo(p.x,p.y);ctx.stroke();
+    ctx.strokeStyle=`rgba(255,255,255,${(0.9*al).toFixed(3)})`;ctx.lineWidth=p.sz;ctx.beginPath();ctx.moveTo(p.x-p.vx*0.04,p.y-p.vy*0.04);ctx.lineTo(p.x,p.y);ctx.stroke();}
+  ctx.restore();}
+function sideSwap(){const to=(SANI?SANI.to:ROTT)>0.5?0:1,from=ROT;SANI={from,to,t0:performance.now(),dur:Math.max(600,2000*Math.abs(to-from))};sideBurst();}
 const SDS={t:0,span:0,N:0,P:null,MA:null,SD:null,c:0,h:0,tc:0,th:0};
 function sideSeries(){const n=Date.now(),NB=400,N=TRUE?NB*2:NB,dt=SPAN*1000/N,dB=SPAN*1000/NB,t0=n-SPAN*1000;const P=new Float64Array(N).fill(NaN),PS0=new Float64Array(NB),PN=new Float64Array(NB),LO=new Float64Array(NB).fill(Infinity),HI=new Float64Array(NB).fill(-Infinity),TL=new Float64Array(NB),TH=new Float64Array(NB);
   for(let i=RAW.length-1;i>=0;i--){const t=RAW[i];if(t.ts<t0)break;if(SRC!=='all'&&t.v!==SRC)continue;if(t.q&&t.q!=='USD')continue;const b=Math.floor((t.ts-t0)/dB);if(b>=0&&b<NB){PS0[b]+=t.px;PN[b]++;if(t.px<LO[b]){LO[b]=t.px;TL[b]=t.ts;}if(t.px>HI[b]){HI[b]=t.px;TH[b]=t.ts;}}}
@@ -2220,7 +2240,7 @@ function drawSide(now){
   const pnOf=p=>Math.max(-1.15,Math.min(1.15,(p-SDS.c)/SDS.h));
   const ptAt=(a,p,swirl)=>{const th=thOf(a),pn=pnOf(p),rf=RT*(0.60+0.28*Math.max(-1,Math.min(1,pn))),xf=rf*Math.cos(th),yf=-rf*Math.sin(th);
     const r2=swirl?rs:0,xs=r2*Math.cos(th),ys=Hh*pn-r2*Math.sin(th);return pr(L(xf,xs),L(yf,ys),zOf(a));};
-  const gS=Math.min(1,Math.max(0,(s-0.3)/0.4)), hK=TRUE?1-gS:1;   // TRUE LINE: coil fades out as the tube turns side-on
+  const gS=Math.min(1,Math.max(0,(s-0.3)/0.4)), hK=TRUE?1-Math.min(1,Math.max(0,(s-0.72)/0.26))**2*(3-2*Math.min(1,Math.max(0,(s-0.72)/0.26))):1;   // TRUE LINE: the coil stays visible while it unwinds (amplitude -> 0 with the turn), fading only at the very end
   const TAU=Math.PI*2, ga=gS, dn=Date.now(), pn0=performance.now(), FD=Math.min(1,s/0.3);
   const ringPath=(r,z,a0,a1,n)=>{ctx.beginPath();for(let i=0;i<=n;i++){const an=a0+(a1-a0)*i/n,q=pr(r*Math.cos(an),r*Math.sin(an),z);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}};
   const SDIM=1-0.4*ga;   // side-on: walls/rings a little dimmer so the price line stays the star
@@ -2272,7 +2292,7 @@ function drawSide(now){
     ctx.save();ctx.shadowColor=rgba(col,1);ctx.shadowBlur=Q>0?22:10;ctx.fillStyle=rgba(col,1);dia(1);ctx.fill();ctx.shadowBlur=0;ctx.lineWidth=1.2;ctx.strokeStyle='rgba(255,255,255,.7)';dia(1);ctx.stroke();ctx.fillStyle='rgba(255,255,255,.55)';dia(0.32);ctx.fill();ctx.restore();}
   // logo hub at the centre of the NOW ring, lying in the ring plane (turns with the tube): solid-ish disc, 24 turning ticks locked to the head's clock,
   // traffic pulse ring + corona (same HUB state/rules as the front view). Drawn BEHIND the price line so the head is never covered.
-  {const C0=pr(0,0,0),d=RT*0.01,ex=pr(d,0,0),ey=pr(0,d,0),R0s=Math.max(16,RT*0.17);
+  {const C0=pr(0,0,0);SHUB=C0;const d=RT*0.01,ex=pr(d,0,0),ey=pr(0,d,0),R0s=Math.max(16,RT*0.17);
     ctx.save();ctx.transform((ex[0]-C0[0])/d,(ex[1]-C0[1])/d,-(ey[0]-C0[0])/d,-(ey[1]-C0[1])/d,C0[0],C0[1]);const LWk=1/Math.max(0.35,Math.cos(psi));
     ctx.fillStyle=`rgba(6,9,20,${(0.45+0.4*(1-ga)).toFixed(3)})`;ctx.beginPath();ctx.arc(0,0,R0s+1,0,TAU);ctx.fill();
     const g=ctx.createRadialGradient(0,0,0,0,0,R0s);g.addColorStop(0,'rgba(0,240,255,0.22)');g.addColorStop(1,'rgba(0,240,255,0.02)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,R0s,0,TAU);ctx.fill();
