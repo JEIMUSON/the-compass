@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-1815';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-1825';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2172,6 +2172,23 @@ function sideSeries(){const n=Date.now(),NB=400,N=TRUE?NB*2:NB,dt=SPAN*1000/N,dB
   SDS.t=n;SDS.t0=t0;SDS.tr=TRUE;SDS.N=N;SDS.P=P;SDS.MA=MA;SDS.SD=SD;SDS.dt=dt;SDS.tc=(lo+hi)/2;SDS.th=Math.max((hi-lo)/2,P[N-1]*0.0004);
   if(SDS.span!==SPAN||!SDS.c){SDS.c=SDS.tc;SDS.h=SDS.th;SDS.span=SPAN;}}
 setInterval(()=>{if(SIDE_ON())sideSeries();},500);
+// side-view fit: size/length/centre of the tube so the whole PAST ring (left) and the NOW mouth with its gauge arc, BUYERS/SELLERS labels,
+// diamond and live price label (right) all fit inside the stage with a small margin; spare width goes into a longer tube (more chart).
+let SFIT={k:''};
+function sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW){const key=[W,H,top,bot,HTW,BLW].join('|');if(SFIT.k===key)return SFIT.v;
+  const cp=Math.cos(PS),sp=Math.sin(PS),cf=Math.cos(FS2),sf=Math.sin(FS2),m=WIDE?16:6,av=W-2*m;
+  const ext=(RT,Ls)=>{const Lz=Ls/sp,pv=Lz/2,X=(x,y,z)=>{const zr=z+pv,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Z2=y*sf+Z1*cf,d=Math.max(Dcs*0.15,Dcs-Z2);return X1*Dcs/d;};
+    let lo=Infinity,hi=-Infinity;const GR=RT*1.075;
+    for(let i=0;i<72;i++){const a=i/72*Math.PI*2,c=Math.cos(a),n=Math.sin(a);lo=Math.min(lo,X((RT)*c,(RT)*n,-Lz)-6);hi=Math.max(hi,X((GR+5)*c,(GR+5)*n,0)+3);}
+    for(const a of [Math.PI/2+0.62,Math.PI/2-0.62])hi=Math.max(hi,X((GR+16)*Math.cos(a),(GR+16)*Math.sin(a),0)+BLW/2+2);   // BUYERS / SELLERS
+    for(const y of [-0.92,0,0.92])hi=Math.max(hi,X(0,RT*0.8*y,0)+16+HTW+4);   // live price label right of the head
+    return [lo,hi];};
+  let RT=Math.min((H-top-bot)*0.36,W*(WIDE?0.24:0.34)),Ls=W*(WIDE?0.80:0.86)-0.5*RT,e=ext(RT,Ls);
+  for(let it=0;it<8;it++){const w=e[1]-e[0];if(Math.abs(av-w)<1)break;
+    if(w>av&&Ls<=W*0.5+1){const k=Math.max(0.8,av/w);RT*=k;}   // tube already short: shrink the rings slightly
+    else Ls=Math.max(W*0.5,Ls+(av-w)*0.95);
+    e=ext(RT,Ls);}
+  const v={RT,Ls,Cx:m-e[0]+Math.max(0,(av-(e[1]-e[0]))/2)};SFIT={k:key,v};window.__sideFit={RT:+RT.toFixed(1),Ls:+Ls.toFixed(1),Cx:+v.Cx.toFixed(1),lo:+(v.Cx+e[0]).toFixed(1),hi:+(v.Cx+e[1]).toFixed(1),W};return v;}
 let SMX={sg:0,ev:[]},SNSP=[],SNSPt=0,SSPK={h:[],typ:0,tt:0,k0:Date.now()};
 function drawSide(now){
   if(!SDS.P||SDS.span!==SPAN||SDS.tr!==TRUE)sideSeries();if(!SDS.P)return;
@@ -2180,8 +2197,10 @@ function drawSide(now){
   const s=ROT*ROT*(3-2*ROT), L=(a,b)=>a+(b-a)*s, N=SDS.N, P=SDS.P, MA=SDS.MA, SD=SDS.SD, dt=SDS.dt/1000;
   const top=WIDE?58:44, bot=WIDE?64:74, CYs=(top+H-bot)/2;
   const RTf=RMAX*0.92, Dcf=RMAX*2.4, Lzf=Dcf*6;
-  const PS=65*Math.PI/180, FS2=11*Math.PI/180, RTs=Math.min((H-top-bot)*0.36,W*(WIDE?0.24:0.34)), Ls=W*(WIDE?0.80:0.86)-0.5*RTs, Dcs=Math.max(W,H)*2.6, Lzs=Ls/Math.sin(PS);
-  const RT=L(RTf,RTs), Dc=L(Dcf,Dcs), Lz=L(Lzf,Lzs), Cx=L(CX,W/2-0.25*RTs), Cy=L(CY,CYs), psi=s*PS, phi=s*FS2, pivot=s*Lz/2;
+  const PS=65*Math.PI/180, FS2=11*Math.PI/180, Dcs=Math.max(W,H)*2.6;
+  ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const HTW=Math.ceil(ctx.measureText(hubTxt()).width);ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;const BLW=Math.ceil(ctx.measureText('SELLERS').width);ctx.restore();
+  const FIT=sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW), RTs=FIT.RT, Ls=FIT.Ls, Lzs=Ls/Math.sin(PS);
+  const RT=L(RTf,RTs), Dc=L(Dcf,Dcs), Lz=L(Lzf,Lzs), Cx=L(CX,FIT.Cx), Cy=L(CY,CYs), psi=s*PS, phi=s*FS2, pivot=s*Lz/2;
   const cp=Math.cos(psi),sp=Math.sin(psi),cf=Math.cos(phi),sf=Math.sin(phi);
   const pr=(x,y,z)=>{const zr=z+pivot,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Y2=y*cf-Z1*sf,Z2=y*sf+Z1*cf,d=Math.max(Dc*0.15,Dc-Z2),k=Dc/d;return [Cx+X1*k,Cy-Y2*k,k];};
   const NL=24-20*s, LP=SPAN/NL, tNow=Date.now()/1000, Hh=RT*0.8, rs=RT*0.07;
@@ -2214,7 +2233,7 @@ function drawSide(now){
     ctx.restore();}
   // time labels (front style: bold mono on a dark plate; NOW yellow), under each ring, skipped on collision
   if(s>0.3){const la=Math.min(1,(s-0.3)/0.4),fsT=WIDE?11:9,put=[];ctx.font=`700 ${fsT}px "Share Tech Mono",monospace`;ctx.textAlign='center';
-    for(let k=0;k<=NR;k++){const a=k/NR*SPAN,q=pr(0,-RT,zOf(a)),txt=k===0?'NOW':k===NR?'PAST '+fmtAge(Math.round(a)):fmtAge(Math.round(a)),w=ctx.measureText(txt).width+6,x=q[0],y=q[1]+fsT+6,bx=x-w/2,by=y-fsT,bh=fsT+4;
+    for(const k of [0,NR,...Array.from({length:NR-1},(_,i)=>i+1)]){const a=k/NR*SPAN,q=pr(0,-RT,zOf(a)),txt=k===0?'NOW':k===NR?'PAST '+fmtAge(Math.round(a)):fmtAge(Math.round(a)),w=ctx.measureText(txt).width+6,x=q[0],y=q[1]+fsT+6,bx=x-w/2,by=y-fsT,bh=fsT+4;
       if(put.some(r=>bx<r.x+r.w&&bx+w>r.x&&by<r.y+r.h&&by+bh>r.y))continue;put.push({x:bx,y:by,w,h:bh});
       ctx.globalAlpha=la;ctx.fillStyle='rgba(5,3,12,.6)';ctx.fillRect(bx,by,w,bh);ctx.fillStyle=k===0?'rgba(255,230,0,.9)':`rgba(0,240,255,${(0.9-0.45*k/NR).toFixed(3)})`;ctx.fillText(txt,x,y);ctx.globalAlpha=1;}}
   // price grid (side view): faint level lines along the tube + labels at the PAST end
@@ -2319,7 +2338,7 @@ function drawSide(now){
       if(BU&&!m.sp){m.sp=1;spawnBP(m,cc,big);}ctx.beginPath();ctx.moveTo(h[0]+Math.cos(th)*d0,h[1]+Math.sin(th)*d0);ctx.lineTo(h[0]+Math.cos(th)*d1,h[1]+Math.sin(th)*d1);ctx.stroke();}
     ctx.globalCompositeOperation='source-over';ctx.fillStyle='#fff';ctx.shadowColor=rgba(c,1);ctx.shadowBlur=Q>0?14:5;ctx.beginPath();ctx.arc(h[0],h[1],(WIDE?3:2.2)+1.2*pl,0,TAU);ctx.fill();ctx.shadowBlur=0;ctx.restore();
     drawBP(now);drawSpkSparks();
-    if(s>0.4){ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const rt=h[0]>W-90;ctx.textAlign=rt?'right':'left';ctx.fillStyle=`rgba(230,252,255,${Math.min(1,(s-0.4)/0.3).toFixed(3)})`;ctx.shadowColor='rgba(0,0,0,.95)';ctx.shadowBlur=6;ctx.fillText(hubTxt(),h[0]+(rt?-16:16),h[1]-10);ctx.restore();}}
+    if(s>0.4){ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const rt=h[0]+16+ctx.measureText(hubTxt()).width>W-2;ctx.textAlign=rt?'right':'left';ctx.fillStyle=`rgba(230,252,255,${Math.min(1,(s-0.4)/0.3).toFixed(3)})`;ctx.shadowColor='rgba(0,0,0,.95)';ctx.shadowBlur=6;ctx.fillText(hubTxt(),h[0]+(rt?-16:16),h[1]-10);ctx.restore();}}
   // title
   ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle='rgba(255,230,0,.85)';ctx.fillText(`SIDE TEST · ${SPAN/60} MIN WINDOW · `+(TRUE?'TRUE LINE (RAW HI/LO, NO COIL)':`${Math.round(SPAN/(24-20*(ROT*ROT*(3-2*ROT))))}s / LOOP`),WIDE?16:10,top-18);
   ctx.restore();}
