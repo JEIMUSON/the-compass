@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='side-20261004-2000';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='side-20261004-2005';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2218,7 +2218,7 @@ function sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW){const key=[W,H,top,bot,HTW,
   const ext=(RT,Ls)=>{const Lz=Ls/sp,pv=Lz/2,X=(x,y,z)=>{const zr=z+pv,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Z2=y*sf+Z1*cf,d=Math.max(Dcs*0.15,Dcs-Z2);return X1*Dcs/d;};
     let lo=Infinity,hi=-Infinity;const GR=RT*1.075;
     for(let i=0;i<72;i++){const a=i/72*Math.PI*2,c=Math.cos(a),n=Math.sin(a);lo=Math.min(lo,X((RT)*c,(RT)*n,-Lz)-6);hi=Math.max(hi,X((GR+5)*c,(GR+5)*n,0)+3);}
-    for(const a of [Math.PI/2+0.62,Math.PI/2-0.62])hi=Math.max(hi,X((GR+16)*Math.cos(a),(GR+16)*Math.sin(a),0)+BLW/2+2);   // BUYERS / SELLERS
+    for(const a of [Math.PI-(WIDE?0.62:0.72),(WIDE?0.62:0.72)])hi=Math.max(hi,X((GR+16)*Math.cos(a),(GR+16)*Math.sin(a),0)+BLW/2+2);   // BUYERS / SELLERS
     for(const y of [-0.92,0,0.92])hi=Math.max(hi,X(0,RT*0.8*y,0)+16+HTW+4);   // live price label right of the head
     return [lo,hi];};
   let RT=Math.min((H-top-bot)*0.36,W*(WIDE?0.24:0.34)),Ls=W*(WIDE?0.80:0.86)-0.5*RT,e=ext(RT,Ls);
@@ -2295,19 +2295,30 @@ function drawSide(now){
   const GRs=RT+Lc(30,RT*0.075);   // = the front's gauge radius (RMAX+30) at the FRONT end
   {ctx.save();ctx.strokeStyle='rgba(0,240,255,0.55)';ctx.lineWidth=WIDE?2:1.8;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?14:0;ringPath(RT,0,0,TAU,96);ctx.stroke();ctx.shadowBlur=0;
     ctx.strokeStyle='rgba(0,240,255,0.4)';ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<72;i++){const an=i/72*TAU,l=(i%6===0?10:4)/Math.max(1,RT)*RT,c=Math.cos(an),sn=Math.sin(an),a=pr(RT*c,RT*sn,0),b=pr((RT+l)*c,(RT+l)*sn,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}ctx.stroke();
-    const AH=0.75,NA=40;ctx.lineWidth=WIDE?6:5;ctx.globalAlpha=SA*.55;ctx.lineCap='butt';
-    for(let i=0;i<NA;i++){const a0=Math.PI/2-AH+2*AH*i/NA,a1=Math.PI/2-AH+2*AH*(i+1)/NA+0.003,t=1-(i+0.5)/NA,c=t<0.5?COL.ask.map((x,k)=>Math.round(x+(COL.yl[k]-x)*t*2)):COL.yl.map((x,k)=>Math.round(x+(COL.bid[k]-x)*(t-0.5)*2));
-      ctx.strokeStyle=rgba(c,t<0.5?0.9-0.6*t:0.3+0.6*(t-0.5)*2);ringPath(GRs,0,a0,a1,2);ctx.stroke();}
+    // gauge arc = the front's: whole upper half, green (buyers) on the LEFT -> yellow -> magenta (sellers) on the RIGHT, colour by x like the front's linear gradient
+    const NA=48;ctx.lineWidth=WIDE?6:5;ctx.globalAlpha=SA*.55;ctx.lineCap='butt';
+    for(let i=0;i<NA;i++){const a0=Math.PI*i/NA,a1=Math.PI*(i+1)/NA+0.003,t=(1+Math.cos((a0+a1)/2))/2,c=t<0.5?COL.bid.map((x,k)=>Math.round(x+(COL.yl[k]-x)*t*2)):COL.yl.map((x,k)=>Math.round(x+(COL.ask[k]-x)*(t-0.5)*2));
+      ctx.strokeStyle=rgba(c,t<0.5?0.9-0.6*t:0.6+0.6*(t-0.5));ringPath(GRs,0,a0,a1,2);ctx.stroke();}
     ctx.globalAlpha=SA*1;ctx.restore();
     // diamond (same spring / colour rule as the front view's drawNeedle)
     const f=flow(winSec),target=-f.r*Math.PI*0.47;needleV+=(target-needle)*0.012;needleV*=0.86;needle+=needleV;
-    const an=Math.PI/2-needle*(0.75/(Math.PI/2)),c0=Math.cos(an),s0=Math.sin(an),p=pr(GRs*c0,GRs*s0,0),po=pr((GRs+10)*c0,(GRs+10)*s0,0);let ux=po[0]-p[0],uy=po[1]-p[1];const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;const vx=-uy,vy=ux;
+    const an=Math.PI/2-needle,c0=Math.cos(an),s0=Math.sin(an),p=pr(GRs*c0,GRs*s0,0),po=pr((GRs+10)*c0,(GRs+10)*s0,0);let ux=po[0]-p[0],uy=po[1]-p[1];const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;const vx=-uy,vy=ux;
     const HL=WIDE?10.5:11.5,HW=HL*0.62,col=f.r>0.05?COL.bid:f.r<-0.05?COL.ask:COL.yl;
     const dia=k=>{ctx.beginPath();ctx.moveTo(p[0]+ux*HL*k,p[1]+uy*HL*k);ctx.lineTo(p[0]+vx*HW*k,p[1]+vy*HW*k);ctx.lineTo(p[0]-ux*HL*k,p[1]-uy*HL*k);ctx.lineTo(p[0]-vx*HW*k,p[1]-vy*HW*k);ctx.closePath();};
-    // BUYERS / SELLERS just outside the arc (lit when that side leads), drawn first so the diamond sits on top
-    if(s>0.3){const la=Math.min(1,(s-0.3)/0.4);ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;ctx.textAlign='center';
-      for(const [txt,a,cc,on] of [['BUYERS',Math.PI/2+0.62,COL.bid,f.r>0.15],['SELLERS',Math.PI/2-0.62,COL.ask,f.r<-0.15]]){const q=pr((GRs+16)*Math.cos(a),(GRs+16)*Math.sin(a),0);
-        ctx.fillStyle=rgba(cc,((on?0.95:0.5)*la).toFixed(3));if(on){ctx.shadowColor=rgba(cc,1);ctx.shadowBlur=Q>0?8:0;}ctx.fillText(txt,q[0],q[1]-4);ctx.shadowBlur=0;}}
+    // BUYERS / SELLERS: curved along the arc in the ring's plane, laid out exactly like the front's ringLabels() (angle above the horizon, GR+6, letter spacing),
+    // font/spacing/offset scaled by RT/RMAX so they keep the front's proportions; lit when that side leads; diamond-shaped gap where the diamond passes
+    if(s>0.3){const la=Math.min(1,(s-0.3)/0.4),kq=RT/Math.max(1,RMAX),fF=WIDE?Math.round(Math.min(17,Math.max(12,RMAX/30))):8,fs=Math.max(WIDE?9:6.5,fF*kq),
+        dtL=WIDE?0.62:0.72,rL=GRs+6*kq,spL=(WIDE?2:0.7)*kq;
+      ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);{const k=1+4/HW;ctx.moveTo(p[0]+ux*HL*k,p[1]+uy*HL*k);ctx.lineTo(p[0]+vx*HW*k,p[1]+vy*HW*k);ctx.lineTo(p[0]-ux*HL*k,p[1]-uy*HL*k);ctx.lineTo(p[0]-vx*HW*k,p[1]-vy*HW*k);ctx.closePath();}ctx.clip('evenodd');
+      ctx.font=`700 ${fs.toFixed(1)}px Orbitron,sans-serif`;ctx.textAlign='center';ctx.textBaseline='alphabetic';const dd=Math.max(1,RT*0.01);
+      for(const [txt,th0,cc,on] of [['BUYERS',Math.PI+dtL,COL.bid,f.r>0.15],['SELLERS',2*Math.PI-dtL,COL.ask,f.r<-0.15]]){
+        ctx.fillStyle=rgba(cc,((on?1:0.7)*la).toFixed(3));ctx.shadowColor=rgba(cc,1);ctx.shadowBlur=Q>0?(on?12:4):0;
+        const ws=[...txt].map(ch=>ctx.measureText(ch).width+spL),tot=ws.reduce((x,y)=>x+y,0);let a=th0-tot/2/rL;
+        [...txt].forEach((c,i)=>{const d=ws[i]/rL,am=a+d/2;a+=d;
+          // front-screen coords (y down) -> ring plane (y up): local affine of the perspective at this glyph
+          const gx=rL*Math.cos(am),gy=-rL*Math.sin(am),q0=pr(gx,gy,0),qx=pr(gx+dd,gy,0),qy=pr(gx,gy-dd,0);
+          ctx.save();ctx.transform((qx[0]-q0[0])/dd,(qx[1]-q0[1])/dd,(qy[0]-q0[0])/dd,(qy[1]-q0[1])/dd,q0[0],q0[1]);ctx.rotate(am+Math.PI/2);ctx.fillText(c,0,0);ctx.restore();});}
+      ctx.shadowBlur=0;ctx.restore();}
     ctx.save();ctx.shadowColor=rgba(col,1);ctx.shadowBlur=Q>0?22:10;ctx.fillStyle=rgba(col,1);dia(1);ctx.fill();ctx.shadowBlur=0;ctx.lineWidth=1.2;ctx.strokeStyle='rgba(255,255,255,.7)';dia(1);ctx.stroke();ctx.fillStyle='rgba(255,255,255,.55)';dia(0.32);ctx.fill();ctx.restore();}
   // logo hub at the centre of the NOW ring, lying in the ring plane (turns with the tube): solid-ish disc, 24 turning ticks locked to the head's clock,
   // traffic pulse ring + corona (same HUB state/rules as the front view). Drawn BEHIND the price line so the head is never covered.
