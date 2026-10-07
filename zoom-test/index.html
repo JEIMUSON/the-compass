@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='zoom-20261007-1515';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='zoom-20261007-1545';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -208,7 +208,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <h3>MARKET · SIDE VIEW</h3>
 <ul><li>The time tunnel turned on its side: time runs left to right, from the <b>PAST</b> ring to <b>NOW</b> at the front dial's ring.</li>
 <li>Height = price. The line is the <b>true line</b> of real trades from all five exchanges (or the one picked in <b>SRC</b>): each slice's real high and low, no smoothing.</li>
-<li><b>5M / 15M / 60M</b> picks how much history the tunnel shows. Average, bands, diamond and hub work as in the front view.</li>
+<li><b>Zoom</b> 5–60 min: swipe <b>left</b> = zoom in (toward 5 min / NOW), <b>right</b> = out, like dragging the timeline; pinch, wheel or sideways trackpad scroll also work. <b>5M / 15M / 60M</b> jump there. At 5 min the tube lies flat and fills the screen; zooming out tilts it back to 25°. Average, bands, diamond and hub work as in the front view.</li>
 <li>The <b>SIDE ▸ / FRONT ▸</b> button swaps between the two views. Turning to SIDE, the buyers / sellers arc rides down the tunnel to the <b>PAST</b> ring; turning back, it rides up to the front ring.</li></ul>
 <h3>LIMIT VIEW · ORDER-BOOK WALLS</h3>
  <ul><li>Arcs are <b>walls</b> of waiting orders: <b class="gr">buyers left</b>, <b class="rd">sellers right</b>.</li>
@@ -903,13 +903,15 @@ let pinch=null,lastTap=0;
 cv.addEventListener('touchstart',e=>{if(e.touches.length===2&&VIEW==='market'){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pinch={d,f:rangeFrac,z:SZT};}
   else if(e.touches.length===1&&VIEW!=='limit'){const n=performance.now();if(n-lastTap<300)setAuto(true);lastTap=n;}},{passive:true});
 // Touch swipes over the compass (LIMIT + MARKET). Up/down = TIME zoom (up = zoom in / shorter window; turns AUTO off), same steps/feel in both views.
-// LIMIT only: left/right = PRICE range (right = wider). MARKET has no price zoom: horizontal swipes are swallowed (no scroll / pull-to-refresh). MARKET pinch still works.
+// LIMIT only: left/right = PRICE range (right = wider). MARKET front has no price zoom: horizontal swipes are swallowed (no scroll / pull-to-refresh). MARKET pinch still works.
+// MARKET SIDE view: LEFT/RIGHT = the side zoom (drag the timeline: left = zoom in toward 5 min / NOW, right = out to 60 min); up/down is swallowed there
+// (it must not move the hidden front zoom). #cv has touch-action:none + preventDefault -> no page scroll / overscroll-back; the sheet's page swipe lives on #pages only.
 // The axis locks after the first 10 px of movement (no diagonal mixing); a brief readout shows the value.
 let SW=null;
 cv.addEventListener('touchstart',e=>{if(e.touches.length!==1){SW=null;return;}const t=e.touches[0];SW={x0:t.clientX,y0:t.clientY,ax:null};},{passive:true});
 cv.addEventListener('touchmove',e=>{if(!SW)return;if(e.touches.length!==1){SW=null;return;}if(e.cancelable)e.preventDefault();const t=e.touches[0],dx=t.clientX-SW.x0,dy=t.clientY-SW.y0;
   if(!SW.ax){if(Math.hypot(dx,dy)<10)return;SW.ax=Math.abs(dx)>Math.abs(dy)?'x':'y';SW.x0=t.clientX;SW.y0=t.clientY;SW.f0=rangeFrac;SW.p0=PZ;SW.z0=SZT;if(intro){rangeAuto=intro.ra;intro=null;}return;}
-  if(SW.ax==='y'&&SIDE_ZM()){sideZoomTo(SW.z0*Math.exp(dy/(H*0.55)*Math.log(SZMAX/SZMIN)),true);}   // SIDE: up = zoom in (shorter), full range over ~half the screen height
+  if(SIDE_ZM()){if(SW.ax==='x')sideZoomTo(SW.z0*Math.exp(dx/(W*0.6)*Math.log(SZMAX/SZMIN)),true);}   // SIDE: swipe left = zoom in (shorter), full 5..60 min range over ~60% of the width; vertical ignored
   else if(SW.ax==='y'){setAuto(false);syncZA();rangeFrac=zR(zT(SW.f0)-dy/(H*0.55));zRead(fmtAge(Math.round((VIEW==='limit'?lWinOf:mWinOf)(rangeFrac))).replace('-',''));}
   else if(VIEW==='limit')setPZ(SW.p0*Math.exp(dx/(W*0.7)*Math.log(PZMAX/PZMIN)));},{passive:false});
 cv.addEventListener('touchend',e=>{if(!SW)return;if(SW.ax)window.__swp=performance.now();else if(VIEW==='limit'){const n=performance.now();if(n-lastTap<300)setAuto(true);lastTap=n;}SW=null;},{passive:true});
@@ -930,8 +932,11 @@ try{const st=JSON.parse(localStorage.getItem('ofc.sheet')||'null');if(st){setPag
 let sx=null;const pg=$('pages');
 pg.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
 pg.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)setPage(page+(dx<0?1:-1));sx=null;},{passive:true});
-cv.addEventListener('wheel',e=>{e.preventDefault();if(!e.deltaY){if(VIEW==='limit'&&e.deltaX)setPZ(PZ*(e.deltaX>0?1.12:1/1.12));return;}   // sideways scroll: LIMIT price range only, never time
-  if(VIEW==='limit'){const [px,py]=zLocal(e);if(e.shiftKey||pHit(px,py)){const d=e.deltaY||e.deltaX;if(d)setPZ(PZ*(d>0?1.12:1/1.12));return;}}if(SIDE_ZM()){sideZoomTo(SZT*(e.deltaY>0?1.15:1/1.15),true);return;}setAuto(false);rangeFrac*=e.deltaY>0?1.15:1/1.15;rangeFrac=Math.min(ZMAX,Math.max(ZMIN,rangeFrac));},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();
+  if(SIDE_ZM()){const md=e.deltaMode===1?33:e.deltaMode===2?400:1,dy=e.deltaY*md,dx=e.deltaX*md,v=Math.abs(dx)>Math.abs(dy)?-dx:dy;   // SIDE: wheel down / trackpad pinch-out = zoom out; horizontal trackpad scroll follows the touch swipe (fingers left = in)
+    if(v)sideZoomTo(SZT*Math.exp(Math.max(-1.5,Math.min(1.5,v/100))*Math.log(1.15)),true);return;}   // proportional: one mouse notch (100) = x1.15 as before, small trackpad deltas zoom smoothly
+  if(!e.deltaY){if(VIEW==='limit'&&e.deltaX)setPZ(PZ*(e.deltaX>0?1.12:1/1.12));return;}   // sideways scroll: LIMIT price range only, never time
+  if(VIEW==='limit'){const [px,py]=zLocal(e);if(e.shiftKey||pHit(px,py)){const d=e.deltaY||e.deltaX;if(d)setPZ(PZ*(d>0?1.12:1/1.12));return;}}setAuto(false);rangeFrac*=e.deltaY>0?1.15:1/1.15;rangeFrac=Math.min(ZMAX,Math.max(ZMIN,rangeFrac));},{passive:false});
 cv.addEventListener('dblclick',e=>{if(performance.now()-pillT<700)return;if(window.__lgHit&&__lgHit(e.clientX,e.clientY))return;setAuto(true);});
 // VIEW mode: LIMIT (default) = order book only, inbound time motion (past streams toward the dial)
 //            MARKET         = trades only, outbound time motion (recedes from the dial)
@@ -2062,17 +2067,17 @@ function drawZRead(now){const a=now-ZRD.t;if(a>1300||!ZRD.txt)return;const al=a<
   ctx.fillStyle='rgba(5,3,12,.8)';ctx.fillRect(CX-w/2,y-h/2,w,h);ctx.strokeStyle='rgba(0,240,255,.55)';ctx.lineWidth=1;ctx.strokeRect(CX-w/2+.5,y-h/2+.5,w-1,h-1);
   ctx.fillStyle='#00f0ff';ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?10:0;ctx.fillText(ZRD.txt,CX,y+1);ctx.restore();}
 let pDrag=false;
-function pHit(px,py){const P=pbarGeom();return P&&Math.abs(px-P.x)<18&&py>P.y0-14&&py<P.y1+8?P:null;}
+function pHit(px,py){if(SIDE_ZM())return null;const P=pbarGeom();return P&&Math.abs(px-P.x)<18&&py>P.y0-14&&py<P.y1+8?P:null;}
 function pSet(py,P){setPZ(pzV((P.y1-py)/(P.y1-P.y0)));}
 // tap/drag the bar to set zoom (touch + mouse); stays out of pinch / double-tap handling
 let zDrag=false, pillT=0;
-function pillHit(px,py){const Z=zbarGeom();return !!(Z&&Z.pw&&px>Z.px-6&&px<Z.px+Z.pw+6&&py>Z.py-6&&py<Z.py+Z.ph+6);}
+function pillHit(px,py){if(SIDE_ZM())return false;const Z=zbarGeom();return !!(Z&&Z.pw&&px>Z.px-6&&px<Z.px+Z.pw+6&&py>Z.py-6&&py<Z.py+Z.ph+6);}
 const raEff=()=>intro?intro.ra:rangeAuto;   // during the intro the saved time-AUTO state counts
 const autoOn=()=>raEff()&&(VIEW!=='limit'||PAUTO);   // lit only when every axis of this view is AUTO
 function pillTap(){const n=performance.now();if(n-pillT<450)return;pillT=n;if(intro){rangeAuto=intro.ra;intro=null;}if(autoOn()){if(rangeAuto)rangeFrac=ZMAX;setAuto(false);setPAuto(false);}else setAuto(true);syncZA();}   // one AUTO: on = time + price, off = both manual   // AUTO off -> ease to fully zoomed out (MARKET 60 s / LIMIT 60 s) until the user zooms
 function syncZA(){const b=$('zauto'),on=autoOn();if(b&&b.classList.contains('lit')!==on)b.classList.toggle('lit',on);}
 $('zauto').onclick=()=>{pillTap();};  // ON snaps back to auto-fit
-function zHit(px,py){const Z=zbarGeom();return Z&&Math.abs(px-Z.x)<18&&py>Z.y0-14&&py<Z.y1+8?Z:null;}
+function zHit(px,py){if(SIDE_ZM())return null;const Z=zbarGeom();return Z&&Math.abs(px-Z.x)<18&&py>Z.y0-14&&py<Z.y1+8?Z:null;}
 function zSet(py,Z){setAuto(false);rangeFrac=zR((Z.y1-py)/(Z.y1-Z.y0));}
 function zLocal(e){const r=cv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
 cv.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const [px,py]=zLocal(e.touches[0]);if(pillHit(px,py)){pillTap();e.stopImmediatePropagation();return;}const Z=zHit(px,py);if(Z){zDrag=true;zSet(py,Z);e.stopImmediatePropagation();return;}const P=pHit(px,py);if(P){pDrag=true;pSet(py,P);e.stopImmediatePropagation();}},{passive:true,capture:true});
@@ -2193,12 +2198,14 @@ function frame(){
 // like the live view); side view (ROT=1) yaws the tube ~65 deg (+ slight pitch) so time runs left->right and price becomes HEIGHT
 // (the swirl coils tightly around the price line). ROT morphs both camera and geometry, so it reads as the same object turning.
 let ROT=(()=>{const m=location.search.match(/[?&]rot=([\d.]+)/);return m?Math.max(0,Math.min(1,+m[1])):0;})(),ROTT=ROT;   // opens in the FRONT view (?rot=1 opens SIDE)
-// SIDE zoom: continuous 5..60 min (SPAN = eased current, SZT = target; eased in log space). Swipe up/down (phone), wheel / trackpad pinch (PC), two-finger pinch;
-// 5M/15M/60M are quick jumps that ease to that zoom. Target saved (ofc.sideSpan). Tilt follows zoom: ~9 deg at 5 min -> 25 deg (the old fixed 65 deg yaw) at 60 min.
+// SIDE zoom: continuous 5..60 min (SPAN = eased current, SZT = target; eased in log space). Swipe LEFT/RIGHT (phone: drag the timeline -- left = zoom in toward
+// 5 min / NOW, right = out), wheel / horizontal trackpad scroll / trackpad pinch (PC), two-finger pinch; 5M/15M/60M are quick jumps that ease to that zoom.
+// Target saved (ofc.sideSpan). Tilt + layout follow zoom (log scale): 5 min = FLAT (0 deg, no pitch, near-orthographic, centred and enlarged, gauge perched
+// on the PAST end) -> 60 min = the tilted 25 deg layout (65 deg yaw + 11 deg pitch).
 const SZMIN=300,SZMAX=3600,szC=v=>Math.max(SZMIN,Math.min(SZMAX,+v||900));
 let SPAN=(()=>{const m=location.search.match(/[?&]span=(\d+)/);if(m)return szC(+m[1]);try{const v=+localStorage.getItem('ofc.sideSpan');return v>0?szC(v):900;}catch(e){return 900;}})();
 let SZT=SPAN,SZsv=0,SZchg=-1e9,SZt=0,SZR={txt:'',t:-1e9};
-const sideTilt=sp=>9+16*Math.max(0,Math.min(1,Math.log(sp/SZMIN)/Math.log(SZMAX/SZMIN)));
+const sideU=sp=>Math.max(0,Math.min(1,Math.log(sp/SZMIN)/Math.log(SZMAX/SZMIN))), sideTilt=sp=>25*sideU(sp), sideFlat=sp=>1-sideU(sp);   // u: 0 at 5 min .. 1 at 60 min; flat = 1-u
 const SIDE_ZM=()=>VIEW==='market'&&(SANI?SANI.to:ROTT)>0.5;   // gestures drive the SIDE zoom while in (or turning to) the side view
 function sideZoomTo(v,rd){SZT=szC(v);SZsv=performance.now()+500;if(rd)SZR={txt:(SZT/60<9.95?(SZT/60).toFixed(1).replace(/\.0$/,''):Math.round(SZT/60))+' MIN',t:performance.now()};}
 let TRUE=true;   // side view always uses the true line: raw hi/lo, no smoothing, coil only during the swap (TRUE button, saved setting and ?true= removed)
@@ -2259,27 +2266,40 @@ setInterval(()=>{if(SIDE_ON())sideSeries();},500);
 // to the arc's inner edge; diamond centred on the arc; labels just outside the arc
 function arcOffs(Rpx,kR,wide){const lw=(wide?6:5)*kR,gap=Math.max(8,0.10*Rpx),cl=gap+lw/2,HL=(wide?10.5:11.5)*Math.max(0.55,kR),kComp=Math.min(2.0,Math.max(1,0.92/kR)),fs=Math.max(wide?10:8.5,(wide?12:8)*0.8)*kComp;
   return {lw,gap,cl,HL,lb:cl+lw/2+3,fs};}
+// aggressor gauge mapping: plane point (x,y) of the ring at depth z -> screen. fG=0: the ring's own perspective (concentric with the tube, as before);
+// fG=1 (flat side view): a screen-facing semicircle of radius Rg perched on top of the PAST end (its left foot on the ring's top point, 6 px above the
+// tube) so it never crosses the chart; in between the two blend point by point (smooth morph with the zoom and with the FRONT<->SIDE swap).
+function gaugeMap(prj,RT,z,fG,Rg,wide){const C=prj(0,0,z);if(fG<=0.0005)return {G:(x,y)=>prj(x,y,z),C0:C,ppu:C[2]};
+  const T=prj(0,RT,z),co=arcOffs(Rg,1,wide).cl,bx=T[0]+Rg+co,by=T[1]-6,sB=Rg/RT;
+  return {G:(x,y)=>{const q=prj(x,y,z);return [q[0]+(bx+x*sB-q[0])*fG,q[1]+(by-y*sB-q[1])*fG,q[2]];},C0:[C[0]+(bx-C[0])*fG,C[1]+(by-C[1])*fG,C[2]],ppu:C[2]+(sB-C[2])*fG};}
+const gaugeR=(RT,wide)=>Math.max(wide?44:34,Math.min(wide?170:90,RT*0.30));   // perched gauge radius (flat)
 let SFIT={k:''};
-function sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW){const key=[W,H,top,bot,HTW,BLW,PS.toFixed(4)].join('|');if(SFIT.k===key)return SFIT.v;
-  const cp=Math.cos(PS),sp=Math.sin(PS),cf=Math.cos(FS2),sf=Math.sin(FS2),m=WIDE?16:6,av=W-2*m;
-  const ext=(RT,Ls)=>{const Lz=Ls/sp,pv=Lz/2,X=(x,y,z)=>{const zr=z+pv,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Z2=y*sf+Z1*cf,d=Math.max(Dcs*0.15,Dcs-Z2);return X1*Dcs/d;};
-    let lo=Infinity,hi=-Infinity;const GR=RT*1.075;
-    for(let i=0;i<72;i++){const a=i/72*Math.PI*2,c=Math.cos(a),n=Math.sin(a);lo=Math.min(lo,X((RT)*c,(RT)*n,-Lz)-6);hi=Math.max(hi,X((GR+5)*c,(GR+5)*n,0)+3);}
-    {// parked aggressor arc on the PAST ring: same offsets as drawSide (even screen gap, diamond at both extremes, curved labels)
-      const PP=(x,y,z)=>{const zr=z+pv,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Y2=y*cf-Z1*sf,Z2=y*sf+Z1*cf,d=Math.max(Dcs*0.15,Dcs-Z2),k=Dcs/d;return [X1*k,-Y2*k,k];};
-      const kP=PP(0,0,-Lz)[2],kN=PP(0,0,0)[2],kR=Math.max(0.35,Math.min(1.15,kP/kN)),A=arcOffs(RT*kP,kR,WIDE);
-      const ring=a=>PP(RT*Math.cos(a),RT*Math.sin(a),-Lz),nrm=a=>{const q0=ring(a-0.002),q1=ring(a+0.002),c=PP(0,0,-Lz);let nx=q1[1]-q0[1],ny=-(q1[0]-q0[0]);const l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;const b=ring(a);if((b[0]-c[0])*nx+(b[1]-c[1])*ny<0){nx=-nx;ny=-ny;}return [b[0],nx];};
-      for(let i=0;i<=40;i++){const a=Math.PI*(0.03+0.94*i/40),[bx,nx]=nrm(a);lo=Math.min(lo,bx+nx*(A.cl+A.HL)-(WIDE?6:8));}   // diamond keeps a clear margin from the left screen edge at full BUYERS
-      const dtL=WIDE?0.62:0.72;for(let i=-6;i<=6;i++){const a=Math.PI-dtL+i*0.06,[bx,nx]=nrm(a);lo=Math.min(lo,bx+nx*(A.lb+A.fs)-4);}}
-    for(const y of [-0.92,0,0.92])hi=Math.max(hi,X(0,RT*0.8*y,0)+16+HTW+4);   // live price label right of the head
-    for(const y of [-0.75,0,0.75])lo=Math.min(lo,X(0,RT*0.8*y,-Lz)-4);   // price labels at PAST
-    return [lo,hi];};
-  let RT=Math.min((H-top-bot)*0.36,W*(WIDE?0.24:0.34)),Ls=W*(WIDE?0.80:0.86)-0.5*RT,e=ext(RT,Ls);
-  for(let it=0;it<8;it++){const w=e[1]-e[0];if(Math.abs(av-w)<1)break;
+// fl = flatness (1 at 5 min). Horizontal: as before (spare width -> longer tube, content centred). Vertical: tilted end keeps RT<=36% of the stage height
+// around the stage centre; flat end sizes RT so gauge (top) .. time labels (bottom) fill the stage height and centres that content; blended by fl.
+function sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW,fl,TLW,fsT){const key=[W,H,top,bot,HTW,BLW,PS.toFixed(4),fl.toFixed(4),TLW].join('|');if(SFIT.k===key)return SFIT.v;
+  const cp=Math.cos(PS),sp=Math.sin(PS),cf=Math.cos(FS2),sf=Math.sin(FS2),m=WIDE?16:6,av=W-2*m,botF=WIDE?44:34,avF=H-top-botF;
+  const ext=(RT,Ls)=>{const Lz=Ls/sp,pv=Lz/2,PP=(x,y,z)=>{const zr=z+pv,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Y2=y*cf-Z1*sf,Z2=y*sf+Z1*cf,d=Math.max(Dcs*0.15,Dcs-Z2),k=Dcs/d;return [X1*k,-Y2*k,k];};
+    let lo=Infinity,hi=-Infinity,vt=Infinity,vb=-Infinity;const GR=RT*1.075;
+    for(let i=0;i<72;i++){const a=i/72*Math.PI*2,c=Math.cos(a),n=Math.sin(a),q=PP(RT*c,RT*n,-Lz),r=PP((GR+5)*c,(GR+5)*n,0);lo=Math.min(lo,q[0]-6);hi=Math.max(hi,r[0]+3);vt=Math.min(vt,q[1]-4,PP(RT*c,RT*n,0)[1]-4);vb=Math.max(vb,q[1]+4);}
+    {// parked aggressor arc on the PAST ring: same mapping/offsets as drawSide (even screen gap, diamond at both extremes, curved labels)
+      const kP=PP(0,0,-Lz)[2],kN=PP(0,0,0)[2],kR=Math.max(0.35,Math.min(1.15,kP/kN)),Rg=gaugeR(RT,WIDE),GM=gaugeMap(PP,RT,-Lz,fl,Rg,WIDE),A=arcOffs(RT*kP+(Rg-RT*kP)*fl,kR+(1-kR)*fl,WIDE);
+      const ring=a=>GM.G(RT*Math.cos(a),RT*Math.sin(a)),c=GM.C0,nrm=a=>{const q0=ring(a-0.002),q1=ring(a+0.002);let nx=q1[1]-q0[1],ny=-(q1[0]-q0[0]);const l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;const b=ring(a);if((b[0]-c[0])*nx+(b[1]-c[1])*ny<0){nx=-nx;ny=-ny;}return [b[0],nx,b[1],ny];};
+      for(let i=0;i<=40;i++){const a=Math.PI*(0.03+0.94*i/40),[bx,nx,by,ny]=nrm(a);lo=Math.min(lo,bx+nx*(A.cl+A.HL)-(WIDE?6:8));vt=Math.min(vt,by+ny*(A.cl+A.HL)-6);}   // diamond keeps a clear margin from the left screen edge at full BUYERS
+      const dtL=WIDE?0.62:0.72;for(let i=-6;i<=6;i++){const a=Math.PI-dtL+i*0.06,[bx,nx,by,ny]=nrm(a);lo=Math.min(lo,bx+nx*(A.lb+A.fs)-4);vt=Math.min(vt,by+ny*(A.lb+A.fs)-4);}}
+    for(const y of [-0.92,0,0.92])hi=Math.max(hi,PP(0,RT*0.8*y,0)[0]+16+HTW+4);   // live price label right of the head
+    for(const y of [-0.75,0,0.75])lo=Math.min(lo,PP(0,RT*0.8*y,-Lz)[0]-4);   // price labels at PAST
+    {const qP=PP(0,-RT,-Lz),qN=PP(0,-RT,0);lo=Math.min(lo,qP[0]-TLW-2);hi=Math.max(hi,qN[0]+16);vb=Math.max(vb,qP[1]+fsT+10,qN[1]+fsT+10);}   // PAST / NOW time labels under the ends
+    return [lo,hi,vt,vb];};
+  const RT0=Math.min((H-top-bot)*0.36,W*(WIDE?0.24:0.34));let RT=RT0,Ls=W*(WIDE?0.80:0.86)-0.5*RT,e;
+  if(fl>0.0005){let RF=avF*0.4;for(let it=0;it<5;it++){const q=ext(RF,Ls),h=q[3]-q[2];RF*=avF/h;}RF=Math.min(RF,W*0.5);RT=RT0+(RF-RT0)*fl;Ls=W*(WIDE?0.80:0.86)-0.5*RT*(1-fl);}
+  e=ext(RT,Ls);
+  for(let it=0;it<10;it++){const w=e[1]-e[0];if(Math.abs(av-w)<1)break;
     if(w>av&&Ls<=W*0.5+1){const k=Math.max(0.8,av/w);RT*=k;}   // tube already short: shrink the rings slightly
     else Ls=Math.max(W*0.5,Ls+(av-w)*0.95);
     e=ext(RT,Ls);}
-  const v={RT,Ls,Cx:m-e[0]+Math.max(0,(av-(e[1]-e[0]))/2)};SFIT={k:key,v};window.__sideFit={RT:+RT.toFixed(1),Ls:+Ls.toFixed(1),Cx:+v.Cx.toFixed(1),lo:+(v.Cx+e[0]).toFixed(1),hi:+(v.Cx+e[1]).toFixed(1),W};return v;}
+  {const h=e[3]-e[2];if(fl>0.0005&&h>avF+1){RT*=avF/h;e=ext(RT,Ls);}}   // safety: never taller than the stage
+  const CYf=(top+H-botF)/2-(e[2]+e[3])/2,Cy=CYs+(CYf-CYs)*fl;
+  const v={RT,Ls,Cx:m-e[0]+Math.max(0,(av-(e[1]-e[0]))/2),Cy,Rg:gaugeR(RT,WIDE)};SFIT={k:key,v};window.__sideFit={RT:+RT.toFixed(1),Ls:+Ls.toFixed(1),Cx:+v.Cx.toFixed(1),Cy:+Cy.toFixed(1),lo:+(v.Cx+e[0]).toFixed(1),hi:+(v.Cx+e[1]).toFixed(1),top:+(Cy+e[2]).toFixed(1),bot:+(Cy+e[3]).toFixed(1),W,H,fl:+fl.toFixed(3)};return v;}
 let SMX={sg:0,ev:[]},SNSP=[],SNSPt=0,SSPK={h:[],typ:0,tt:0,k0:Date.now()};
 function drawSide(now){
   if(!SDS.P||SDS.span!==SPAN||SDS.tr!==TRUE)sideSeries();if(!SDS.P)return;
@@ -2294,14 +2314,15 @@ function drawSide(now){
   const s=ROT*ROT*(3-2*ROT), L=(a,b)=>a+(b-a)*s, N=SDS.N, P=SDS.P, MA=SDS.MA, SD=SDS.SD, dt=SDS.dt/1000;
   const top=WIDE?58:44, bot=WIDE?64:74, CYs=(top+H-bot)/2;
   const RTf=RMAX, Dcf=RMAX*2.4, Lzf=Dcf*HIST_SEC/Math.max(1,FOCAL);   // front end = the front view's own tunnel: mouth radius RMAX, depth perspective FOCAL/(FOCAL+dz)
-  const PS=(90-sideTilt(SPAN))*Math.PI/180, FS2=11*Math.PI/180, Dcs=Math.max(W,H)*2.6;
+  const FL=sideFlat(SPAN), PS=(90-sideTilt(SPAN))*Math.PI/180, FS2=11*(1-FL)*Math.PI/180, Dcs=Math.max(W,H)*2.6*(1+2*FL);   // flat: 90 deg yaw, no pitch, 3x camera distance (near-orthographic: end rings read as clean thin lines)
   ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const HTW=Math.ceil(ctx.measureText(hubTxt().replace(/\d/g,'8')).width/8)*8;   // widest-digit, 8 px steps: the fit never re-sizes the tube on price ticks
-  ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;const BLW=Math.ceil(ctx.measureText('SELLERS').width);ctx.restore();
-  const FIT=sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW), RTs=FIT.RT, Ls=FIT.Ls, Lzs=Ls/Math.sin(PS);
+  ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;const BLW=Math.ceil(ctx.measureText('SELLERS').width);
+  ctx.font=`700 ${WIDE?11:9}px "Share Tech Mono",monospace`;const TLW=Math.ceil((ctx.measureText('PAST -60m').width+6)/2);ctx.restore();
+  const FIT=sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW,FL,TLW,WIDE?11:9), RTs=FIT.RT, Ls=FIT.Ls, Lzs=Ls/Math.sin(PS);
   // camera turn runs on sc (reaches 0 already at s~0.22): over the whole crossfade/landing the tube axis IS the front dial's axis (centre CX,CY,
   // ring radii = the front's rings), so the coils wind down the tunnel straight into the front geometry instead of landing off-axis
   const sc=(v=>v<=0?0:v>=1?1:v*v*(3-2*v))((s-0.22)/0.78), Lc=(a,b)=>a+(b-a)*sc;
-  const RT=Lc(RTf,RTs), Dc=Lc(Dcf,Dcs), Lz=Lc(Lzf,Lzs), Cx=Lc(CX,FIT.Cx), Cy=Lc(CY,CYs), psi=sc*PS, phi=sc*FS2, pivot=sc*Lz/2;
+  const RT=Lc(RTf,RTs), Dc=Lc(Dcf,Dcs), Lz=Lc(Lzf,Lzs), Cx=Lc(CX,FIT.Cx), Cy=Lc(CY,FIT.Cy), fG=FL*sc, psi=sc*PS, phi=sc*FS2, pivot=sc*Lz/2;
   const cp=Math.cos(psi),sp=Math.sin(psi),cf=Math.cos(phi),sf=Math.sin(phi);
   const pr=(x,y,z)=>{const zr=z+pivot,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Y2=y*cf-Z1*sf,Z2=y*sf+Z1*cf,d=Math.max(Dc*0.15,Dc-Z2),k=Dc/d;return [Cx+X1*k,Cy-Y2*k,k];};
   const NL=24-20*s, LPs=SPAN/NL, tNow=Date.now()/1000, Hh=RT*0.8, rs=RT*0.07;
@@ -2350,10 +2371,10 @@ function drawSide(now){
       ctx.globalAlpha=SA*la*L.al;ctx.fillStyle='rgba(5,3,12,.6)';ctx.fillRect(bx,by,w,bh);ctx.fillStyle=L.a===0?'rgba(255,230,0,.9)':`rgba(0,240,255,${(0.9-0.45*L.a/SPe).toFixed(3)})`;ctx.fillText(L.txt,x,y);ctx.globalAlpha=SA*1;}}
   const zArc=-Lz*s;   // slide: FRONT->SIDE rides down the tunnel to PAST; SIDE->FRONT rides back up
   // aggressor-arc geometry (shared by the PAST price labels, which step clear of it, and the arc block below)
-  const ARCG=(()=>{const kNow=pr(0,0,0)[2],kArc=pr(0,0,zArc)[2],kR=Math.max(0.35,Math.min(1.15,kArc/Math.max(1e-6,kNow))),C0=pr(0,0,zArc),RTpx=RT*kArc,AO=arcOffs(RTpx,kR,WIDE);
-    const rg=a=>pr(RT*Math.cos(a),RT*Math.sin(a),zArc);
+  const ARCG=(()=>{const kNow=pr(0,0,0)[2],kA0=pr(0,0,zArc)[2],GM=gaugeMap(pr,RT,zArc,fG,FIT.Rg,WIDE),G=GM.G,C0=GM.C0,kArc=GM.ppu,kR=Math.max(0.35,Math.min(1.15,kA0/Math.max(1e-6,kNow)))*(1-fG)+fG,RTpx=RT*kArc,AO=arcOffs(RTpx,kR,WIDE);
+    const rg=a=>G(RT*Math.cos(a),RT*Math.sin(a));
     const off=(a,o)=>{const q0=rg(a-0.002),q1=rg(a+0.002),b=rg(a);let nx=q1[1]-q0[1],ny=-(q1[0]-q0[0]);const l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;if((b[0]-C0[0])*nx+(b[1]-C0[1])*ny<0){nx=-nx;ny=-ny;}return [b[0]+nx*o,b[1]+ny*o,nx,ny];};
-    return {kNow,kArc,kR,C0,RTpx,AO,off,lw:L(WIDE?6:5,AO.lw),cl:L(30,AO.cl),lb:L(36,AO.lb)};})();
+    return {kNow,kArc,kR,C0,RTpx,AO,off,G,lw:L(WIDE?6:5,AO.lw),cl:L(30,AO.cl),lb:L(36,AO.lb)};})();
   // price grid (side view): faint level lines along the tube + labels at the PAST end (each label steps right past the parked arc if they'd touch)
   if(s>0.35){const gq=Math.min(1,(s-0.35)/0.4);ctx.textAlign='left';ctx.font=`${WIDE?11:10}px "Share Tech Mono",monospace`;
     for(const g of [-0.75,0,0.75]){const y=Hh*g;const a0=pr(0,y,0),a1=pr(0,y,-Lz);ctx.strokeStyle=`rgba(120,170,255,${(0.10*gq).toFixed(3)})`;ctx.lineWidth=1;ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();ctx.setLineDash([]);
@@ -2369,7 +2390,7 @@ function drawSide(now){
   // aggressor arc / diamond / labels at zArc (after PAST glow so they sit on top of it when parked left).
   // Concentric with the ring at zArc (same centre, same perspective ellipse), offset along the SCREEN normal by an even gap so it never hugs the ring
   // where the ellipse is narrow; FRONT end keeps the front's geometry (RMAX+30, labels +6).
-  {const {kArc,kR,RTpx,AO,off,lw,cl,lb}=ARCG;
+  {const {kArc,kR,RTpx,AO,off,G,lw,cl,lb}=ARCG;
     window.__arcGeo={RTpx:+RTpx.toFixed(1),gap:+AO.gap.toFixed(1),cl:+cl.toFixed(1),lw:+lw.toFixed(1)};
     const NA=48;ctx.save();ctx.lineCap='butt';ctx.globalAlpha=SA*.55;ctx.lineWidth=lw;
     for(let i=0;i<NA;i++){const a0=Math.PI*i/NA,a1=Math.PI*(i+1)/NA+0.003,t=(1+Math.cos((a0+a1)/2))/2,c=t<0.5?COL.bid.map((x,k)=>Math.round(x+(COL.yl[k]-x)*t*2)):COL.yl.map((x,k)=>Math.round(x+(COL.ask[k]-x)*(t-0.5)*2));
@@ -2381,22 +2402,25 @@ function drawSide(now){
     const dia=k=>{ctx.beginPath();ctx.moveTo(p[0]+ux*HL*k,p[1]+uy*HL*k);ctx.lineTo(p[0]+vx*HW*k,p[1]+vy*HW*k);ctx.lineTo(p[0]-ux*HL*k,p[1]-uy*HL*k);ctx.lineTo(p[0]-vx*HW*k,p[1]-vy*HW*k);ctx.closePath();};
     // curved labels just outside the arc: glyphs placed on the offset curve, drawn in the ring's perspective (local affine), front layout/angles
     if(s>0.25){const la=Math.min(1,(s-0.25)/0.35),kq=RT/Math.max(1,RMAX),fF=WIDE?Math.round(Math.min(17,Math.max(12,RMAX/30))):8,
-        fs=L(Math.max(WIDE?9:6.5,fF*kq),AO.fs),dtL=WIDE?0.62:0.72,rP=RT+lb/Math.max(1e-6,kArc),spL=(WIDE?2:0.7)*kq;
+        fs=L(Math.max(WIDE?9:6.5,fF*kq),AO.fs),dtL=WIDE?0.62:0.72,rP=RT+lb/Math.max(1e-6,kArc),spL=(WIDE?2:0.7)*kq,lsc=1+(FIT.Rg/RT-1)*fG,rPs=rP*lsc;   // lsc: plane->screen scale of the perched (flat) gauge; glyphs stay unit-size
       ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);{const k=1+4/HW;ctx.moveTo(p[0]+ux*HL*k,p[1]+uy*HL*k);ctx.lineTo(p[0]+vx*HW*k,p[1]+vy*HW*k);ctx.lineTo(p[0]-ux*HL*k,p[1]-uy*HL*k);ctx.lineTo(p[0]-vx*HW*k,p[1]-vy*HW*k);ctx.closePath();}ctx.clip('evenodd');
       ctx.font=`700 ${fs.toFixed(1)}px Orbitron,sans-serif`;ctx.textAlign='center';ctx.textBaseline='alphabetic';const dd=Math.max(1,RT*0.01);
       for(const [txt,th0,cc,on] of [['BUYERS',Math.PI+dtL,COL.bid,f.r>0.15],['SELLERS',2*Math.PI-dtL,COL.ask,f.r<-0.15]]){
         ctx.fillStyle=rgba(cc,((on?1:0.7)*la).toFixed(3));ctx.shadowColor=rgba(cc,1);ctx.shadowBlur=Q>0?(on?12:4):0;
-        const ws=[...txt].map(ch=>ctx.measureText(ch).width+spL),tot=ws.reduce((x,y)=>x+y,0);let a=th0-tot/2/rP;
-        [...txt].forEach((c,i)=>{const d=ws[i]/rP,am=a+d/2;a+=d;
-          const pa=-am,q0=off(pa,lb),gx=RT*Math.cos(pa),gy=RT*Math.sin(pa),b0=pr(gx,gy,zArc),qx=pr(gx+dd,gy,zArc),qy=pr(gx,gy-dd,zArc);   // front angle am (y down) = plane angle -am
-          ctx.save();ctx.transform((qx[0]-b0[0])/dd,(qx[1]-b0[1])/dd,(qy[0]-b0[0])/dd,(qy[1]-b0[1])/dd,q0[0],q0[1]);ctx.rotate(am+Math.PI/2);ctx.fillText(c,0,0);ctx.restore();});}
+        const ws=[...txt].map(ch=>ctx.measureText(ch).width+spL),tot=ws.reduce((x,y)=>x+y,0);let a=th0-tot/2/rPs;
+        [...txt].forEach((c,i)=>{const d=ws[i]/rPs,am=a+d/2;a+=d;
+          const pa=-am,q0=off(pa,lb),gx=RT*Math.cos(pa),gy=RT*Math.sin(pa),b0=G(gx,gy),qx=G(gx+dd,gy),qy=G(gx,gy-dd);   // front angle am (y down) = plane angle -am
+          ctx.save();ctx.transform((qx[0]-b0[0])/dd/lsc,(qx[1]-b0[1])/dd/lsc,(qy[0]-b0[0])/dd/lsc,(qy[1]-b0[1])/dd/lsc,q0[0],q0[1]);ctx.rotate(am+Math.PI/2);ctx.fillText(c,0,0);ctx.restore();});}
       ctx.shadowBlur=0;ctx.restore();}
     ctx.save();ctx.shadowColor=rgba(col,1);ctx.shadowBlur=Q>0?22*kR:10;ctx.fillStyle=rgba(col,1);dia(1);ctx.fill();ctx.shadowBlur=0;ctx.lineWidth=Math.max(0.8,1.2*kR);ctx.strokeStyle='rgba(255,255,255,.7)';dia(1);ctx.stroke();ctx.fillStyle='rgba(255,255,255,.55)';dia(0.32);ctx.fill();ctx.restore();
     window.__arcDia={x:+(p[0]-HL).toFixed(1),xr:+(p[0]+HL).toFixed(1),y:+p[1].toFixed(1),an:+an.toFixed(3)};}
   // logo hub at the centre of the NOW ring, lying in the ring plane (turns with the tube): solid-ish disc, 24 turning ticks locked to the head's clock,
   // traffic pulse ring + corona (same HUB state/rules as the front view). Drawn BEHIND the price line so the head is never covered.
-  {const C0=pr(0,0,0);SHUB=C0;const d=RT*0.01,ex=pr(d,0,0),ey=pr(0,d,0),R0s=Math.max(16,RT*0.17);SHUBM={m:[(ex[0]-C0[0])/d,(ex[1]-C0[1])/d,-(ey[0]-C0[0])/d,-(ey[1]-C0[1])/d,C0[0],C0[1]],RT,t:now};
-    ctx.save();ctx.transform((ex[0]-C0[0])/d,(ex[1]-C0[1])/d,-(ey[0]-C0[0])/d,-(ey[1]-C0[1])/d,C0[0],C0[1]);const LWk=1/Math.max(0.35,Math.cos(psi));
+  // flat: the NOW plane is edge-on, so the hub keeps a readable 0.42-aspect face (= its look at 60 min) instead of collapsing to a sliver (blend fG)
+  {const C0=pr(0,0,0);SHUB=C0;const d=RT*0.01,ex=pr(d,0,0),ey=pr(0,d,0),R0s=Math.max(16,RT*0.17);
+    let a0=(ex[0]-C0[0])/d,a1=(ex[1]-C0[1])/d;const a2=-(ey[0]-C0[0])/d,a3=-(ey[1]-C0[1])/d,ly=Math.hypot(a2,a3)||1;a0+=(ly*0.42-a0)*fG;a1+=(0-a1)*fG;
+    const M6=[a0,a1,a2,a3,C0[0],C0[1]];SHUBM={m:M6,RT,t:now};
+    ctx.save();ctx.transform(...M6);const LWk=1/Math.max(0.35,Math.cos(psi)+(Math.min(1,Math.hypot(a0,a1)/ly)-Math.cos(psi))*fG);
     ctx.fillStyle=`rgba(6,9,20,${(0.45+0.4*(1-ga)).toFixed(3)})`;ctx.beginPath();ctx.arc(0,0,R0s+1,0,TAU);ctx.fill();
     const g=ctx.createRadialGradient(0,0,0,0,0,R0s);g.addColorStop(0,'rgba(0,240,255,0.22)');g.addColorStop(1,'rgba(0,240,255,0.02)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,R0s,0,TAU);ctx.fill();
     ctx.strokeStyle='#00f0ff';ctx.lineWidth=1.5*LWk;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?16:0;ctx.stroke();ctx.shadowBlur=0;
