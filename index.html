@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261007-1400';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261007-1934';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -39,6 +39,8 @@ html,body{width:100%;height:100%;height:100dvh;height:var(--apph,100dvh);overflo
 #stage{order:2;flex:1 1 auto;min-height:0;position:relative}
 #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #vcv{order:3;flex:0 0 40px;width:100%;height:40px;display:block}
+#pmk{order:3;flex:0 0 auto;display:none;margin:-2px 6px 0;font:9.5px/12px 'Share Tech Mono',ui-monospace,monospace;color:rgba(160,190,220,.6);text-align:center;white-space:normal;pointer-events:none}   /* past-only pattern tally line under the volume strip (phone) */
+#pmk.on{display:block}
 #scan{position:absolute;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0px,rgba(0,0,0,.28) 1px,transparent 1px,transparent 3px)}
 #lcv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:9}   /* logos: always the very foreground */
 #vig{position:absolute;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.5) 100%)}
@@ -118,6 +120,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  #top,#vcv,#sheet{margin:0}
  #win{flex-wrap:wrap;row-gap:6px}
  #win button.zauto,#win button.tdir#tdir,#win button.tdir#coinB{flex:1 1 40%}#win button.tdir#coinB{font-size:9px}#win button#coinB i{display:inline;margin:0}
+ #pmk,#pmk.on{display:none}   /* landscape: drawn inside the tall volume column instead */
  #vcv{order:-1;flex:0 0 clamp(130px,10.5vw,270px);width:clamp(130px,10.5vw,270px) !important;height:auto;align-self:stretch;min-height:0}
  #pages{display:block;position:static;max-height:none;margin-top:6px}
  #sheetClose{display:none}
@@ -203,6 +206,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <li><b class="yl">Yellow line</b> = moving average (~window/6). <b class="vi">Violet bands</b> = Bollinger bands (±2 standard deviations): narrow = squeeze, wide = expansion. Each has an on/off switch in <b>TECH</b>.</li>
  <li>A small <b>ring flashes</b> when price crosses the average; <b>sparks</b> glint where the average and bands meet the NOW needle.</li>
  <li><b>Diamond</b> on the outer coloured arc = last 30s of market buys vs sells: left/<b class="gr">green</b> = buyers in control, right/<b class="rd">red</b> = sellers, top/<b class="yl">yellow</b> = balanced.</li>
+ <li><b>“continued 42 of the last 100”</b> (small grey text by the volume strip): how often a pattern's move kept going over the next minute, the last 100 times it showed up. Past only; shown only when clearly off a coin-flip. <i>(all coins)</i> = this coin hasn't had 100 yet.</li>
  <li><b>RSI arc</b> (bottom): RSI 14 on 1-minute candles; left = oversold (&lt;30), right = overbought (&gt;70).</li>
  <li><b>Zoom:</b> AUTO picks the window from traffic. Swipe <b>up</b> = zoom in (shorter), <b>down</b> = out; pinch, wheel or the zoom bar also work. A manual zoom turns AUTO off; double-tap or ZOOM ▸ AUTO turns it back on.</li></ul>
  <h3>MARKET · SIDE VIEW</h3>
@@ -231,7 +235,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  </div>
 </div></div>
 <div id="app">
-<div id="colA"><div id="stage"><canvas id="cv"></canvas><div id="vig"></div><div id="scan"></div><canvas id="lcv"></canvas><div id="credit" aria-hidden="true">Made by JEIMUSON &amp; Grok Bot</div></div><canvas id="vcv"></canvas></div>
+<div id="colA"><div id="stage"><canvas id="cv"></canvas><div id="vig"></div><div id="scan"></div><canvas id="lcv"></canvas><div id="credit" aria-hidden="true">Made by JEIMUSON &amp; Grok Bot</div></div><canvas id="vcv"></canvas><div id="pmk" aria-live="off"></div></div>
 <div id="colB">
 <div class="panel" id="top"><button id="infoBtn" aria-label="what am I looking at?" title="what am I looking at?">i</button>
  <div class="l1"><img class="logo" src="logo-64.png" srcset="logo-64.png 1x, logo-128.png 2x, logo.png 3x" alt="" width="22" height="22"><div class="t1">THE&nbsp;COMPASS</div><div class="conn" id="conn"><span class="dot" style="background:#555"></span>INIT</div></div>
@@ -1577,11 +1581,25 @@ function drawRSI(now){
   ctx.font=`${WIDE?9:8}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.fillStyle='rgba(160,190,220,.55)';ctx.fillText('14 · 1M',CX,yB+(WIDE?12:10));
   ctx.restore();
 }
+// ---------------- pattern tally mark: 'continued X of the last 100' (past record only, from stats/tallies.json; nothing drawn ahead of NOW) ----------------
+let PMK=[];   // [{name,txt}] lines that pass the show rule for this coin
+var PMKV=false;   // true when the volume strip is the tall desktop column (mark drawn inside it)
+(function(){const NM=[['eaten_wall','eaten wall'],['aggressor_burst','burst'],['repeat_pull','repeated pulls']];
+  const pick=d=>{const out=[];if(!d||!d.patterns)return out;const W=+d.window||100;
+    for(const [k,nm] of NM){const P=d.patterns[k];if(!P)continue;const c=P.coins&&P.coins[COIN]&&P.coins[COIN]['60s'],a=P.all&&P.all['60s'];
+      const own=!!(c&&c.n>=100),t=own?c:a;if(!t||t.show!==true||!(t.n>=100)||!isFinite(+t.continued))continue;
+      out.push({name:nm,txt:`continued ${+t.continued} of the last ${Math.min(+t.n,W)}`+(own?'':' (all\u00a0coins)')});}return out;};
+  const el=document.getElementById('pmk');
+  const paint=()=>{if(!el)return;const t=PMK.map(o=>o.name+': '+o.txt).join('  ·  ');if(el.dataset.t!==t){el.dataset.t=t;el.textContent='';PMK.forEach((o,i)=>{if(i)el.append(' · ');const sp=document.createElement('span');sp.style.whiteSpace='nowrap';sp.textContent=o.name+': '+o.txt;el.append(sp);});}const on=!!t&&VIEW==='market'&&!PMKV;if(el.classList.contains('on')!==on){el.classList.toggle('on',on);resize();}};
+  const load=()=>{try{fetch('stats/tallies.json?_='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(d){PMK=pick(d);paint();}}).catch(()=>{});}catch(e){}};
+  window.__pmk={get lines(){return PMK.map(o=>o.name+': '+o.txt)},get vert(){return PMKV},pick,load,paint,set data(d){PMK=pick(d);paint();}};
+  load();setInterval(load,4*60000);setInterval(paint,400);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});})();
 // ---------------- 1m aggressor volume histogram strip ----------------
 const volEase=new Map();
 function drawVolume(now){
-  vx.clearRect(0,0,VW,VH);const cs=sortedCandles(); if(!cs.length)return;
-  if(VH>VW*1.5)return drawVolumeV(now,cs);
+  vx.clearRect(0,0,VW,VH);PMKV=VH>VW*1.5;const cs=sortedCandles(); if(!cs.length)return;
+  if(PMKV)return drawVolumeV(now,cs);
   const top=2, h=VH-4, w=VW-4, x0=2, mid0=top+h/2;
   const bw=VW>700?7:5, n=Math.floor(w/bw), bars=cs.slice(-n);
   let vmax=1e-9;for(const c of bars){vmax=Math.max(vmax,isEx(c)?Math.max(c.bv,c.sv):c.v/2);}
@@ -1616,7 +1634,14 @@ function drawVolume(now){
 // desktop/landscape: tall vertical histogram on the left. Newest minute at the top; buys extend LEFT (bid side), sells RIGHT (ask side)
 function drawVolumeV(now,cs){
   const fs=Math.max(10,Math.min(16,VW/14)), fsB=Math.max(11,Math.min(20,VW/11));
-  const x0=2,w=VW-4,top=2,h=VH-4, hdr=Math.round(fsB*1.3+fs*3.9+12), ftr=Math.round(fsB*2.6+fs*1.6+14);
+  const x0=2,w=VW-4,top=2,h=VH-4, hdr=Math.round(fsB*1.3+fs*3.9+12);
+  // pattern tally mark (MARKET only): small, dim, word-wrapped, between the bars and the trend footer
+  const mf=Math.max(9,Math.round(fs*0.72)), ml=Math.round(mf*1.3), gap=Math.round(ml*0.4), mk=[];
+  if(VIEW==='market'&&PMK.length){vx.save();vx.font=`${mf}px "Share Tech Mono",monospace`;
+    const wrap=(s,col,g)=>{let ln='';for(const wd of s.split(' ')){const t=ln?ln+' '+wd:wd;if(ln&&vx.measureText(t).width>w-12){mk.push([ln,col,g]);g=0;ln=wd;}else ln=t;}if(ln)mk.push([ln,col,g]);};
+    PMK.forEach((o,i)=>{wrap(o.name+':','rgba(190,210,230,.62)',i?gap:0);wrap(o.txt,'rgba(160,190,220,.5)',0);});vx.restore();}
+  if(mk.length&&mk.reduce((a,m)=>a+ml+m[2],0)+10>h*0.4)mk.length=0;   // too short a column: skip the mark rather than crush the bars
+  const mkH=mk.length?mk.reduce((a,m)=>a+ml+m[2],0)+10:0, ftr=Math.round(fsB*2.6+fs*1.6+14)+mkH;
   const pT=top+hdr, pH=h-hdr-ftr, cx=x0+w/2, half=w/2-8, bh=pH>700?6:5, n=Math.max(5,Math.floor(pH/bh)), bars=cs.slice(-n);
   let vmax=1e-9;for(const c of bars){vmax=Math.max(vmax,isEx(c)?Math.max(c.bv,c.sv):c.v/2);}
   const curT=minuteOf(Date.now());
@@ -1653,8 +1678,10 @@ function drawVolumeV(now,cs){
       vx.fillStyle='rgba(255,255,255,.12)';vx.fillRect(x0+3,yb,6,1);}
   });
   if(volEase.size>900){for(const k of volEase.keys()){if(k<bars[0].t)volEase.delete(k);}}
-  // footer: trend
-  const fy=top+h-ftr;vx.strokeStyle='rgba(0,240,255,.25)';vx.beginPath();vx.moveTo(x0+4,fy+4);vx.lineTo(x0+w-4,fy+4);vx.stroke();
+  // footer: pattern tally mark, then trend
+  if(mk.length){const y0=top+h-ftr;vx.strokeStyle='rgba(0,240,255,.12)';vx.beginPath();vx.moveTo(x0+10,y0+4);vx.lineTo(x0+w-10,y0+4);vx.stroke();
+    vx.font=`${mf}px "Share Tech Mono",monospace`;vx.textAlign='center';let my=y0+8;for(const [ln,col,g] of mk){my+=g+ml;vx.fillStyle=col;vx.fillText(ln,cx,my-(ml-mf)/2-1);}}
+  const fy=top+h-ftr+mkH;vx.strokeStyle='rgba(0,240,255,.25)';vx.beginPath();vx.moveTo(x0+4,fy+4);vx.lineTo(x0+w-4,fy+4);vx.stroke();
   vx.textAlign='center';vx.font=`${fs}px "Share Tech Mono",monospace`;vx.fillStyle='rgba(200,215,235,.75)';vx.fillText(`TREND · ${WL(winSec)}`,cx,fy+fs+8);
   if(history.length>10){const tf=trendWin(),up=tf>CC.tr,dn=tf<-CC.tr,c=up?COL.bid:dn?COL.ask:[150,180,210];
     vx.font=`900 ${fsB}px Orbitron,sans-serif`;vx.fillStyle=rgba(c,.95);vx.shadowColor=rgba(c,1);vx.shadowBlur=Q>0?8:0;
