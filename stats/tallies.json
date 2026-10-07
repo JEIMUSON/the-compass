@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "what": "Past-only tallies of three order-flow patterns on the merged 5-venue feed. Not a prediction.",
- "generated_at": "2026-10-07T23:20:48.142Z",
+ "generated_at": "2026-10-07T23:32:48.141Z",
  "window": 100,
  "rule": "'continued' = mid moved in the pattern's implied direction by more than the spread at the event, at +15s / +60s; void outcomes (feed gap / venue set changed) are skipped.",
  "display": "show 'continued X of the last 100' only when n>=100 and rate outside 0.45-0.55 (field 'show'); never draw a projected price.",
@@ -257,29 +257,29 @@
    }
   },
   "aggressor_burst": {
-   "total_logged": 88,
+   "total_logged": 90,
    "all": {
     "15s": {
-     "n": 88,
+     "n": 90,
      "continued_up": 15,
-     "continued_down": 26,
-     "continued": 41,
+     "continued_down": 27,
+     "continued": 42,
      "against": 31,
-     "neutral": 16,
-     "rate": 0.466,
+     "neutral": 17,
+     "rate": 0.467,
      "show": false,
-     "label": "continued 41 of the last 88 (up 15 · down 26)"
+     "label": "continued 42 of the last 90 (up 15 · down 27)"
     },
     "60s": {
-     "n": 88,
+     "n": 90,
      "continued_up": 14,
-     "continued_down": 21,
-     "continued": 35,
+     "continued_down": 22,
+     "continued": 36,
      "against": 36,
-     "neutral": 17,
-     "rate": 0.398,
+     "neutral": 18,
+     "rate": 0.4,
      "show": false,
-     "label": "continued 35 of the last 88 (up 14 · down 21)"
+     "label": "continued 36 of the last 90 (up 14 · down 22)"
     }
    },
    "coins": {
@@ -309,26 +309,26 @@
     },
     "ETH": {
      "15s": {
-      "n": 25,
+      "n": 26,
       "continued_up": 2,
-      "continued_down": 8,
-      "continued": 10,
+      "continued_down": 9,
+      "continued": 11,
       "against": 11,
       "neutral": 4,
-      "rate": 0.4,
+      "rate": 0.423,
       "show": false,
-      "label": "continued 10 of the last 25 (up 2 · down 8)"
+      "label": "continued 11 of the last 26 (up 2 · down 9)"
      },
      "60s": {
-      "n": 25,
+      "n": 26,
       "continued_up": 2,
-      "continued_down": 6,
-      "continued": 8,
+      "continued_down": 7,
+      "continued": 9,
       "against": 13,
       "neutral": 4,
-      "rate": 0.32,
+      "rate": 0.346,
       "show": false,
-      "label": "continued 8 of the last 25 (up 2 · down 6)"
+      "label": "continued 9 of the last 26 (up 2 · down 7)"
      }
     },
     "XRP": {
@@ -381,26 +381,26 @@
     },
     "DOGE": {
      "15s": {
-      "n": 2,
+      "n": 3,
       "continued_up": 0,
       "continued_down": 1,
       "continued": 1,
       "against": 1,
-      "neutral": 0,
-      "rate": 0.5,
+      "neutral": 1,
+      "rate": 0.333,
       "show": false,
-      "label": "continued 1 of the last 2 (up 0 · down 1)"
+      "label": "continued 1 of the last 3 (up 0 · down 1)"
      },
      "60s": {
-      "n": 2,
+      "n": 3,
       "continued_up": 0,
       "continued_down": 1,
       "continued": 1,
       "against": 1,
-      "neutral": 0,
-      "rate": 0.5,
+      "neutral": 1,
+      "rate": 0.333,
       "show": false,
-      "label": "continued 1 of the last 2 (up 0 · down 1)"
+      "label": "continued 1 of the last 3 (up 0 · down 1)"
      }
     },
     "ADA": {
@@ -526,29 +526,29 @@
    }
   },
   "repeat_pull": {
-   "total_logged": 184,
+   "total_logged": 188,
    "all": {
     "15s": {
      "n": 100,
-     "continued_up": 21,
-     "continued_down": 7,
-     "continued": 28,
-     "against": 34,
-     "neutral": 38,
-     "rate": 0.28,
+     "continued_up": 18,
+     "continued_down": 8,
+     "continued": 26,
+     "against": 33,
+     "neutral": 41,
+     "rate": 0.26,
      "show": true,
-     "label": "continued 28 of the last 100 (up 21 · down 7)"
+     "label": "continued 26 of the last 100 (up 18 · down 8)"
     },
     "60s": {
      "n": 100,
-     "continued_up": 30,
-     "continued_down": 12,
+     "continued_up": 29,
+     "continued_down": 13,
      "continued": 42,
-     "against": 45,
-     "neutral": 13,
+     "against": 46,
+     "neutral": 12,
      "rate": 0.42,
      "show": true,
-     "label": "continued 42 of the last 100 (up 30 · down 12)"
+     "label": "continued 42 of the last 100 (up 29 · down 13)"
     }
    },
    "coins": {
@@ -578,26 +578,26 @@
     },
     "ETH": {
      "15s": {
-      "n": 35,
+      "n": 36,
       "continued_up": 7,
       "continued_down": 2,
       "continued": 9,
       "against": 15,
-      "neutral": 11,
-      "rate": 0.257,
+      "neutral": 12,
+      "rate": 0.25,
       "show": false,
-      "label": "continued 9 of the last 35 (up 7 · down 2)"
+      "label": "continued 9 of the last 36 (up 7 · down 2)"
      },
      "60s": {
-      "n": 35,
+      "n": 36,
       "continued_up": 12,
       "continued_down": 3,
       "continued": 15,
-      "against": 19,
+      "against": 20,
       "neutral": 1,
-      "rate": 0.429,
+      "rate": 0.417,
       "show": false,
-      "label": "continued 15 of the last 35 (up 12 · down 3)"
+      "label": "continued 15 of the last 36 (up 12 · down 3)"
      }
     },
     "XRP": {
@@ -626,50 +626,50 @@
     },
     "SOL": {
      "15s": {
-      "n": 45,
+      "n": 46,
       "continued_up": 4,
-      "continued_down": 6,
-      "continued": 10,
+      "continued_down": 7,
+      "continued": 11,
       "against": 18,
       "neutral": 17,
-      "rate": 0.222,
+      "rate": 0.239,
       "show": false,
-      "label": "continued 10 of the last 45 (up 4 · down 6)"
+      "label": "continued 11 of the last 46 (up 4 · down 7)"
      },
      "60s": {
-      "n": 45,
+      "n": 46,
       "continued_up": 10,
-      "continued_down": 10,
-      "continued": 20,
+      "continued_down": 11,
+      "continued": 21,
       "against": 24,
       "neutral": 1,
-      "rate": 0.444,
+      "rate": 0.457,
       "show": false,
-      "label": "continued 20 of the last 45 (up 10 · down 10)"
+      "label": "continued 21 of the last 46 (up 10 · down 11)"
      }
     },
     "DOGE": {
      "15s": {
-      "n": 41,
+      "n": 43,
       "continued_up": 10,
       "continued_down": 0,
       "continued": 10,
       "against": 10,
-      "neutral": 21,
-      "rate": 0.244,
+      "neutral": 23,
+      "rate": 0.233,
       "show": false,
-      "label": "continued 10 of the last 41 (up 10 · down 0)"
+      "label": "continued 10 of the last 43 (up 10 · down 0)"
      },
      "60s": {
-      "n": 41,
-      "continued_up": 14,
+      "n": 43,
+      "continued_up": 15,
       "continued_down": 3,
-      "continued": 17,
-      "against": 16,
+      "continued": 18,
+      "against": 17,
       "neutral": 8,
-      "rate": 0.415,
+      "rate": 0.419,
       "show": false,
-      "label": "continued 17 of the last 41 (up 14 · down 3)"
+      "label": "continued 18 of the last 43 (up 15 · down 3)"
      }
     },
     "ADA": {
