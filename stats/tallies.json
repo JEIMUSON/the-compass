@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "what": "Past-only tallies of three order-flow patterns on the merged 5-venue feed. Not a prediction.",
- "generated_at": "2026-10-07T19:20:48.087Z",
+ "generated_at": "2026-10-07T19:32:48.088Z",
  "window": 100,
  "rule": "'continued' = mid moved in the pattern's implied direction by more than the spread at the event, at +15s / +60s; void outcomes (feed gap / venue set changed) are skipped.",
  "display": "show 'continued X of the last 100' only when n>=100 and rate outside 0.45-0.55 (field 'show'); never draw a projected price.",
@@ -406,126 +406,126 @@
    }
   },
   "repeat_pull": {
-   "total_logged": 53,
+   "total_logged": 58,
    "all": {
     "15s": {
-     "n": 53,
+     "n": 58,
      "continued_up": 10,
      "continued_down": 6,
      "continued": 16,
      "against": 21,
-     "neutral": 16,
-     "rate": 0.302,
+     "neutral": 21,
+     "rate": 0.276,
      "show": false,
-     "label": "continued 16 of the last 53 (up 10 · down 6)"
+     "label": "continued 16 of the last 58 (up 10 · down 6)"
     },
     "60s": {
-     "n": 53,
-     "continued_up": 14,
-     "continued_down": 9,
-     "continued": 23,
-     "against": 27,
-     "neutral": 3,
-     "rate": 0.434,
+     "n": 58,
+     "continued_up": 15,
+     "continued_down": 10,
+     "continued": 25,
+     "against": 28,
+     "neutral": 5,
+     "rate": 0.431,
      "show": false,
-     "label": "continued 23 of the last 53 (up 14 · down 9)"
+     "label": "continued 25 of the last 58 (up 15 · down 10)"
     }
    },
    "coins": {
     "ETH": {
      "15s": {
-      "n": 14,
+      "n": 15,
       "continued_up": 4,
       "continued_down": 0,
       "continued": 4,
       "against": 8,
-      "neutral": 2,
-      "rate": 0.286,
+      "neutral": 3,
+      "rate": 0.267,
       "show": false,
-      "label": "continued 4 of the last 14 (up 4 · down 0)"
+      "label": "continued 4 of the last 15 (up 4 · down 0)"
      },
      "60s": {
-      "n": 14,
-      "continued_up": 6,
+      "n": 15,
+      "continued_up": 7,
       "continued_down": 0,
-      "continued": 6,
-      "against": 8,
-      "neutral": 0,
-      "rate": 0.429,
-      "show": false,
-      "label": "continued 6 of the last 14 (up 6 · down 0)"
-     }
-    },
-    "XRP": {
-     "15s": {
-      "n": 11,
-      "continued_up": 1,
-      "continued_down": 2,
-      "continued": 3,
-      "against": 2,
-      "neutral": 6,
-      "rate": 0.273,
-      "show": false,
-      "label": "continued 3 of the last 11 (up 1 · down 2)"
-     },
-     "60s": {
-      "n": 11,
-      "continued_up": 3,
-      "continued_down": 1,
-      "continued": 4,
-      "against": 6,
-      "neutral": 1,
-      "rate": 0.364,
-      "show": false,
-      "label": "continued 4 of the last 11 (up 3 · down 1)"
-     }
-    },
-    "SOL": {
-     "15s": {
-      "n": 15,
-      "continued_up": 0,
-      "continued_down": 3,
-      "continued": 3,
-      "against": 7,
-      "neutral": 5,
-      "rate": 0.2,
-      "show": false,
-      "label": "continued 3 of the last 15 (up 0 · down 3)"
-     },
-     "60s": {
-      "n": 15,
-      "continued_up": 1,
-      "continued_down": 6,
       "continued": 7,
       "against": 8,
       "neutral": 0,
       "rate": 0.467,
       "show": false,
-      "label": "continued 7 of the last 15 (up 1 · down 6)"
+      "label": "continued 7 of the last 15 (up 7 · down 0)"
+     }
+    },
+    "XRP": {
+     "15s": {
+      "n": 12,
+      "continued_up": 1,
+      "continued_down": 2,
+      "continued": 3,
+      "against": 2,
+      "neutral": 7,
+      "rate": 0.25,
+      "show": false,
+      "label": "continued 3 of the last 12 (up 1 · down 2)"
+     },
+     "60s": {
+      "n": 12,
+      "continued_up": 3,
+      "continued_down": 2,
+      "continued": 5,
+      "against": 6,
+      "neutral": 1,
+      "rate": 0.417,
+      "show": false,
+      "label": "continued 5 of the last 12 (up 3 · down 2)"
+     }
+    },
+    "SOL": {
+     "15s": {
+      "n": 16,
+      "continued_up": 0,
+      "continued_down": 3,
+      "continued": 3,
+      "against": 7,
+      "neutral": 6,
+      "rate": 0.188,
+      "show": false,
+      "label": "continued 3 of the last 16 (up 0 · down 3)"
+     },
+     "60s": {
+      "n": 16,
+      "continued_up": 1,
+      "continued_down": 6,
+      "continued": 7,
+      "against": 9,
+      "neutral": 0,
+      "rate": 0.438,
+      "show": false,
+      "label": "continued 7 of the last 16 (up 1 · down 6)"
      }
     },
     "DOGE": {
      "15s": {
-      "n": 6,
+      "n": 8,
       "continued_up": 4,
       "continued_down": 0,
       "continued": 4,
       "against": 1,
-      "neutral": 1,
-      "rate": 0.667,
+      "neutral": 3,
+      "rate": 0.5,
       "show": false,
-      "label": "continued 4 of the last 6 (up 4 · down 0)"
+      "label": "continued 4 of the last 8 (up 4 · down 0)"
      },
      "60s": {
-      "n": 6,
+      "n": 8,
       "continued_up": 3,
       "continued_down": 0,
       "continued": 3,
       "against": 1,
-      "neutral": 2,
-      "rate": 0.5,
+      "neutral": 4,
+      "rate": 0.375,
       "show": false,
-      "label": "continued 3 of the last 6 (up 3 · down 0)"
+      "label": "continued 3 of the last 8 (up 3 · down 0)"
      }
     },
     "ADA": {
