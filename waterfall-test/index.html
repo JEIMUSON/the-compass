@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='waterfall-20261007-2051';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='waterfall-20261007-2114';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -221,7 +221,7 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <li><b>Price zoom</b> (bar opposite the time bar, ±0.15%–±1%): out shows walls further from price, in spreads the near ones. Phone: swipe ←/→ for price, ↑/↓ for time. Desktop: shift+wheel or the bar. <b>AUTO</b> follows traffic, like time AUTO: dead-slow ±0.15%, normal ±0.5%, busy or a burst ±1%, in clean steps (±0.15/0.25/0.5/0.75/1%; the white halfway circle's boxes show price and ±% there); zooming price by hand turns price AUTO off.</li>
  <li>New walls start at the center and drift outward over time. A wall that stays is <b>holding</b>; one that vanishes was <b>pulled or eaten</b>.</li>
  <li><b class="gr">SUPPORT</b> / <b class="rd">RESISTANCE</b> = the strongest nearby wall on each side.</li>
- <li><b>SIDE ▸</b> (waterfall, test): the tube stands on end. The NOW ring is the lid on top and history pours down; price runs left (<b class="gr">bids</b>) to right (<b class="rd">asks</b>). Glowing columns are walls over time: one that stops mid-stream was <b>pulled</b>, one that stops at the bright price line was <b>eaten</b>. Recorded since the page opened; <b>5M / 15M / 60M</b> pick how far back. Past only.</li>
+ <li><b>SIDE ▸</b> (waterfall, test): the tube stands on end. The NOW ring is the lid on top and history pours down; price runs left (<b class="gr">bids</b>) to right (<b class="rd">asks</b>). Only the biggest walls are drawn (top 6 per side on a phone, 8 on desktop), as raised ribbons over time: taller = bigger. One that stops mid-stream was <b>pulled</b>, one that stops at the bright price line was <b>eaten</b>. Recorded since the page opened; <b>5M / 15M / 60M</b> pick how far back. Past only.</li>
  <li><b>EATEN</b> (bright bite flash) = a wall shrank while trades hit its price. <b>PULLED</b> (ghostly dashed outline) = it vanished with little trading there; repeat pulls in one zone = <b>SPOOF?</b> Just a hint: intent can't be proven.</li></ul>
  <h3>AUTO ZOOM</h3>
  <ul><li><b>MARKET:</b> normal traffic shows ~30s, dead-slow up to 60s. Price moves tighten it; volume bursts snap to a tight 15s time tunnel.</li>
@@ -405,7 +405,7 @@ let ZRD={txt:'',t:-1e9};function zRead(t){ZRD={txt:t,t:performance.now()};}   //
 const PSTEPS=[0.0015,0.0025,0.005,0.0075,0.01];   // ±0.15/0.25/0.5/0.75/1%
 let PAUTO=(()=>{try{return localStorage.getItem('ofc.pauto')!=='0';}catch(e){return true;}})(),PA={want:0,since:0,req:0,ch:0};
 function setPAuto(v){PAUTO=!!v;PA.since=0;PA.want=0;try{localStorage.setItem('ofc.pauto',v?'1':'0');}catch(e){}}
-let pzSaveT=0;function setPZ(v){setPAuto(false);PZ=Math.min(PZMAX,Math.max(PZMIN,v));clearTimeout(pzSaveT);pzSaveT=setTimeout(()=>{try{localStorage.setItem('ofc.pz.'+COIN,PZ.toFixed(5));}catch(e){}},300);zRead('±'+fmtPct(PZ));}   // dispRange = zoom-bar state; PRANGE = price range actually drawn
+let pzSaveT=0;function setPZ(v){setPAuto(false);PZ=Math.min(PZMAX,Math.max(PZMIN,v));clearTimeout(pzSaveT);pzSaveT=setTimeout(()=>{try{localStorage.setItem('ofc.pz.'+COIN,PZ.toFixed(5));}catch(e){}},300);zRead('±'+fmtPct(PZ*(typeof wfMix==='function'&&wfMix()>0.5?wfRF():1)));}   // dispRange = zoom-bar state; PRANGE = price range actually drawn
 function setAuto(v){rangeAuto=!!v;try{localStorage.setItem('ofc.autoZoom',v?'1':'0');}catch(e){}if(v&&typeof setPAuto==='function')setPAuto(true);}   // AUTO on drives time + (LIMIT) price   // user-driven auto-zoom state (persisted)
 // intro: max zoom-in -> max zoom-out over INTRO_MS (ease-in-out), then stays; any user zoom cancels it
 const INTRO_MS=2600; let intro={t0:0,set:null,ra:rangeAuto};   // ra: saved AUTO state, restored when the intro ends
@@ -2497,84 +2497,154 @@ function drawSide(now){
   ctx.font=`${WIDE?12:10}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle='rgba(255,230,0,.85)';ctx.fillText(`SIDE VIEW · ${SPAN/60} MIN`,WIDE?16:10,top-18);
   ctx.restore();}
 // ===================== LIMIT WATERFALL (test page): the LIMIT tube stood on end =====================
-// NOW ring at the TOP (a lid tilted toward the viewer); history pours DOWN the tube and recedes slightly; price runs left (bids) -> right (asks).
-// The sheet through the tube is a heatmap of the merged book over time: a wall that stays draws a falling column, a pulled wall's column stops
+// NOW ring at the TOP (a lid tilted toward the viewer); history pours DOWN the tube and recedes; price runs left (bids) -> right (asks).
+// Only the biggest walls are drawn (top ~8 per side, picked with a persistence score + hysteresis so they don't flicker), each as a raised
+// ribbon: height above the sheet ~ sqrt(size) (capped), lit front face + crest, darker inner side face. A pulled wall's ribbon stops
 // mid-stream, an eaten one stops where the bright mid trail meets it. A record of what already happened: nothing is drawn past NOW.
-// Book history: LIMIT's own buffer (120 s of the top 22 walls) is too short/thin for this, so the waterfall keeps its own capped rolling buffer of
-// every merged level within +-1% of mid: one snapshot per second for 15 min (900) + one per 5 s for 60 min (720). Price is stored as a Float32
-// offset from that snapshot's mid, qty as Float32 -> at most ~(900+720) x 320 levels x 8 B ~ 4 MB (phones keep 110 levels/side -> ~2.8 MB).
+// Book history: the waterfall keeps its own capped rolling buffer built from LIMIT's venue books (the same books LIMIT merges), bucketed
+// finer than the page's merged book (g0 ~ 0.001% of price) so BTC/ETH/SOL/LINK/LTC/AVAX columns aren't blocky at phone zoom:
+// per snapshot the 64 biggest fine buckets per side + the 24 biggest coarse (20 x g0) buckets per side within +-1% of mid, as Int32 bucket
+// index + Float32 qty. One snapshot per second for 15 min (900) + one per 5 s for 60 min (720) -> ~(900+720) x 176 x 8 B ~ 2.3 MB max.
+// Snapshots taken while a venue book is resyncing / joining / leaving (or the merged book jumps) are skipped; the view holds the previous slice.
 var LROT=(()=>{const m=location.search.match(/[?&]wf=([01])/);return m?+m[1]:0;})(),LROTT=LROT,LSANI=null;
 var LSPAN=(()=>{const m=location.search.match(/[?&]lspan=(\d+)/);if(m&&[300,900,3600].includes(+m[1]))return +m[1];try{const v=+localStorage.getItem('ofc.wfSpan');return [300,900,3600].includes(v)?v:300;}catch(e){return 300;}})();
-const WF={fine:[],coarse:[],CAP:LOWDEV()?110:160,NF:900,NC5:720,img:null,glow:null,bt:0,T0:0,dirty:true,qref:0,pRef:0,Ri:0,Rb:0,NR:0,NCOL:0,dtR:1,span:0,t0:0};
-function wfSnap(){if(!BREADY||!mid||!sortedB.length||!sortedA.length)return;const n=Date.now();if(!WF.rdy)WF.rdy=n;if(n-WF.rdy<5000)return;   // skip the first 5 s while venue books are still joining (the merged mid jumps)
-  const lim=PZMAX*1.02,cap=WF.CAP,P=[],Qv=[];let nb=0,na=0;
-  for(const [p,q] of sortedB){const r=(p-mid)/mid;if(r<-lim||nb>=cap)break;P.push(r);Qv.push(q);nb++;}
-  for(const [p,q] of sortedA){const r=(p-mid)/mid;if(r>lim||na>=cap)break;P.push(r);Qv.push(q);na++;}
-  const s={t:n,mid,nb,P:Float32Array.from(P),Q:Float32Array.from(Qv)};
+const WF={fine:[],coarse:[],NF:900,NC5:720,K0:64,K1:24,G1M:20,NB:80,TOP:8,KEEP:11,MINR:3,g0:0,glow:null,bt:0,dirty:true,qw:0,sig:'',sum:0,unst:0,rdy:0,skipped:0,t0:0,view:null,cm:0,ft:0,bms:0,lastSkip:0};
+function wfG0(m){const r=m*1e-5,e=Math.pow(10,Math.floor(Math.log10(r))),x=r/e;return (x<1.5?1:x<2.25?2:x<3.75?2.5:x<7.5?5:10)*e;}
+function wfSnap(){if(!BREADY||!mid)return;const n=Date.now();if(!WF.rdy)WF.rdy=n;if(n-WF.rdy<5000)return;   // skip the first 5 s while venue books are still joining
+  if(!WF.g0)WF.g0=wfG0(mid);const g0=WF.g0,lim=PZMAX*1.02,lo=mid*(1-lim),hi=mid*(1+lim),use=useB();
+  const sig=use.map(B=>B.k+':'+(B.resyncs||0)).join('|'),bm=new Map(),am=new Map();let sum=0;
+  for(const B0 of use){const B=vw(B0);
+    for(const [p,q] of B.b){if(p<lo||p>=mid||!(q>0))continue;const i=Math.floor(p/g0);bm.set(i,(bm.get(i)||0)+q);sum+=q;}
+    for(const [p,q] of B.a){if(p>hi||p<=mid||!(q>0))continue;const i=Math.floor(p/g0);am.set(i,(am.get(i)||0)+q);sum+=q;}}
+  // a venue resyncing / joining / leaving makes the merged book jump for a moment (the faint full-width stripes): skip 3 s of snapshots
+  const jump=WF.sum>0&&(sum<0.6*WF.sum||sum>1.65*WF.sum);
+  if(sig!==WF.sig||jump){if(WF.sig)WF.unst=n+3000;WF.sig=sig;}
+  WF.sum=WF.sum>0?WF.sum+(sum-WF.sum)*0.3:sum;
+  if(n<WF.unst){WF.skipped++;WF.lastSkip=n;return;}
+  const top=(m,k)=>{const a=[...m.entries()];a.sort((x,y)=>y[1]-x[1]);if(a.length>k)a.length=k;const I=new Int32Array(a.length),Qa=new Float32Array(a.length);for(let j=0;j<a.length;j++){I[j]=a[j][0];Qa[j]=a[j][1];}return [I,Qa];};
+  const co=m=>{const o=new Map();for(const [i,q] of m){const j=Math.floor(i/WF.G1M);o.set(j,(o.get(j)||0)+q);}return o;};
+  const [bi,bq]=top(bm,WF.K0),[ai,aq]=top(am,WF.K0),[cbi,cbq]=top(co(bm),WF.K1),[cai,caq]=top(co(am),WF.K1);
+  const s={t:n,mid,bi,bq,ai,aq,cbi,cbq,cai,caq};
   WF.fine.push(s);if(WF.fine.length>WF.NF)WF.fine.shift();
   const C=WF.coarse;if(!C.length||n-C[C.length-1].t>=4800){C.push(s);if(C.length>WF.NC5)C.shift();}
   if(!WF.t0)WF.t0=n;WF.dirty=true;}
 setInterval(wfSnap,1000);
 const wfR=()=>PRANGE*(WIDE?1:0.5);   // phone: half of LIMIT's price zoom (tight; price only gets the screen width), desktop: the same range; follows price AUTO
+const wfRF=()=>WIDE?1:0.5;
 function wfMix(){return VIEW==='limit'&&LROT>0.001?LROT:0;}
 function wfTick(now){if(!LSANI)return;const k=Math.min(1,(now-LSANI.t0)/LSANI.dur),e=k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;LROT=LSANI.from+(LSANI.to-LSANI.from)*e;if(k>=1){LROT=LSANI.to;LSANI=null;}}
 function wfSwap(){const to=LROTT>0.5?0:1;LSANI={from:LROT,to,t0:performance.now(),dur:Math.max(450,950*Math.abs(to-LROT))};LROTT=to;WF.dirty=true;}
-function wfGeo(){const top=WIDE?74:50,bot=WIDE?44:30,a0=WIDE?Math.min(W/2-130,H*0.62):W/2-30,tl=0.2,b0=a0*tl,K=0.7,y0=top+b0,y1=H-bot-b0*1.3/(1+K);
-  return {a0,b0,K,y0,y1,A:d=>a0/(1+K*d),Y:d=>y0+(y1-y0)*d*(1+K)/(1+K*d),Bv:d=>b0*(1+0.6*d)/(1+K*d)};}   // deeper rings: smaller (further away) and a bit rounder (seen more from above)
+function wfGeo(){const top=WIDE?86:60,bot=WIDE?44:30,a0=WIDE?Math.min(W/2-130,H*0.62):W/2-30,tl=0.2,b0=a0*tl,K=0.7,y0=top+b0,y1=H-bot-b0*1.3/(1+K);
+  return {a0,b0,K,y0,y1,A:d=>a0/(1+K*d),Y:d=>y0+(y1-y0)*d*(1+K)/(1+K*d),Bv:d=>b0*(1+0.6*d)/(1+K*d)};}   // deeper rings: smaller (further away) and a bit rounder
 const wfNice=r=>{const e=Math.pow(10,Math.floor(Math.log10(r))),m=r/e;return (m<1.5?1:m<2.25?2:m<3.5?2.5:m<7.5?5:10)*e;};
-const wfBK=()=>CC.band&&COMB_ONE?BUCK/2:BUCK;
-function wfBuild(){const cm=WF.cm||mid;if(!cm)return;const span=LSPAN,co=span>900,src=co?WF.coarse:WF.fine,sdt=co?5:1;
-  const NR=Math.max(10,Math.min(360,Math.round(span/sdt))),dtR=span/NR,NC=WIDE?560:320,Rb=wfR(),Ri=Rb*1.3,pRef=cm;
-  if(!WF.img){WF.img=document.createElement('canvas');WF.glow=document.createElement('canvas');}
-  const I=WF.img;if(I.width!==NC||I.height!==NR){I.width=NC;I.height=NR;}
-  const ix=I.getContext('2d'),T0=Date.now(),Bq=new Float32Array(NR*NC),Aq=new Float32Array(NR*NC),qs=[];
-  const BK=wfBK(),sc=NC/(2*Ri*pRef),wc=Math.max(1,Math.round(BK*sc)),band=!!CC.band;
-  for(let j=src.length-1;j>=0;j--){const s=src[j],age=(T0-s.t)/1000,k=Math.max(0,Math.floor(age/dtR));if(k>=NR)break;const row=k*NC;
-    for(let i=0;i<s.P.length;i++){const px=s.mid*(1+s.P[i]),bid=i<s.nb,off=band?(bid?0:-BK):-BK/2,x0=Math.floor((px+off-pRef)*sc+NC/2);if(x0>=NC||x0+wc<=0)continue;
-      const q=s.Q[i],a=bid?Bq:Aq;for(let c=Math.max(0,x0),c1=Math.min(NC,x0+wc);c<c1;c++)if(q>a[row+c])a[row+c]=q;
-      if((i&1)===0&&Math.abs(px-pRef)<Rb*pRef)qs.push(q);}}
-  if(qs.length){qs.sort((a,b)=>a-b);const qr=Math.max(1e-12,qs[Math.floor(qs.length*0.97)]);WF.qref=WF.qref?WF.qref+(qr-WF.qref)*0.3:qr;}
-  const D=ix.createImageData(NC,NR),px8=D.data,QR=WF.qref||1;
-  for(let i=0;i<NR*NC;i++){const b=Bq[i],a=Aq[i];if(!b&&!a)continue;const bid=b>=a,v=(bid?b:a)/QR,e=Math.pow(Math.min(1,v),1.35),hot=Math.max(0,Math.min(1,(v-0.85)/1.3)),C=bid?COL.bid:COL.ask,o=i*4;
-    px8[o]=C[0]+(255-C[0])*hot*0.75;px8[o+1]=C[1]+(255-C[1])*hot*0.75;px8[o+2]=C[2]+(255-C[2])*hot*0.75;px8[o+3]=Math.round(255*(0.035+0.965*e));}
-  ix.putImageData(D,0,0);
-  const Gc=WF.glow,gw=Math.max(8,Math.round(NC/6)),gh=Math.max(4,Math.round(NR/3));if(Gc.width!==gw||Gc.height!==gh){Gc.width=gw;Gc.height=gh;}
-  const gx=Gc.getContext('2d');gx.clearRect(0,0,gw,gh);gx.imageSmoothingEnabled=true;gx.drawImage(I,0,0,gw,gh);   // downscaled copy = cheap blur when drawn back up (no ctx.filter: not on older iOS)
-  Object.assign(WF,{T0,NR,NCOL:NC,dtR,pRef,Ri,Rb,span});}
-function drawWaterfall(now,M){if(!mid)return;if(!WF.cm||Math.abs(mid-WF.cm)>mid*0.02)WF.cm=mid;WF.cm+=(mid-WF.cm)*0.2;const cm=WF.cm;   // own eased live mid (the page's dispMid is fixed at load)
-  const pn=Date.now(),R=wfR(),span=LSPAN;
-  if((WF.dirty||WF.span!==span||!WF.img||WF.NCOL!==(WIDE?560:320)||R>WF.Rb*1.06||R<WF.Rb/1.6||Math.abs(cm-WF.pRef)>0.12*WF.Ri*WF.pRef)&&pn-WF.bt>140){WF.bt=pn;WF.dirty=false;wfBuild();}
-  const G=wfGeo(),{a0,b0,y0,y1,A,Y,Bv}=G,TAU=Math.PI*2,rv=M>=1?1:Math.min(1,Math.max(0,(M-0.12)/0.88)),src=span>900?WF.coarse:WF.fine,fz=WIDE?13:9;
+const WF_MS=[1,2,5,10,20,40,100,200,400,1000,2000,4000,10000,20000];
+function wfBuild(cm,R,span){if(!WF.g0)return;const tb=performance.now(),co=span>900,src=co?WF.coarse:WF.fine,sdt=co?5:1;
+  const NR=Math.max(10,Math.min(360,Math.round(span/sdt))),dtR=span/NR,g0=WF.g0;
+  const want=2*R*cm/WF.NB/g0,m=WF_MS.find(x=>x>=want*0.8)||WF_MS[WF_MS.length-1];   // view bucket: ~60-100 across the visible range
+  const useC=m>=WF.G1M,div=useC?m/WF.G1M:m,g=g0*m,bLo=Math.floor(cm*(1-R*1.03)/g),bHi=Math.floor(cm*(1+R*1.03)/g);   // rank only what's in view
+  const dms=dtR*1000,Tg=Math.ceil(Date.now()/dms)*dms,WU=Math.min(60,Math.ceil(120/dtR)),NT=NR+WU;   // rows on an absolute time grid -> stable picks between rebuilds
+  const RB=new Array(NT),RA=new Array(NT);
+  const agg=(I,Qa)=>{const o=new Map();for(let i=0;i<I.length;i++){const b=Math.floor(I[i]/div);if(b<bLo||b>bHi)continue;o.set(b,(o.get(b)||0)+Qa[i]);}return o;};
+  for(let j=src.length-1;j>=0;j--){const s=src[j],k=Math.floor((Tg-s.t)/dms);if(k<0)continue;if(k>=NT)break;if(RB[k])continue;
+    RB[k]=useC?agg(s.cbi,s.cbq):agg(s.bi,s.bq);RA[k]=useC?agg(s.cai,s.caq):agg(s.ai,s.aq);}
+  // hold the previous slice across short gaps (skipped resync snapshots, the row filling right now)
+  {const real=Array.from(RB,x=>!!x);let hold=0;for(let k=NT-2;k>=0;k--){if(real[k]){hold=0;continue;}if(RB[k+1]&&hold<3){RB[k]=RB[k+1];RA[k]=RA[k+1];hold++;}}}
+  // pick the biggest walls per side: persistence score (EMA of size, ~3 s), enter in the top TOP, leave only below rank KEEP -> stable, no flicker
+  const al=1-Math.exp(-dtR/3),qmin=(WF.qw||0)*0.08;
+  const pick=rows=>{const S=new Map(),cur=new Set(),out=new Array(NR);
+    for(let k=NT-1;k>=0;k--){const Mr=rows[k];
+      for(const [b,v] of S){const q=Mr&&Mr.get(b)||0,nv=v+(q-v)*al;if(nv<1e-15)S.delete(b);else S.set(b,nv);}
+      if(!Mr){cur.clear();continue;}
+      for(const [b,q] of Mr)if(!S.has(b))S.set(b,q*al);
+      const rk=[];for(const [b,q] of Mr)if(q>qmin)rk.push([b,S.get(b)]);rk.sort((x,y)=>y[1]-x[1]);
+      const keep=new Set();for(let i=0;i<Math.min(rk.length,WF.KEEP);i++)keep.add(rk[i][0]);
+      for(const b of cur)if(!keep.has(b))cur.delete(b);
+      for(let i=0;i<Math.min(rk.length,WF.TOP)&&cur.size<WF.TOP+1;i++)cur.add(rk[i][0]);
+      if(k<NR){const o=[];for(const b of cur)o.push([b,Mr.get(b)]);out[k]=o;}}
+    return out;};
+  WF.TOP=WIDE?8:6;   // phone: 6 per side reads better in 350 px; desktop: 8
+  const SB=pick(RB),SA=pick(RA),qs=[];
+  // runs: a picked bucket over consecutive rows = one ribbon
+  const runs=[];for(const [sel,bid] of [[SB,true],[SA,false]]){const open=new Map();
+    for(let k=NR-1;k>=0;k--){const o=sel[k],seen=new Set();
+      if(o)for(const [b,q] of o){seen.add(b);qs.push(q);let r=open.get(b);if(!r){r={bid,b,k1:k,k0:k,q:[]};open.set(b,r);runs.push(r);}r.q.push(q);r.k0=k;}
+      for(const b of [...open.keys()])if(!seen.has(b))open.delete(b);}}
+  // drop specks (a wall picked for < ~6 s that isn't live right now); smooth each ribbon's size along time so its height doesn't staircase
+  {const hw=Math.max(1,Math.round(3/dtR));for(let i=runs.length-1;i>=0;i--){const r=runs[i],n=r.q.length;if(n<Math.max(2,Math.round(6/dtR))&&r.k0>1){runs.splice(i,1);continue;}
+    const sm=new Float32Array(n);for(let j=0;j<n;j++){let a=0,c=0;for(let t=Math.max(0,j-hw);t<=Math.min(n-1,j+hw);t++){a+=r.q[t];c++;}sm[j]=a/c;}r.qs=sm;}}
+  qs.length=0;for(const r of runs)for(const q of r.qs)qs.push(q);
+  if(qs.length){qs.sort((a,b)=>a-b);const qr=Math.max(1e-12,qs[Math.floor(qs.length*0.85)]),V0=WF.view,jumpv=!V0||V0.span!==span||V0.m!==m;WF.qw=jumpv||!WF.qw?qr:WF.qw+(qr-WF.qw)*0.35;}
+  // soft floor glow under the picked walls (tiny image, upscaled = free blur)
+  const NCg=WIDE?150:96,NRg=Math.min(NR,120),Ri=R*1.3;if(!WF.glow)WF.glow=document.createElement('canvas');const Gc=WF.glow;if(Gc.width!==NCg||Gc.height!==NRg){Gc.width=NCg;Gc.height=NRg;}
+  {const gx=Gc.getContext('2d'),D=gx.createImageData(NCg,NRg),px=D.data,QW=WF.qw||1,col=p=>((p-cm)/(cm*Ri)+1)/2*NCg;
+    for(const r of runs){const C=r.bid?COL.bid:COL.ask,c0=Math.max(0,Math.floor(col(r.b*g))),c1=Math.min(NCg-1,Math.floor(col((r.b+1)*g)));if(c1<0||c0>=NCg)continue;
+      for(let k=r.k0;k<=r.k1;k++){const v=Math.min(1,Math.sqrt(r.qs[r.k1-k]/QW)),rr=Math.min(NRg-1,Math.floor(k*NRg/NR)),a=Math.round(255*(0.25+0.75*v));
+        for(let c=c0;c<=c1;c++){const o=(rr*NCg+c)*4;if(a>px[o+3]){px[o]=C[0];px[o+1]=C[1];px[o+2]=C[2];px[o+3]=a;}}}}
+    gx.putImageData(D,0,0);}
+  WF.view={span,R,pRef:cm,g,m,useC,Tg,dtR,NR,runs,Ri,NCg,NRg,nb:bHi-bLo+1};WF.bms=performance.now()-tb;}
+function drawWaterfall(now,M){if(!mid)return;const OFF=window.__wfOff||{};const tS=performance.now();if(!WF.cm||Math.abs(mid-WF.cm)>mid*0.02)WF.cm=mid;WF.cm+=(mid-WF.cm)*0.2;const cm=WF.cm;   // own eased live mid (the page's dispMid is fixed at load)
+  const pn=Date.now(),R=wfR(),span=LSPAN,V0=WF.view;
+  if((WF.dirty||!V0||V0.span!==span||Math.abs(Math.log(R/V0.R))>0.04||Math.abs(cm-V0.pRef)>0.08*R*cm)&&pn-WF.bt>140){WF.bt=pn;WF.dirty=false;wfBuild(cm,R,span);}
+  const V=WF.view,G=wfGeo(),{a0,b0,y0,y1,A,Y,Bv}=G,TAU=Math.PI*2,rv=M>=1?1:Math.min(1,Math.max(0,(M-0.12)/0.88)),src=span>900?WF.coarse:WF.fine,fz=WIDE?13:10;
   const ell=(d,t0,t1)=>{ctx.beginPath();ctx.ellipse(CX,Y(d),A(d),Bv(d),0,t0,t1);};
-  const tube=dm=>{ctx.beginPath();const N=24;for(let i=0;i<=N;i++){const d=dm*i/N;ctx.lineTo(CX-A(d),Y(d));}for(let i=N;i>=0;i--){const d=dm*i/N;ctx.lineTo(CX+A(d),Y(d));}ctx.closePath();};
+  const tube=(dm,ex=0)=>{ctx.beginPath();const N=24;for(let i=0;i<=N;i++){const d=dm*i/N;ctx.lineTo(CX-A(d)-ex,Y(d));}for(let i=N;i>=0;i--){const d=dm*i/N;ctx.lineTo(CX+A(d)+ex,Y(d));}ctx.closePath();};
   const xAt=(p,d)=>CX+((p-cm)/(cm*R))*A(d);
   ctx.save();ctx.globalAlpha=M;ctx.lineCap='round';ctx.lineJoin='round';
   // glass column
-  {const g=ctx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,'rgba(70,40,140,.16)');g.addColorStop(1,'rgba(25,12,60,.04)');ctx.fillStyle=g;tube(rv);ctx.fill();}
+  {const g=ctx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,'rgba(70,40,140,.18)');g.addColorStop(1,'rgba(25,12,60,.04)');ctx.fillStyle=g;tube(rv);ctx.fill();}
   // time rings (back halves) + lid back arc
   const TK=span===300?[60,120,180,240]:span===900?[180,360,540,720]:[600,1200,1800,2400,3000];
   for(const a of [...TK,span]){const d=a/span;if(d>rv)continue;ctx.strokeStyle=`rgba(160,130,255,${(0.13*(1-0.45*d)).toFixed(3)})`;ctx.lineWidth=1;ell(d,Math.PI,TAU);ctx.stroke();}
-  ctx.strokeStyle='rgba(0,240,255,.30)';ctx.lineWidth=WIDE?1.4:1.2;ell(0,Math.PI,TAU);ctx.stroke();
-  // the book heatmap sheet: drawn in thin horizontal strips (each scaled to the tube's width at its depth) -> perspective trapezoid; glow layer first
-  if(WF.img&&WF.NR){const ageOff=Math.max(0,(pn-WF.T0)/1000),colOf=p=>((p-WF.pRef)/(WF.pRef*WF.Ri)+1)/2*WF.NCOL,sx0=colOf(cm*(1-R)),sx1=colOf(cm*(1+R)),NS=WIDE?150:110;
-    ctx.imageSmoothingEnabled=true;
-    for(const [img,al,comp] of [[WF.glow,0.5,'lighter'],[WF.img,1,'source-over']]){ctx.globalCompositeOperation=comp;ctx.globalAlpha=M*al;const kx=img.width/WF.NCOL,ky=img.height/WF.NR;
-      for(let j=0;j<NS;j++){const d0=j/NS;if(d0>=rv)break;const d1=Math.min(rv,(j+1)/NS),dm=(d0+d1)/2;let r0=(d0*span-ageOff)/WF.dtR,r1=(d1*span-ageOff)/WF.dtR;
-        if(r1<=0){r0=0;r1=0.35;}else r0=Math.max(0,r0);if(r0>=WF.NR)break;r1=Math.min(WF.NR,r1);if(r1-r0<0.005)continue;
-        const yA=Math.round(Y(d0)),yB=Math.round(Y(d1)),hw=A(dm);if(yB<=yA)continue;ctx.drawImage(img,sx0*kx,r0*ky,(sx1-sx0)*kx,(r1-r0)*ky,CX-hw,yA,2*hw,yB-yA);}}
+  ctx.strokeStyle='rgba(0,240,255,.45)';ctx.lineWidth=WIDE?1.6:1.3;ell(0,Math.PI,TAU);ctx.stroke();
+  // price grid: a few faint lines down the tube at the scale's round prices (also the labels above the lid)
+  const ps=2*cm*R;ctx.font=`${fz}px "Share Tech Mono",monospace`;const lw=ctx.measureText(fmtH(cm*(1+R))).width+(WIDE?22:12),nMax=Math.max(2,Math.floor(1.9*a0/lw));
+  let st=wfNice(ps/Math.min(nMax,WIDE?9:5));while(ps/st>nMax+0.5)st=wfNice(st*1.6);
+  const lo=cm*(1-R),hi=cm*(1+R),TKP=[];for(let k=Math.ceil(lo/st-1e-9);k*st<=hi*(1+1e-12)&&TKP.length<24;k++){const p=+(k*st).toPrecision(12),xn=(p-cm)/(cm*R);if(Math.abs(xn)>0.97)continue;TKP.push([p,xn]);}
+  ctx.setLineDash([2,6]);ctx.lineWidth=1;for(const [p,xn] of TKP){ctx.strokeStyle=p<cm?'rgba(43,255,154,.08)':'rgba(255,43,214,.08)';ctx.beginPath();ctx.moveTo(CX+xn*A(0),Y(0));ctx.lineTo(CX+xn*A(rv),Y(rv));ctx.stroke();}ctx.setLineDash([]);
+  // floor glow under the picked walls (perspective strips of the tiny glow image)
+  if(V&&WF.glow&&!OFF.glow){const ageOff=(pn-V.Tg)/1000,Gc=WF.glow,colOf=p=>((p-V.pRef)/(V.pRef*V.Ri)+1)/2*V.NCg,sx0=colOf(cm*(1-R)),sx1=colOf(cm*(1+R)),NS=WIDE?90:70,ky=V.NRg/V.NR;
+    ctx.imageSmoothingEnabled=true;ctx.globalCompositeOperation='lighter';ctx.globalAlpha=M*0.42;
+    for(let j=0;j<NS;j++){const d0=j/NS;if(d0>=rv)break;const d1=Math.min(rv,(j+1)/NS),dm=(d0+d1)/2;let r0=(d0*span-ageOff)/V.dtR,r1=(d1*span-ageOff)/V.dtR;r0=Math.max(0,r0);if(r0>=V.NR)break;r1=Math.min(V.NR,r1);if(r1-r0<0.005)continue;
+      const yA=Math.round(Y(d0)),yB=Math.round(Y(d1)),hw=A(dm);if(yB<=yA)continue;ctx.drawImage(Gc,sx0,r0*ky,sx1-sx0,Math.max(0.01,(r1-r0)*ky),CX-hw,yA,2*hw,yB-yA);}
     ctx.globalCompositeOperation='source-over';ctx.globalAlpha=M;}
-  // older = dimmer
-  {const g=ctx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,'rgba(5,3,12,0)');g.addColorStop(0.35,'rgba(5,3,12,.08)');g.addColorStop(1,'rgba(5,3,12,.5)');ctx.fillStyle=g;tube(rv);ctx.fill();}
-  // price grid: a few faint lines down the tube at the scale's prices
-  const ps=2*cm*R,st=wfNice(ps/(WIDE?8:4)),lo=cm*(1-R),hi=cm*(1+R),TKP=[];
-  for(let k=Math.ceil(lo/st);k*st<=hi&&TKP.length<24;k++){const p=k*st,xn=(p-cm)/(cm*R);if(Math.abs(xn)>0.96)continue;TKP.push([p,xn]);}
-  ctx.setLineDash([2,6]);ctx.lineWidth=1;for(const [p,xn] of TKP){ctx.strokeStyle=p<cm?'rgba(43,255,154,.09)':'rgba(255,43,214,.09)';ctx.beginPath();ctx.moveTo(CX+xn*A(0),Y(0));ctx.lineTo(CX+xn*A(rv),Y(rv));ctx.stroke();}ctx.setLineDash([]);
-  // mid trail: the price snaking down the tube (1 s mids; 5 s for 60 min), clipped to the tube
+  // the walls as raised ribbons (far from price first so the ones near price sit on top)
+  let nRib=0;const lid=[];
+  if(V&&V.runs.length&&!OFF.rib){const ageOff=(pn-V.Tg)/1000,dtR=V.dtR,amax=span*rv,QW=WF.qw||1,HM=WIDE?36:20,g=V.g,LY=0.25;   // ribbon height cap (px at NOW); raised faces also lift a little (LY) since we look from slightly above
+    ctx.save();tube(rv,HM*0.5);ctx.clip();
+    const order=V.runs.map(r=>[r,Math.abs((r.b+0.5)*g-cm)]).sort((x,y)=>y[1]-x[1]);
+    for(const [r] of order){const n=r.k1-r.k0+1,aTop=r.k0*dtR+ageOff,aBot=(r.k1+1)*dtR+ageOff;if(aBot<=0||aTop>=amax)continue;
+      const pL=r.b*g,pR=(r.b+1)*g,xnC=((pL+pR)/2-cm)/(cm*R);if(Math.abs(xnC)>1.3)continue;
+      const C=r.bid?COL.bid:COL.ask,sg=r.bid?-1:1,ys=[],XL=[],XR=[],EX=[],EY=[];let vs=0,es=0,vmax=0;
+      const step=n>200?2:1;
+      for(let i=0;i<=n;i+=step){const ii=Math.min(i,n);let a=(r.k0+ii)*dtR+ageOff;if(a<0)a=0;if(a>amax)a=amax;const d=a/span,Ad=A(d),q=r.qs[r.k1-(r.k0+Math.min(ii,n-1))],v=Math.sqrt(q/QW);
+        let xl=CX+((pL-cm)/(cm*R))*Ad+0.35,xr=CX+((pR-cm)/(cm*R))*Ad-0.35;if(xr-xl<1.2){const c=(xl+xr)/2;xl=c-0.6;xr=c+0.6;}
+        const h=HM*(1-0.4*d)*Math.min(1,v),e=h*(0.8*Math.max(-1.2,Math.min(1.2,xnC))+0.3*sg);
+        ys.push(Y(d));XL.push(xl);XR.push(xr);EX.push(e);EY.push(-LY*h);vs+=Math.min(1.5,v*v);es+=e;vmax=Math.max(vmax,v);
+        if(i<n&&i+step>n&&ii!==n)i=n-step;}
+      const m=ys.length;if(m<2||ys[m-1]-ys[0]<0.6)continue;nRib++;
+      const vm=vs/m,inner=es<0?XR:XL,hot=Math.max(0,Math.min(1,(vmax-1)/1.2)),Cf=[0,1,2].map(j=>Math.round(C[j]+(255-C[j])*(0.12+0.4*hot)));
+      // side face (darker, the inner side you see from the price line)
+      ctx.fillStyle=`rgba(${Math.round(C[0]*0.24)},${Math.round(C[1]*0.24)},${Math.round(C[2]*0.24)},.94)`;
+      ctx.beginPath();for(let i=0;i<m;i++)ctx.lineTo(inner[i],ys[i]);for(let i=m-1;i>=0;i--)ctx.lineTo(inner[i]+EX[i],ys[i]+EY[i]);ctx.closePath();ctx.fill();
+      {const j=m-1;ctx.beginPath();ctx.moveTo(XL[j],ys[j]);ctx.lineTo(XR[j],ys[j]);ctx.lineTo(XR[j]+EX[j],ys[j]+EY[j]);ctx.lineTo(XL[j]+EX[j],ys[j]+EY[j]);ctx.closePath();ctx.fill();}   // the oldest end's face
+      // front face (lit from above/front)
+      ctx.fillStyle=rgba(Cf,0.42+0.4*Math.min(1,vm));
+      ctx.beginPath();for(let i=0;i<m;i++)ctx.lineTo(XL[i]+EX[i],ys[i]+EY[i]);for(let i=m-1;i>=0;i--)ctx.lineTo(XR[i]+EX[i],ys[i]+EY[i]);ctx.closePath();ctx.fill();
+      // lit crest along the top edge + the newest end
+      ctx.strokeStyle=`rgba(${Math.round(C[0]+(255-C[0])*0.6)},${Math.round(C[1]+(255-C[1])*0.6)},${Math.round(C[2]+(255-C[2])*0.6)},${(0.45+0.4*Math.min(1,vmax)).toFixed(3)})`;ctx.lineWidth=WIDE?1.5:1.1;
+      ctx.beginPath();for(let i=0;i<m;i++)ctx.lineTo(inner[i]+EX[i],ys[i]+EY[i]);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(XL[0]+EX[0],ys[0]+EY[0]);ctx.lineTo(XR[0]+EX[0],ys[0]+EY[0]);ctx.stroke();
+      if(aTop<=dtR*1.5)lid.push([r,pL,pR,r.qs[r.k1-r.k0]]);}
+    ctx.restore();}
+  // fog: older = sunk into the background, not just smaller
+  if(!OFF.fog){const g=ctx.createLinearGradient(0,y0,0,y1);for(const d of [0,0.12,0.25,0.4,0.55,0.7,0.85,1])g.addColorStop(Math.min(1,Math.max(0,(Y(d)-y0)/(y1-y0))),`rgba(6,4,14,${(0.82*Math.pow(d,1.05)).toFixed(3)})`);ctx.fillStyle=g;tube(rv,(WIDE?30:16)*0.5);ctx.fill();}
+  // mid trail: the price snaking down the tube, floating above the sheet on a soft shadow
   {const pts=[[0,cm]];for(let j=src.length-1;j>=0;j--){const s=src[j],a=(pn-s.t)/1000;if(a<=0)continue;if(a>span*rv)break;pts.push([a,s.mid]);}
     const XY=pts.map(([a,p])=>{const d=a/span;return [xAt(p,d),Y(d),d];});
     ctx.save();tube(rv);ctx.clip();
-    for(const [lw,al,col] of [[WIDE?10:8,0.09,'0,240,255'],[WIDE?4:3.2,0.28,'0,240,255'],[WIDE?1.7:1.5,0.95,'235,253,255']])
-      for(let i=0;i<XY.length-1;i+=10){const f=1-0.55*XY[i][2];ctx.strokeStyle=`rgba(${col},${(al*f).toFixed(3)})`;ctx.lineWidth=lw*(1-0.35*XY[i][2]);ctx.beginPath();ctx.moveTo(XY[i][0],XY[i][1]);for(let k=i+1;k<=Math.min(XY.length-1,i+10);k++)ctx.lineTo(XY[k][0],XY[k][1]);ctx.stroke();}
+    const pass=(lw,al,col,dy,fade)=>{for(let i=0;i<XY.length-1;i+=10){const f=1-fade*XY[i][2];ctx.strokeStyle=`rgba(${col},${(al*f).toFixed(3)})`;ctx.lineWidth=lw*(1-0.35*XY[i][2]);ctx.beginPath();const o=dy*(1-0.5*XY[i][2]);ctx.moveTo(XY[i][0]+o*0.3,XY[i][1]+o);for(let k=i+1;k<=Math.min(XY.length-1,i+10);k++)ctx.lineTo(XY[k][0]+o*0.3,XY[k][1]+o);ctx.stroke();}};
+    if(!OFF.shadow){pass(WIDE?12:9,0.22,'0,0,0',WIDE?7:5,0.3);pass(WIDE?5:4,0.5,'0,0,0',WIDE?6:4.5,0.3);}
+    pass(WIDE?7:6,0.55,'4,2,12',0,0.3);pass(WIDE?12:10,0.12,'0,240,255',0,0.5);pass(WIDE?4:3.2,0.3,'0,240,255',0,0.5);pass(WIDE?2.2:1.9,0.98,'235,253,255',0,0.4);
     ctx.restore();}
   // LIMIT's own EATEN / PULLED detections, where they happened: eaten = small hot dot, pulled = hollow ring
   {const pnow=performance.now();for(const o of SPF.ev){if(o.kind!=='eaten'&&o.kind!=='pulled')continue;const a=(pnow-o.tt)/1000,d=a/span;if(d<0||d>rv)continue;const xn=(o.px-cm)/(cm*R);if(Math.abs(xn)>1)continue;
@@ -2582,24 +2652,27 @@ function drawWaterfall(now,M){if(!mid)return;if(!WF.cm||Math.abs(mid-WF.cm)>mid*
     if(o.kind==='eaten'){ctx.fillStyle='rgba(255,236,140,.95)';ctx.shadowColor='rgba(255,220,60,1)';ctx.shadowBlur=Q>0?10:0;ctx.beginPath();ctx.arc(x,y,r*0.6,0,TAU);ctx.fill();ctx.shadowBlur=0;}
     else{ctx.strokeStyle=rgba(c,0.85);ctx.lineWidth=1.3;ctx.setLineDash([2,2]);ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.stroke();ctx.setLineDash([]);}}}
   // tube edges + time rings (front halves)
-  {const N=24;for(const sg of [-1,1]){ctx.beginPath();for(let i=0;i<=N;i++){const d=rv*i/N;ctx.lineTo(CX+sg*A(d),Y(d));}const g=ctx.createLinearGradient(0,y0,0,Y(rv));g.addColorStop(0,'rgba(0,240,255,.45)');g.addColorStop(1,'rgba(160,130,255,.10)');ctx.strokeStyle=g;ctx.lineWidth=WIDE?1.4:1.1;ctx.stroke();}}
-  for(const a of [...TK,span]){const d=a/span;if(d>rv)continue;ctx.strokeStyle=`rgba(170,140,255,${(0.26*(1-0.5*d)).toFixed(3)})`;ctx.lineWidth=d===1?1.4:1;ell(d,0,Math.PI);ctx.stroke();}
+  {const N=24;for(const sg of [-1,1]){ctx.beginPath();for(let i=0;i<=N;i++){const d=rv*i/N;ctx.lineTo(CX+sg*A(d),Y(d));}const g=ctx.createLinearGradient(0,y0,0,Y(rv));g.addColorStop(0,'rgba(0,240,255,.5)');g.addColorStop(1,'rgba(160,130,255,.08)');ctx.strokeStyle=g;ctx.lineWidth=WIDE?1.4:1.1;ctx.stroke();}}
+  for(const a of [...TK,span]){const d=a/span;if(d>rv)continue;ctx.strokeStyle=`rgba(170,140,255,${(0.26*(1-0.55*d)).toFixed(3)})`;ctx.lineWidth=d===1?1.4:1;ell(d,0,Math.PI);ctx.stroke();}
   // recording edge: the buffer only reaches back to page load
   if(src.length){const old=(pn-src[0].t)/1000;if(old<span*0.97){const d=Math.max(0.004,old/span);if(d<=rv){ctx.strokeStyle='rgba(0,240,255,.35)';ctx.setLineDash([4,5]);ctx.lineWidth=1;ell(d,0,Math.PI);ctx.stroke();ctx.setLineDash([]);
-      ctx.font=`${fz}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.fillStyle='rgba(0,240,255,.55)';ctx.fillText('▲ recorded since page load ('+fmtAge(Math.round(old)).replace('-','')+')',CX,Y(d)+Bv(d)+fz+5);}}}
-  else{ctx.font=`${fz+1}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.fillStyle='rgba(0,240,255,.6)';ctx.fillText('RECORDING THE BOOK… streaks build from NOW',CX,Y(0.3));}
-  // the lid (NOW ring): live book standing in it as a faint skyline, bright front rim, head of the mid trail
-  {ctx.save();ell(0,0,TAU);ctx.clip();const BK=wfBK(),QR=WF.qref||1,band=!!CC.band,sx=a0/(cm*R);
-    for(const [L,bid] of [[sortedB,true],[sortedA,false]]){ctx.fillStyle=rgba(bid?COL.bid:COL.ask,0.3);for(const [p,q] of L){if(q<0.12*QR)continue;const off=band?(bid?0:-BK):-BK/2,x=CX+(p+off-cm)*sx;if(bid?x<CX-a0:x>CX+a0)break;const w=Math.max(1.2,BK*sx-0.6),h=b0*0.85*Math.pow(Math.min(1,q/QR),0.7);ctx.fillRect(x,y0-h,w,h);}}
+      ctx.font=`${fz}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.fillStyle='rgba(0,240,255,.6)';ctx.fillText('▲ recorded since page load ('+fmtAge(Math.round(old)).replace('-','')+')',CX,Y(d)+Bv(d)+fz+5);}}}
+  else{ctx.font=`${fz+1}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.fillStyle='rgba(0,240,255,.6)';ctx.fillText('RECORDING THE BOOK… walls build from NOW',CX,Y(0.3));}
+  // the lid (NOW ring): faint glass, the walls standing in it right now, a bright glowing front rim, head of the mid trail
+  {ctx.save();ell(0,0,TAU);const lg=ctx.createRadialGradient(CX,y0,0,CX,y0,a0);lg.addColorStop(0,'rgba(0,240,255,.07)');lg.addColorStop(1,'rgba(0,240,255,.02)');ctx.fillStyle=lg;ctx.fill();ctx.clip();
+    const QW=WF.qw||1,sx=a0/(cm*R);for(const [r,pL,pR,q] of lid){const x=CX+(pL-cm)*sx,w=Math.max(1.4,(pR-pL)*sx-0.6),h=b0*0.6*Math.min(1,Math.sqrt(q/QW));ctx.fillStyle=rgba(r.bid?COL.bid:COL.ask,0.3);ctx.fillRect(x,y0-h,w,h);}
     ctx.restore();}
-  ctx.save();ctx.strokeStyle='rgba(0,240,255,.85)';ctx.lineWidth=WIDE?2:1.7;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?14:0;ell(0,0,Math.PI);ctx.stroke();ctx.restore();
+  if(!OFF.lid){ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(0,240,255,.16)';ctx.lineWidth=WIDE?10:8;ell(0,0,Math.PI);ctx.stroke();ctx.strokeStyle='rgba(0,240,255,.3)';ctx.lineWidth=WIDE?4.5:3.6;ell(0,0,Math.PI);ctx.stroke();ctx.restore();}
+  ctx.save();ctx.strokeStyle='rgba(190,252,255,.98)';ctx.lineWidth=WIDE?2.2:1.8;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?20:0;ell(0,0,Math.PI);ctx.stroke();ctx.restore();
   {const pl=0.5+0.5*Math.sin(now/260),R2=(WIDE?16:12)*(0.85+0.3*pl),f=flow(30),c=f.r>0.05?COL.bid:f.r<-0.05?COL.ask:COL.yl;ctx.save();ctx.globalCompositeOperation='lighter';const g=ctx.createRadialGradient(CX,y0,0,CX,y0,R2);g.addColorStop(0,`rgba(255,255,255,${(0.55+0.3*pl).toFixed(3)})`);g.addColorStop(0.35,rgba(c,0.6));g.addColorStop(1,rgba(c,0));ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,y0,R2,0,TAU);ctx.fill();ctx.restore();
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(CX,y0,(WIDE?3:2.4)+pl,0,TAU);ctx.fill();}
-  // price scale above the lid (bids green left, asks magenta right, live mid yellow in the middle)
-  {const yl=y0-b0-(WIDE?10:8);ctx.font=`${fz}px "Share Tech Mono",monospace`;ctx.textAlign='center';const gap=WIDE?60:44;
-    for(const [p,xn] of TKP){const x=CX+xn*a0;if(Math.abs(x-CX)<gap)continue;const c=p<cm?COL.bid:COL.ask;ctx.fillStyle=rgba(c,0.85);ctx.fillText(fmtH(p),x,yl);
+  // price scale above the lid: every round tick evenly spaced (bids green left, asks magenta right); the live mid sits on its own row above
+  const LBL=[];
+  {const yl=y0-b0-(WIDE?9:7),ym=yl-fz-(WIDE?8:6);ctx.font=`${fz}px "Share Tech Mono",monospace`;ctx.textAlign='center';
+    for(const [p,xn] of TKP){const x=CX+xn*a0,c=p<cm?COL.bid:COL.ask,t=fmtH(p);ctx.fillStyle=rgba(c,0.9);ctx.fillText(t,x,yl);LBL.push({t,p,x:Math.round(x),side:p<cm?'bid':'ask'});
       ctx.strokeStyle=rgba(c,0.45);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,yl+3);ctx.lineTo(x,y0-Bv(0)*Math.sqrt(Math.max(0,1-xn*xn))+1);ctx.stroke();}
-    ctx.font=`700 ${fz+1}px "Share Tech Mono",monospace`;ctx.fillStyle='rgba(255,230,0,.95)';ctx.fillText(fmtH(cm),CX,yl);ctx.strokeStyle='rgba(255,230,0,.6)';ctx.beginPath();ctx.moveTo(CX,yl+3);ctx.lineTo(CX,y0-b0+1);ctx.stroke();}
+    ctx.font=`700 ${fz+1}px "Share Tech Mono",monospace`;const tm=fmtH(cm),wm=ctx.measureText(tm).width+10;ctx.fillStyle='rgba(5,3,12,.85)';ctx.fillRect(CX-wm/2,ym-fz-1,wm,fz+5);ctx.strokeStyle='rgba(255,230,0,.55)';ctx.lineWidth=1;ctx.strokeRect(CX-wm/2+0.5,ym-fz-0.5,wm-1,fz+4);
+    ctx.fillStyle='rgba(255,230,0,.97)';ctx.fillText(tm,CX,ym);ctx.strokeStyle='rgba(255,230,0,.6)';ctx.beginPath();ctx.moveTo(CX,ym+4);ctx.lineTo(CX,y0-b0+1);ctx.stroke();LBL.push({t:tm,p:cm,x:CX,side:'mid'});}
   // time labels right of each ring
   {ctx.font=`${fz}px "Share Tech Mono",monospace`;ctx.textAlign='left';ctx.fillStyle='rgba(255,230,0,.9)';ctx.fillText('NOW',CX+a0+5,y0+3);
     for(const a of [...TK,span]){const d=a/span;if(d>rv)continue;ctx.fillStyle=`rgba(180,160,255,${(0.85-0.3*d).toFixed(3)})`;ctx.fillText((a===span?'PAST ':'')+fmtAge(a),CX+A(d)+5,Y(d)+3);}}
@@ -2611,10 +2684,11 @@ function drawWaterfall(now,M){if(!mid)return;if(!WF.cm||Math.abs(mid-WF.cm)>mid*
   // swap: the front dial's ring leans back into the lid (and stands up again on the way back)
   if(M<1){const e=M,cy=CY+(y0-CY)*e,rx=RMAX+(a0-RMAX)*e,ry=RMAX+(b0-RMAX)*e,al=Math.sin(Math.PI*M);ctx.save();ctx.strokeStyle=`rgba(0,240,255,${(0.9*al).toFixed(3)})`;ctx.lineWidth=WIDE?2.4:2;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?18:0;
     ctx.beginPath();ctx.ellipse(CX,cy,rx,Math.max(1,ry),0,0,TAU);ctx.stroke();ctx.strokeStyle=`rgba(255,230,0,${(0.5*al).toFixed(3)})`;ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(CX,cy,rx*0.97,Math.max(1,ry*0.97),0,0,TAU);ctx.stroke();ctx.restore();}
-  window.__wfDraw={a0:Math.round(a0),b0:Math.round(b0),y0:Math.round(y0),y1:Math.round(y1),R,span,rows:WF.NR,qref:WF.qref,ticks:TKP.length};}
+  const dt=performance.now()-tS;WF.ft=WF.ft?WF.ft*0.95+dt*0.05:dt;
+  window.__wfDraw={a0:Math.round(a0),b0:Math.round(b0),y0:Math.round(y0),y1:Math.round(y1),R,span,rows:V?V.NR:0,qw:WF.qw,ticks:TKP.length,labels:LBL,ribbons:nRib,runs:V?V.runs.length:0,bucket:V?V.g:0,buckets:V?V.nb:0,ms:+WF.ft.toFixed(2),buildMs:+WF.bms.toFixed(2)};}
 window.__wfall={get rot(){return LROT},set rot(v){LSANI=null;LROT=LROTT=v;},swap(){wfSwap();},get anim(){return LSANI?{...LSANI}:null},get mix(){return wfMix()},get span(){return LSPAN},setSpan(v){LSPAN=v;WF.dirty=true;},
-  get buf(){const U=new Set([...WF.fine,...WF.coarse]);let b=0,lv=0;for(const s of U){b+=s.P.byteLength+s.Q.byteLength+64;lv+=s.P.length;}return {fine:WF.fine.length,coarse:WF.coarse.length,unique:U.size,levels:lv,kb:Math.round(b/1024),since:WF.t0?Math.round((Date.now()-WF.t0)/1000):0}},
-  get draw(){return window.__wfDraw||null},get err(){return window.__wfErr||null},get range(){return wfR()}};
+  get buf(){const U=new Set([...WF.fine,...WF.coarse]);let b=0,lv=0;for(const s of U){for(const k of ['bi','bq','ai','aq','cbi','cbq','cai','caq'])b+=s[k].byteLength;b+=96;lv+=s.bi.length+s.ai.length;}return {fine:WF.fine.length,coarse:WF.coarse.length,unique:U.size,levels:lv,kb:Math.round(b/1024),since:WF.t0?Math.round((Date.now()-WF.t0)/1000):0,skipped:WF.skipped,g0:WF.g0}},
+  forceSkip(ms){WF.unst=Date.now()+ms;},get draw(){return window.__wfDraw||null},get err(){return window.__wfErr||null},get range(){return wfR()}};
 // ===================== /LIMIT WATERFALL =====================
 // controls: one FRONT<->SIDE swap button (timed eased turn, label = target view) + 5M/15M/60M + TRUE. Drag-to-rotate removed (it fought the front view's swipe/pinch).
 (function(){const st=$('stage');if(!st)return;const d=document.createElement('div');d.id='sidectl';
