@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='20261008-0825';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='20261008-1052';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -211,7 +211,9 @@ body.hublogo #top .logo{display:none}   /* mobile: logo lives in the compass hub
  <li><b>Zoom:</b> AUTO picks the window from traffic. Swipe <b>up</b> = zoom in (shorter), <b>down</b> = out; pinch, wheel or the zoom bar also work. A manual zoom turns AUTO off; double-tap or ZOOM ▸ AUTO turns it back on.</li></ul>
  <h3>MARKET · SIDE VIEW</h3>
 <ul><li>The time tunnel turned on its side: time runs left to right, from the <b>PAST</b> ring to <b>NOW</b> at the front dial's ring.</li>
-<li>Height = price. The line is the <b>true line</b> of real trades from all five exchanges (or the one picked in <b>SRC</b>): each slice's real high and low, no smoothing.</li>
+<li>Height = price. The line is the volume-weighted price of real trades from all five exchanges (or the one picked in <b>SRC</b>), lightly smoothed (~2 s): <b class="gr">green</b> where buyers dominated, <b class="rd">pink</b> where sellers did, a little thicker where volume was heavier. History from before the page opened has no buy/sell split yet, so it shows as a plain cyan line.</li>
+<li>The faint band behind the line is the <b>true range</b>: every slice's real high and low (smoothed into a band), so outlier prints stay visible without spiking the line.</li>
+<li>Rings mark equal time steps (5M: every minute, 15M: every 5 min, 60M: every 15 min), labelled in a row along the tube's bottom edge.</li>
 <li><b>5M / 15M / 60M</b> picks how much history the tunnel shows. Average, bands, diamond and hub work as in the front view.</li>
 <li>The <b>SIDE ▸ / FRONT ▸</b> button swaps between the two views. Turning to SIDE, the buyers / sellers arc rides down the tunnel to the <b>PAST</b> ring; turning back, it rides up to the front ring.</li></ul>
 <h3>LIMIT VIEW · ORDER-BOOK WALLS</h3>
@@ -2258,8 +2260,8 @@ function drawSideBurst(now){if(!SBU)return;const t=window.__sideBT!=null?+window
   ctx.restore();}
 function sideSwap(){const to=(SANI?SANI.to:ROTT)>0.5?0:1,from=ROT;SANI={from,to,t0:performance.now(),dur:Math.max(600,2000*Math.abs(to-from))};sideBurst();}
 const SDS={t:0,span:0,N:0,P:null,MA:null,SD:null,c:0,h:0,tc:0,th:0};
-function sideSeries(){const n=Date.now(),NB=400,N=TRUE?NB*2:NB,dt=SPAN*1000/N,dB=SPAN*1000/NB,t0=n-SPAN*1000;const P=new Float64Array(N).fill(NaN),PS0=new Float64Array(NB),PN=new Float64Array(NB),LO=new Float64Array(NB).fill(Infinity),HI=new Float64Array(NB).fill(-Infinity),TL=new Float64Array(NB),TH=new Float64Array(NB);
-  for(let i=RAW.length-1;i>=0;i--){const t=RAW[i];if(t.ts<t0)break;if(SRC!=='all'&&t.v!==SRC)continue;if(t.q&&t.q!=='USD')continue;const b=Math.floor((t.ts-t0)/dB);if(b>=0&&b<NB){PS0[b]+=t.px;PN[b]++;if(t.px<LO[b]){LO[b]=t.px;TL[b]=t.ts;}if(t.px>HI[b]){HI[b]=t.px;TH[b]=t.ts;}}}
+function sideSeries(){const n=Date.now(),NB=400,N=TRUE?NB*2:NB,dt=SPAN*1000/N,dB=SPAN*1000/NB,t0=n-SPAN*1000;const P=new Float64Array(N).fill(NaN),PS0=new Float64Array(NB),PN=new Float64Array(NB),VB=new Float64Array(NB),VS=new Float64Array(NB),VQ=new Float64Array(NB),VPX=new Float64Array(NB),LO=new Float64Array(NB).fill(Infinity),HI=new Float64Array(NB).fill(-Infinity),TL=new Float64Array(NB),TH=new Float64Array(NB);
+  for(let i=RAW.length-1;i>=0;i--){const t=RAW[i];if(t.ts<t0)break;if(SRC!=='all'&&t.v!==SRC)continue;if(t.q&&t.q!=='USD')continue;const b=Math.floor((t.ts-t0)/dB);if(b>=0&&b<NB){PS0[b]+=t.px;PN[b]++;if(t.side==='buy')VB[b]+=t.qty*t.px;else VS[b]+=t.qty*t.px;VQ[b]+=t.qty;VPX[b]+=t.qty*t.px;if(t.px<LO[b]){LO[b]=t.px;TL[b]=t.ts;}if(t.px>HI[b]){HI[b]=t.px;TH[b]=t.ts;}}}
   if(TRUE){for(let b=0;b<NB;b++)if(PN[b]){const lf=TL[b]<=TH[b];P[2*b]=lf?LO[b]:HI[b];P[2*b+1]=lf?HI[b]:LO[b];}}   // raw: every bucket's real low and high, in time order
   else for(let b=0;b<NB;b++)if(PN[b])P[b]=PS0[b]/PN[b];   // mean USD trade price per bucket (no bid/ask bounce bars)
   for(let b=0;b<N;b++)if(isNaN(P[b])){const c=candles.get(minuteOf(t0+b*dt));if(c&&c.c>0&&!(b>0&&!isNaN(P[b-1])))P[b]=c.c;}   // older than the trade buffer: Kraken 1-min closes
@@ -2269,6 +2271,19 @@ function sideSeries(){const n=Date.now(),NB=400,N=TRUE?NB*2:NB,dt=SPAN*1000/N,dB
   const tau=SPAN/12,al=1-Math.exp(-(dt/1000)/tau),MA=new Float64Array(N),SD=new Float64Array(N);let e=P[0],v=0;
   for(let b=0;b<N;b++){const d=P[b]-e;e+=d*al;v=(1-al)*(v+al*d*d);MA[b]=e;SD[b]=Math.sqrt(v);}
   let lo=Infinity,hi=-Infinity;for(let b=0;b<N;b++){lo=Math.min(lo,P[b]);hi=Math.max(hi,P[b]);if(SHOWBB&&b>N*0.1){lo=Math.min(lo,MA[b]-2*SD[b]);hi=Math.max(hi,MA[b]+2*SD[b]);}}
+  // side style: mean trade price per bucket (the neon line) + the true range as a smoothed band (rolling max/min over +-2 buckets, then a 5-tap blur,
+  // so it still covers the real highs/lows) + buy/sell USD volume per bucket (line colour/width like the front trail). Gaps: Kraken 1-min candles, then carried.
+  {const PM=new Float64Array(NB).fill(NaN),EH=new Float64Array(NB),EL=new Float64Array(NB);
+    for(let b=0;b<NB;b++){if(PN[b])PM[b]=VQ[b]>0?VPX[b]/VQ[b]:PS0[b]/PN[b];else{const tb=t0+(b+0.5)*dB,m=minuteOf(tb),c=candles.get(m);if(c&&c.c>0){const fr=Math.max(0,Math.min(1,(tb-m)/60000)),o=c.o>0?c.o:c.c;PM[b]=o+(c.c-o)*fr;}}}   // candle-only stretch: open->close across the minute (no staircase)
+    let f2=NaN;for(let b=0;b<NB;b++){if(isNaN(PM[b]))PM[b]=f2;else f2=PM[b];}let g2=NaN;for(let b=0;b<NB;b++)if(!isNaN(PM[b])){g2=PM[b];break;}for(let b=0;b<NB&&isNaN(PM[b]);b++)PM[b]=g2;
+    if(lp>0)PM[NB-1]=lp;
+    {const Q0=Float64Array.from(PM),R=Math.max(1,Math.round(2000/dB));for(let b=0;b<NB-1;b++){let a=0,w=0;for(let k=-R;k<=R;k++){const j=b+k;if(j<0||j>=NB)continue;const wk=R+1-Math.abs(k);a+=Q0[j]*wk;w+=wk;}PM[b]=a/w;}}   // ~2 s triangular smoothing (newest bucket stays = live price)
+    const hi=new Float64Array(NB),lo=new Float64Array(NB);for(let b=0;b<NB;b++){hi[b]=PN[b]?Math.max(HI[b],PM[b]):PM[b];lo[b]=PN[b]?Math.min(LO[b],PM[b]):PM[b];}
+    if(lp>0){hi[NB-1]=Math.max(hi[NB-1],lp);lo[NB-1]=Math.min(lo[NB-1],lp);}
+    const dh=new Float64Array(NB),dl=new Float64Array(NB);for(let b=0;b<NB;b++){let mx=-Infinity,mn=Infinity;for(let k=-2;k<=2;k++){const j=b+k;if(j<0||j>=NB)continue;mx=Math.max(mx,hi[j]);mn=Math.min(mn,lo[j]);}dh[b]=mx;dl[b]=mn;}
+    const K=[1,4,6,4,1];for(let b=0;b<NB;b++){let a=0,c=0,w=0;for(let k=-2;k<=2;k++){const j=b+k;if(j<0||j>=NB)continue;a+=dh[j]*K[k+2];c+=dl[j]*K[k+2];w+=K[k+2];}EH[b]=Math.max(a/w,PM[b]);EL[b]=Math.min(c/w,PM[b]);}
+    let vr=[];for(let b=0;b<NB;b++)if(VB[b]+VS[b]>0)vr.push(VB[b]+VS[b]);vr.sort((x,y)=>x-y);
+    SDS.PM=PM;SDS.EH=EH;SDS.EL=EL;SDS.VB=VB;SDS.VS=VS;SDS.NB=NB;SDS.dB=dB;SDS.vref=vr.length?vr[Math.floor(vr.length*0.95)]:1;}
   SDS.t=n;SDS.t0=t0;SDS.tr=TRUE;SDS.N=N;SDS.P=P;SDS.MA=MA;SDS.SD=SD;SDS.dt=dt;SDS.tc=(lo+hi)/2;SDS.th=Math.max((hi-lo)/2,P[N-1]*0.0004);
   if(SDS.span!==SPAN||!SDS.c){SDS.c=SDS.tc;SDS.h=SDS.th;SDS.span=SPAN;}}
 setInterval(()=>{if(SIDE_ON())sideSeries();},500);
@@ -2278,7 +2293,7 @@ setInterval(()=>{if(SIDE_ON())sideSeries();},500);
 // to the arc's inner edge; diamond centred on the arc; labels just outside the arc
 function arcOffs(Rpx,kR,wide){const lw=(wide?6:5)*kR,gap=Math.max(8,0.10*Rpx),cl=gap+lw/2,HL=(wide?10.5:11.5)*Math.max(0.55,kR),kComp=Math.min(2.0,Math.max(1,0.92/kR)),fs=Math.max(wide?10:8.5,(wide?12:8)*0.8)*kComp;
   return {lw,gap,cl,HL,lb:cl+lw/2+3,fs};}
-let SFIT={k:''};
+let SFIT={k:''};const SST={vf:0.44,wfP:0.365,wfD:0.295};   // side-style test: tube size knobs (share of stage height / width)
 function sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW){const key=[W,H,top,bot,HTW,BLW].join('|');if(SFIT.k===key)return SFIT.v;
   const cp=Math.cos(PS),sp=Math.sin(PS),cf=Math.cos(FS2),sf=Math.sin(FS2),m=WIDE?16:6,av=W-2*m;
   const ext=(RT,Ls)=>{const Lz=Ls/sp,pv=Lz/2,X=(x,y,z)=>{const zr=z+pv,X1=x*cp+zr*sp,Z1=-x*sp+zr*cp,Z2=y*sf+Z1*cf,d=Math.max(Dcs*0.15,Dcs-Z2);return X1*Dcs/d;};
@@ -2293,10 +2308,10 @@ function sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW){const key=[W,H,top,bot,HTW,
     for(const y of [-0.92,0,0.92])hi=Math.max(hi,X(0,RT*0.8*y,0)+16+HTW+4);   // live price label right of the head
     for(const y of [-0.75,0,0.75])lo=Math.min(lo,X(0,RT*0.8*y,-Lz)-4);   // price labels at PAST
     return [lo,hi];};
-  let RT=Math.min((H-top-bot)*0.36,W*(WIDE?0.24:0.34)),Ls=W*(WIDE?0.80:0.86)-0.5*RT,e=ext(RT,Ls);
-  for(let it=0;it<8;it++){const w=e[1]-e[0];if(Math.abs(av-w)<1)break;
-    if(w>av&&Ls<=W*0.5+1){const k=Math.max(0.8,av/w);RT*=k;}   // tube already short: shrink the rings slightly
-    else Ls=Math.max(W*0.5,Ls+(av-w)*0.95);
+  const LMIN=W*(WIDE?0.5:0.4);let RT=Math.min((H-top-bot)*SST.vf,W*(WIDE?SST.wfD:SST.wfP)),Ls=W*(WIDE?0.80:0.86)-0.5*RT,e=ext(RT,Ls);   // side-style: bigger rings (was 0.36 H / 0.24-0.34 W)
+  for(let it=0;it<12;it++){const w=e[1]-e[0];if(Math.abs(av-w)<1)break;
+    if(w>av&&Ls<=LMIN+1){const k=Math.max(0.8,av/w);RT*=k;}   // tube already short: shrink the rings slightly
+    else Ls=Math.max(LMIN,Ls+(av-w)*0.95);
     e=ext(RT,Ls);}
   const v={RT,Ls,Cx:m-e[0]+Math.max(0,(av-(e[1]-e[0]))/2)};SFIT={k:key,v};window.__sideFit={RT:+RT.toFixed(1),Ls:+Ls.toFixed(1),Cx:+v.Cx.toFixed(1),lo:+(v.Cx+e[0]).toFixed(1),hi:+(v.Cx+e[1]).toFixed(1),W};return v;}
 let SMX={sg:0,ev:[]},SNSP=[],SNSPt=0,SSPK={h:[],typ:0,tt:0,k0:Date.now()};
@@ -2309,9 +2324,9 @@ function drawSide(now){
     if(r>1.0){SDS.h*=Math.exp(Math.log(r)*(1-Math.exp(-dts/0.9)));SDS.hg=pn;}
     else if(r<0.94&&pn-(SDS.hg||0)>8000)SDS.h*=Math.exp(Math.log(r)*(1-Math.exp(-dts/6)));}
   const s=ROT*ROT*(3-2*ROT), L=(a,b)=>a+(b-a)*s, N=SDS.N, P=SDS.P, MA=SDS.MA, SD=SDS.SD, dt=SDS.dt/1000;
-  const top=WIDE?58:44, bot=WIDE?64:74, CYs=(top+H-bot)/2;
+  const top=WIDE?58:44, bot=WIDE?60:52, CYs=(top+H-bot)/2;
   const RTf=RMAX, Dcf=RMAX*2.4, Lzf=Dcf*HIST_SEC/Math.max(1,FOCAL);   // front end = the front view's own tunnel: mouth radius RMAX, depth perspective FOCAL/(FOCAL+dz)
-  const PS=65*Math.PI/180, FS2=11*Math.PI/180, Dcs=Math.max(W,H)*2.6;
+  const PS=(WIDE?65:72)*Math.PI/180, FS2=11*Math.PI/180, Dcs=Math.max(W,H)*2.6;   // side-style: phone turns a bit more side-on (flatter rings) -> longer tube, less squeezed history
   ctx.save();ctx.font=`700 ${WIDE?14:12}px Orbitron,sans-serif`;const HTW=Math.ceil(ctx.measureText(hubTxt().replace(/\d/g,'8')).width/8)*8;   // widest-digit, 8 px steps: the fit never re-sizes the tube on price ticks
   ctx.font=`700 ${WIDE?11:9}px Orbitron,sans-serif`;const BLW=Math.ceil(ctx.measureText('SELLERS').width);ctx.restore();
   const FIT=sideFit(W,H,top,bot,CYs,PS,FS2,Dcs,HTW,BLW), RTs=FIT.RT, Ls=FIT.Ls, Lzs=Ls/Math.sin(PS);
@@ -2326,7 +2341,10 @@ function drawSide(now){
   // opening out to the full SPAN by s~0.4, so the morph converges onto the live front view instead of popping into it.
   const sst=v=>v<=0?0:v>=1?1:v*v*(3-2*v), zS=sst(s/0.4), LPf=Math.max(5,MWIN*trailStep), PPf=60*trailStep, SPe=Math.exp(Math.log(LPf)+(Math.log(SPAN)-Math.log(LPf))*zS);
   const iLP=(1-zS)/LPf+zS/LPs, phF=(tNow/PPf)%1, phD=(((tNow/(SPAN/4))%1-phF)%1+1.5)%1-0.5, PH=phF+zS*phD;   // head phase = the front's clock, easing by at most half a turn toward the side clock (no spin, no offset at FRONT)
-  const zOf=a=>-a/SPe*Lz, thOf=a=>-Math.PI/2+2*Math.PI*(PH-a*iLP);
+  // side style: time -> depth so equal time steps land at equal SCREEN spacing along the tube (undoes perspective bunching); blends in with the turn,
+  // so the FRONT end of the swap (sc=0) is untouched. Screen x of an axis point: u=zr*sp*Dc/(Dc-zr*cp*cf)  ->  inverse zr=u*Dc/(sp*Dc+u*cp*cf).
+  const PCc=cp*cf,uOf=zr=>zr*sp*Dc/Math.max(Dc*0.15,Dc-zr*PCc),PU0=uOf(pivot),PU1=uOf(pivot-Lz),PCw=sp>0.05?sc:0;
+  const zOf=a=>{const zl=-a/SPe*Lz;if(PCw<=0)return zl;const u=PU0+(PU1-PU0)*(a/SPe),zc=u*Dc/(sp*Dc+u*PCc)-pivot;return zl+(zc-zl)*PCw;}, thOf=a=>-Math.PI/2+2*Math.PI*(PH-a*iLP);
   const TRW=SANI?4*s*(1-s):0;   // transition weight (peaks mid-turn): thicker, glowing, see-through gold MA coils
   const pnOf=p=>Math.max(-1.15,Math.min(1.15,(p-SDS.c)/SDS.h));
   const ptAt=(a,p,swirl)=>{const th=thOf(a),pn=pnOf(p),rf=RT*((0.98-0.38*zS)+(0.14+0.14*zS)*Math.max(-1,Math.min(1,pn))),xf=rf*Math.cos(th),yf=-rf*Math.sin(th);
@@ -2337,28 +2355,44 @@ function drawSide(now){
   const SDIM=1-0.4*ga;   // side-on: walls/rings a little dimmer so the price line stays the star
   ctx.save();ctx.globalAlpha=SA;ctx.lineCap='round';ctx.lineJoin='round';
   // tunnel walls: 10 rails running along the tube (the front view's inward lines): wide soft glow + thin core, fading toward the PAST
-  {const NRL=10,NSG=14;for(let j=0;j<NRL;j++){const an=(j+0.5)/NRL*TAU,x=RT*Math.cos(an),y=RT*Math.sin(an);
-    for(let pass=(Q>0?0:1);pass<2;pass++)for(let q=0;q<NSG;q++){const a0=pr(x,y,-q/NSG*Lz),a1=pr(x,y,-(q+1)/NSG*Lz),f=Math.pow(1-(q+0.5)/NSG*0.82,0.8),k=Math.min(1.3,a0[2]);
-      ctx.strokeStyle=pass?`rgba(0,240,255,${((0.06+0.30*f)*SDIM).toFixed(3)})`:`rgba(0,240,255,${((0.035+0.06*f)*SDIM).toFixed(3)})`;ctx.lineWidth=(pass?0.5+1.3*f:2+6*f)*k;
-      ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();}}}
+  // side style: the 8 inner rails use the front's spoke stroke (glow 2+7s, core 0.5+1.6s, alpha .035+.07 / .06+.34) without side-on dimming;
+  // the top and bottom rails (the tube's silhouette) get the front bezel's frame stroke (cyan .55+, 2 px, glow 14) + a soft halo, fading only a little toward PAST
+  {const NRL=10,NSG=14;for(let j=0;j<NRL;j++){const an=(j+0.5)/NRL*TAU,x=RT*Math.cos(an),y=RT*Math.sin(an),edge=(j===2||j===7)?ga:0;
+    for(let pass=(Q>0?0:1);pass<2;pass++)for(let q=0;q<NSG;q++){const a0=pr(x,y,-q/NSG*Lz),a1=pr(x,y,-(q+1)/NSG*Lz),f=Math.pow(1-(q+0.5)/NSG*0.82,0.8),k=Math.min(1.3,a0[2]),fe=1-0.4*(q+0.5)/NSG,dm=1-0.4*ga*(1-ga);
+      const aS=pass?(0.06+0.34*f)*dm:(0.035+0.07*f)*dm,wS=pass?0.5+1.6*f:2+7*f,aE=pass?0.62*fe:0.16*fe,wE=pass?(WIDE?2.4:2.1):(WIDE?10:8);
+      ctx.strokeStyle=`rgba(${edge>0.01&&pass?'120,248,255':'0,240,255'},${(aS+(aE-aS)*edge).toFixed(3)})`;ctx.lineWidth=(wS+(wE-wS)*edge)*k;
+      if(edge>0.01&&pass&&Q>0){ctx.shadowColor='#00f0ff';ctx.shadowBlur=14*edge;}else ctx.shadowBlur=0;
+      ctx.beginPath();ctx.moveTo(a0[0],a0[1]);ctx.lineTo(a1[0],a1[1]);ctx.stroke();}}ctx.shadowBlur=0;}
   // dim time rings (front style: soft glow pass + thin ring; majors at half / full window)
-  const NR=6;
-  for(let k=1;k<NR;k++){const z=zOf(k/NR*SPe),f=Math.pow(1-k/NR*0.8,0.8),maj=k===3;
-    if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${((0.03+0.06*f)*SDIM).toFixed(3)})`;ctx.lineWidth=2+5*f;ringPath(RT,z,0,TAU,64);ctx.stroke();}
-    ctx.strokeStyle=`rgba(0,240,255,${((0.05+(maj?0.30:0.18)*f)*SDIM).toFixed(3)})`;ctx.lineWidth=0.5+(maj?1.4:0.9)*f;ringPath(RT,z,0,TAU,64);ctx.stroke();}
+  // side style: strong rings at equal round steps between NOW and PAST (5M: -1m..-4m, 15M: -5m/-10m, 60M: -15m/-30m/-45m); front major-ring stroke, a bit heavier
+  const RA=(SPAN<=300?[60,120,180,240]:SPAN<=900?[300,600]:[900,1800,2700]).filter(a=>a<SPe*0.97);   // equal steps: 5M every 1m, 15M every 5m, 60M every 15m
+  for(const a of RA){const z=zOf(a),f=Math.pow(1-a/SPe*0.6,0.8);
+    if(Q>0){ctx.strokeStyle=`rgba(0,240,255,${((0.05+0.07*f)*(1-(WIDE?0.1:0.4)*ga)).toFixed(3)})`;ctx.lineWidth=(3+6*f)*L(0.6,1);ringPath(RT,z,0,TAU,72);ctx.stroke();}
+    ctx.strokeStyle=`rgba(${ga>0.5?'110,245,255':'0,240,255'},${((0.10+0.42*f*ga+0.25*f*(1-ga))*(1-(WIDE?0.08:0.32)*ga)).toFixed(3)})`;ctx.lineWidth=(0.8+1.3*f)*L(0.8,1.15);ringPath(RT,z,0,TAU,72);ctx.stroke();}
   // PAST ring at the far (left) end: the front view's glowing vortex ring (halo + solid base + two soft sweeps turning with the zoom spin)
-  {const z=-Lz,g=VSP.w,k=(0.6+0.4*g)*(0.88+0.12*Math.sin(now/400))*(1-0.45*ga);ctx.save();ctx.lineCap='butt';ctx.shadowColor='rgba(0,240,255,1)';ctx.shadowBlur=Q>0?14+8*g:0;
+  {const z=-Lz,g=VSP.w,k=(0.6+0.4*g)*(0.88+0.12*Math.sin(now/400))*(1+(WIDE?0.2:0.0)*ga);ctx.save();ctx.lineCap='butt';ctx.shadowColor='rgba(0,240,255,1)';ctx.shadowBlur=Q>0?14+8*g:0;
     ctx.strokeStyle=`rgba(0,240,255,${(0.10*k).toFixed(3)})`;ctx.lineWidth=6+3*g;ringPath(RT,z,0,TAU,72);ctx.stroke();
-    ctx.strokeStyle=`rgba(170,250,255,${(0.42*k).toFixed(3)})`;ctx.lineWidth=1.6+0.5*g;ringPath(RT,z,0,TAU,72);ctx.stroke();
+    ctx.strokeStyle=`rgba(170,250,255,${Math.min(0.85,0.42*k+(WIDE?0.13:0.06)*ga).toFixed(3)})`;ctx.lineWidth=1.6+0.5*g+(WIDE?0.5:0.3)*ga;ringPath(RT,z,0,TAU,72);ctx.stroke();
     const A=0.25+0.55*g;ctx.shadowBlur=Q>0?10+10*g:0;const NS2=72;
     for(let i=0;i<NS2;i++){const a0=i*TAU/NS2,a1=a0+TAU/NS2+0.004,am=(a0+a1)/2;let f=0;for(let h=0;h<2;h++){const dd=(((-am-VSP.ph-h*Math.PI)%TAU)+TAU)%TAU;f=Math.max(f,dd<=Math.PI?Math.exp(-dd/0.9):Math.exp(-(TAU-dd)/0.12));}
       if(f<0.02)continue;ctx.strokeStyle=`rgba(210,253,255,${(A*f*k).toFixed(3)})`;ctx.lineWidth=(1.8+1.2*g)*(0.7+0.3*f);ringPath(RT,z,a0,a1,2);ctx.stroke();}
     ctx.restore();}
   // time labels (front style: bold mono on a dark plate; NOW yellow), under each ring, skipped on collision
-  if(s>0.3){const la=Math.min(1,(s-0.3)/0.4),fsT=WIDE?11:9,put=[];ctx.font=`700 ${fsT}px "Share Tech Mono",monospace`;ctx.textAlign='center';
-    for(const k of [0,NR,...Array.from({length:NR-1},(_,i)=>i+1)]){const a=k/NR*SPe,q=pr(0,-RT,zOf(a)),txt=k===0?'NOW':k===NR?'PAST '+fmtAge(Math.round(a)):fmtAge(Math.round(a)),w=ctx.measureText(txt).width+6,x=q[0],y=q[1]+fsT+6,bx=x-w/2,by=y-fsT,bh=fsT+4;
-      if(put.some(r=>bx<r.x+r.w&&bx+w>r.x&&by<r.y+r.h&&by+bh>r.y))continue;put.push({x:bx,y:by,w,h:bh});
-      ctx.globalAlpha=SA*la;ctx.fillStyle='rgba(5,3,12,.6)';ctx.fillRect(bx,by,w,bh);ctx.fillStyle=k===0?'rgba(255,230,0,.9)':`rgba(0,240,255,${(0.9-0.45*k/NR).toFixed(3)})`;ctx.fillText(txt,x,y);ctx.globalAlpha=SA*1;}}
+  if(s>0.3){const la=Math.min(1,(s-0.3)/0.4),fsT=WIDE?13:11,put=[];ctx.font=`700 ${fsT}px "Share Tech Mono",monospace`;ctx.textAlign='center';
+    // every ring is labelled (NOW, each step, PAST) in one straight row along the bottom rail: rotated to the rail's angle, centred on the ring/rail meeting point.
+    // If neighbours would touch: PAST label shortens to 'PAST', then the font steps down (min 8/9 px). Nothing is dropped or staggered.
+    const NR=6,LB=[...RA].concat([SPe]).reverse().concat([0]).map(a=>({a,k:a===0?0:a>=SPe-1e-6?NR:3,q:pr(0,-RT,zOf(a))}));   // PAST ... NOW (left -> right)
+    const qA=LB[0].q,qB=LB[LB.length-1].q,ang=Math.atan2(qB[1]-qA[1],qB[0]-qA[0]),gapL=4,dbg=[];
+    const txtOf=(l,sh)=>l.k===0?'NOW':l.k===NR?(sh?'PAST':'PAST '+fmtAge(Math.round(l.a))):fmtAge(Math.round(l.a));
+    let fs=fsT,sh=false;
+    for(let tries=0;tries<12;tries++){ctx.font=`700 ${fs}px "Share Tech Mono",monospace`;let ok=true;
+      for(let i=0;i+1<LB.length;i++){const w0=ctx.measureText(txtOf(LB[i],sh)).width+8,w1=ctx.measureText(txtOf(LB[i+1],sh)).width+8,d=Math.hypot(LB[i+1].q[0]-LB[i].q[0],LB[i+1].q[1]-LB[i].q[1]);if((w0+w1)/2+gapL>d){ok=false;break;}}
+      if(ok)break;if(!sh)sh=true;else if(fs>(WIDE?9:8))fs--;else break;}
+    ctx.font=`700 ${fs}px "Share Tech Mono",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';const bh=fs+5,off=bh/2+5;
+    for(const l of LB){const txt=txtOf(l,sh),w=ctx.measureText(txt).width+8;dbg.push([txt,Math.round(l.q[0]),Math.round(l.q[1]),fs]);
+      ctx.save();ctx.translate(l.q[0],l.q[1]);ctx.rotate(ang);ctx.globalAlpha=SA*la;
+      ctx.fillStyle='rgba(5,3,12,.78)';ctx.fillRect(-w/2,off-bh/2,w,bh);ctx.fillStyle=l.k===0?'rgba(255,230,0,.95)':`rgba(120,248,255,${(0.95-0.25*l.k/NR).toFixed(3)})`;ctx.fillText(txt,0,off+0.5);ctx.restore();}
+    ctx.textBaseline='alphabetic';ctx.globalAlpha=SA*1;window.__sideLbl={ang:+(ang*180/Math.PI).toFixed(1),rows:1,l:dbg};}
   const zArc=-Lz*s;   // slide: FRONT->SIDE rides down the tunnel to PAST; SIDE->FRONT rides back up
   // aggressor-arc geometry (shared by the PAST price labels, which step clear of it, and the arc block below)
   const ARCG=(()=>{const kNow=pr(0,0,0)[2],kArc=pr(0,0,zArc)[2],kR=Math.max(0.35,Math.min(1.15,kArc/Math.max(1e-6,kNow))),C0=pr(0,0,zArc),RTpx=RT*kArc,AO=arcOffs(RTpx,kR,WIDE);
@@ -2374,7 +2408,8 @@ function drawSide(now){
   // NOW mouth = outer bezel + 72 ticks at z=0. The BUYERS/SELLERS gauge arc (+ diamond + curved labels) SLIDES along the tube:
   // FRONT (s=0) -> parked on the NOW ring; SIDE (s=1) -> parked on the PAST ring; scales with perspective so it stays concentric with the tube.
   const GRs=RT+Lc(30,RT*0.075);   // = the front's gauge radius (RMAX+30) at the FRONT end
-  {ctx.save();ctx.strokeStyle='rgba(0,240,255,0.55)';ctx.lineWidth=WIDE?2:1.8;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?14:0;ringPath(RT,0,0,TAU,96);ctx.stroke();ctx.shadowBlur=0;
+  {ctx.save();if(ga>0.01){ctx.strokeStyle=`rgba(0,240,255,${(0.16*ga).toFixed(3)})`;ctx.lineWidth=(WIDE?10:8)*ga;ringPath(RT,0,0,TAU,96);ctx.stroke();}
+    ctx.strokeStyle=`rgba(${ga>0.5?'150,250,255':'0,240,255'},${(0.55+0.35*ga).toFixed(3)})`;ctx.lineWidth=(WIDE?2:1.8)+0.6*ga;ctx.shadowColor='#00f0ff';ctx.shadowBlur=Q>0?14+6*ga:0;ringPath(RT,0,0,TAU,96);ctx.stroke();ctx.shadowBlur=0;
     ctx.strokeStyle='rgba(0,240,255,0.4)';ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<72;i++){const an=i/72*TAU,l=(i%6===0?10:4)/Math.max(1,RT)*RT,c=Math.cos(an),sn=Math.sin(an),a=pr(RT*c,RT*sn,0),b=pr((RT+l)*c,(RT+l)*sn,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}ctx.stroke();
     ctx.restore();}
   // aggressor arc / diamond / labels at zArc (after PAST glow so they sit on top of it when parked left).
@@ -2453,9 +2488,23 @@ function drawSide(now){
   const kH=L(1,0.7);for(const [lw,al0,col] of [[WIDE?7:6,0.10*kH,'0,240,255'],[WIDE?3:2.6,0.28*kH,'0,240,255'],[WIDE?1.5:1.3,0.95*L(1,0.55),s>0.5?'120,235,255':'215,252,255']]){
     if(hK>0.01)for(let i=0;i+8<T.length;i+=8){const a=AG[i],al=al0*hK*Math.pow(fadeA(a),1.4);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.4,Math.max(0.55,T[i][2]));ctx.beginPath();ctx.moveTo(T[i][0],T[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(T[i+j][0],T[i+j][1]);ctx.stroke();}}
   let C=null;
-  if(s>0.3){C=AG.map(a=>ptAt(a,Pv(a),false));
-    const passes=TRUE?[[WIDE?12:9,0.05,'0,240,255'],[WIDE?5:4,0.14,'0,240,255'],[WIDE?1.6:1.4,1,'235,253,255']]:[[WIDE?6:5,0.12,'0,240,255'],[WIDE?2:1.8,1,'235,253,255']];
-    for(const [lw,al0,col] of passes)for(let i=0;i+8<C.length;i+=8){const al=al0*ga*Math.pow(fadeA(AG[i]),1.2);ctx.strokeStyle=`rgba(${col},${al.toFixed(3)})`;ctx.lineWidth=lw*Math.min(1.3,Math.max(0.6,C[i][2]));ctx.beginPath();ctx.moveTo(C[i][0],C[i][1]);for(let j=1;j<=8;j++)ctx.lineTo(C[i+j][0],C[i+j][1]);ctx.stroke();}}
+  if(s>0.3&&SDS.PM){const NBs=SDS.NB,dBs=SDS.dB/1000,ivB=(A,a)=>{const x=Math.max(0,Math.min(NBs-1,NBs-0.5-a/dBs)),i=Math.floor(x),j=Math.min(NBs-1,i+1),f=x-i;return A[i]*(1-f)+A[j]*f;},bOf=a=>Math.max(0,Math.min(NBs-1,Math.floor(NBs-a/dBs)));
+    const PMv=a=>a<=dt*0.5?P[N-1]:ivB(SDS.PM,a);C=AG.map(a=>ptAt(a,PMv(a),false));
+    // true range: faint pale band (smoothed envelope of the real highs/lows) behind the line, so the chart stays honest without the white spikes
+    {const U=A2.map(a=>ptAt(a,ivB(SDS.EH,a),false)),D=A2.map(a=>ptAt(a,ivB(SDS.EL,a),false)),bA=WIDE?0.065:0.075;
+      for(let i=0;i+6<A2.length;i+=6){const al=Math.pow(fadeA(A2[i]),1.1)*ga;ctx.fillStyle=`rgba(200,240,255,${(bA*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(U[i][0],U[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(U[i+j][0],U[i+j][1]);for(let j=6;j>=0;j--)ctx.lineTo(D[i+j][0],D[i+j][1]);ctx.closePath();ctx.fill();}
+      ctx.lineWidth=WIDE?0.9:0.8;for(const Qb of [U,D])for(let i=0;i+6<A2.length;i+=6){const al=Math.pow(fadeA(A2[i]),1.1)*ga;ctx.strokeStyle=`rgba(210,245,255,${(0.15*al).toFixed(3)})`;ctx.beginPath();ctx.moveTo(Qb[i][0],Qb[i][1]);for(let j=1;j<=6;j++)ctx.lineTo(Qb[i+j][0],Qb[i+j][1]);ctx.stroke();}
+      window.__sideBand={n:A2.length,top:+ivB(SDS.EH,0).toFixed(6),bot:+ivB(SDS.EL,0).toFixed(6)};}
+    // front trail spine: the same four cyan passes (14/8/4/1.6 px x max(0.8,RMAX/400)), fading toward PAST
+    const SPm=Math.max(0.8,RMAX/400),SG=8,seg=(i,n)=>{ctx.beginPath();ctx.moveTo(C[i][0],C[i][1]);for(let j=1;j<=n;j++)ctx.lineTo(C[i+j][0],C[i+j][1]);};
+    ctx.lineJoin='round';ctx.lineCap='round';for(const [lw,al0] of [[3.2,0.10],[1.5,0.70]]){ctx.lineWidth=lw;for(let i=0;i+1<C.length;i+=SG){const n=Math.min(SG,C.length-1-i),al=al0*ga*Math.pow(fadeA(AG[i]),0.9);ctx.strokeStyle=`rgba(0,240,255,${al.toFixed(3)})`;seg(i,n);ctx.stroke();}}
+    // volume ribbon (front logic): colour = buy/sell dominance of that stretch (mixCol), width/brightness = its USD volume vs the window's 95th pct, glow underlay + bloom
+    {const VR=SDS.vref||1;let nr=0;for(let i=0;i+1<C.length;i+=SG){const n=Math.min(SG,C.length-1-i),a=AG[i],a1=AG[i+n],b0=bOf(a1),b1=bOf(a);let vb=0,vs=0;for(let b=b0;b<=b1;b++){vb+=SDS.VB[b];vs+=SDS.VS[b];}const v=vb+vs;if(v<=0)continue;
+        // crisp solid ribbon: width = base + a capped, modest volume term (never balloons); one tight 2 px edge glow; real bloom only on the newest ~4% (the head)
+        const nb=Math.max(1,b1-b0+1),rel=Math.min(1,Math.sqrt(v/nb/VR)),c=mixCol((vb-vs)/v),u=Math.pow(fadeA(a),1.1)*ga,kp=Math.min(1.15,Math.max(0.7,C[i][2])),LW=((WIDE?2.6:2.2)+(WIDE?2.0:1.5)*rel)*kp*(0.6+0.4*u),hd=Math.max(0,1-a/(SPe*0.04));
+        ctx.shadowBlur=0;ctx.strokeStyle=rgba(c,(0.14*u).toFixed(3));ctx.lineWidth=LW+2.5;seg(i,n);ctx.stroke();
+        ctx.strokeStyle=rgba(c,Math.min(1,(0.78+0.2*rel)*u).toFixed(3));ctx.lineWidth=LW;if(Q>0&&hd>0){ctx.shadowColor=rgba(c,1);ctx.shadowBlur=14*hd;}seg(i,n);ctx.stroke();nr++;}
+      ctx.shadowBlur=0;window.__sideRib={segs:nr,vref:+VR.toFixed(0)};}}
   const LN=C||T, ixA=a=>Math.max(0,Math.min(LN.length-1,Math.round(a/dA)));   // screen point of the line at age a (s)
   // spike detector (side): fresh ~3 s move of the live price vs the typical 3 s move over the last minutes -> front's flare (white-hot segment + sparks + shake)
   {const lp=hubPx();if(lp>0&&(!SSPK.h.length||dn-SSPK.h[SSPK.h.length-1][0]>=100))SSPK.h.push([dn,lp]);while(SSPK.h.length&&dn-SSPK.h[0][0]>300000)SSPK.h.shift();
