@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "what": "Past-only tallies of three order-flow patterns on the merged 5-venue feed. Not a prediction.",
- "generated_at": "2026-10-18T11:22:45.883Z",
+ "generated_at": "2026-10-18T11:26:45.888Z",
  "window": 100,
  "rule": "'continued' = mid moved in the pattern's implied direction by more than the spread at the event, at +15s / +60s; 'against' = moved the other way by more than the spread; 'neutral' = moved less than the spread. decisive = continued + against. rate = continued / decisive (neutral excluded). Window = the most recent outcomes back to the 100th decisive one; n = decisive + neutral in that window. void outcomes (feed gap / venue set changed) are skipped.",
  "display": "show 'continued X of the last D moves' (D = decisive) only when decisive>=100 and rate outside 0.45-0.55 (field 'show'); never draw a projected price.",
@@ -12,16 +12,16 @@
  },
  "patterns": {
   "eaten_wall": {
-   "total_logged": 381,
+   "total_logged": 382,
    "all": {
     "15s": {
-     "n": 143,
+     "n": 144,
      "decisive": 100,
      "continued_up": 35,
      "continued_down": 28,
      "continued": 63,
      "against": 37,
-     "neutral": 43,
+     "neutral": 44,
      "rate": 0.63,
      "show": true,
      "label": "continued 63 of the last 100 moves (up 35 · down 28)"
@@ -30,13 +30,13 @@
      "n": 119,
      "decisive": 100,
      "continued_up": 25,
-     "continued_down": 26,
-     "continued": 51,
-     "against": 49,
+     "continued_down": 25,
+     "continued": 50,
+     "against": 50,
      "neutral": 19,
-     "rate": 0.51,
+     "rate": 0.5,
      "show": false,
-     "label": "continued 51 of the last 100 moves (up 25 · down 26)"
+     "label": "continued 50 of the last 100 moves (up 25 · down 25)"
     }
    },
    "coins": {
@@ -172,28 +172,28 @@
     },
     "ADA": {
      "15s": {
-      "n": 34,
+      "n": 35,
       "decisive": 24,
       "continued_up": 7,
       "continued_down": 8,
       "continued": 15,
       "against": 9,
-      "neutral": 10,
+      "neutral": 11,
       "rate": 0.625,
       "show": false,
       "label": "continued 15 of the last 24 moves (up 7 · down 8)"
      },
      "60s": {
-      "n": 34,
-      "decisive": 28,
+      "n": 35,
+      "decisive": 29,
       "continued_up": 5,
       "continued_down": 9,
       "continued": 14,
-      "against": 14,
+      "against": 15,
       "neutral": 6,
-      "rate": 0.5,
+      "rate": 0.483,
       "show": false,
-      "label": "continued 14 of the last 28 moves (up 5 · down 9)"
+      "label": "continued 14 of the last 29 moves (up 5 · down 9)"
      }
     },
     "LINK": {
@@ -303,16 +303,16 @@
    }
   },
   "aggressor_burst": {
-   "total_logged": 992,
+   "total_logged": 993,
    "all": {
     "15s": {
-     "n": 116,
+     "n": 117,
      "decisive": 100,
      "continued_up": 22,
      "continued_down": 28,
      "continued": 50,
      "against": 50,
-     "neutral": 16,
+     "neutral": 17,
      "rate": 0.5,
      "show": false,
      "label": "continued 50 of the last 100 moves (up 22 · down 28)"
@@ -463,28 +463,28 @@
     },
     "ADA": {
      "15s": {
-      "n": 73,
+      "n": 74,
       "decisive": 59,
       "continued_up": 22,
       "continued_down": 17,
       "continued": 39,
       "against": 20,
-      "neutral": 14,
+      "neutral": 15,
       "rate": 0.661,
       "show": false,
       "label": "continued 39 of the last 59 moves (up 22 · down 17)"
      },
      "60s": {
-      "n": 73,
-      "decisive": 66,
+      "n": 74,
+      "decisive": 67,
       "continued_up": 15,
       "continued_down": 18,
       "continued": 33,
-      "against": 33,
+      "against": 34,
       "neutral": 7,
-      "rate": 0.5,
+      "rate": 0.493,
       "show": false,
-      "label": "continued 33 of the last 66 moves (up 15 · down 18)"
+      "label": "continued 33 of the last 67 moves (up 15 · down 18)"
      }
     },
     "LINK": {
@@ -594,31 +594,31 @@
    }
   },
   "repeat_pull": {
-   "total_logged": 2163,
+   "total_logged": 2164,
    "all": {
     "15s": {
      "n": 123,
      "decisive": 100,
-     "continued_up": 42,
+     "continued_up": 43,
      "continued_down": 16,
-     "continued": 58,
-     "against": 42,
+     "continued": 59,
+     "against": 41,
      "neutral": 23,
-     "rate": 0.58,
+     "rate": 0.59,
      "show": true,
-     "label": "continued 58 of the last 100 moves (up 42 · down 16)"
+     "label": "continued 59 of the last 100 moves (up 43 · down 16)"
     },
     "60s": {
      "n": 111,
      "decisive": 100,
-     "continued_up": 44,
+     "continued_up": 45,
      "continued_down": 14,
-     "continued": 58,
-     "against": 42,
+     "continued": 59,
+     "against": 41,
      "neutral": 11,
-     "rate": 0.58,
+     "rate": 0.59,
      "show": true,
-     "label": "continued 58 of the last 100 moves (up 44 · down 14)"
+     "label": "continued 59 of the last 100 moves (up 45 · down 14)"
     }
    },
    "coins": {
@@ -728,28 +728,28 @@
     },
     "DOGE": {
      "15s": {
-      "n": 168,
-      "decisive": 100,
-      "continued_up": 41,
-      "continued_down": 9,
-      "continued": 50,
-      "against": 50,
-      "neutral": 68,
-      "rate": 0.5,
-      "show": false,
-      "label": "continued 50 of the last 100 moves (up 41 · down 9)"
-     },
-     "60s": {
-      "n": 127,
+      "n": 167,
       "decisive": 100,
       "continued_up": 42,
-      "continued_down": 9,
-      "continued": 51,
-      "against": 49,
-      "neutral": 27,
-      "rate": 0.51,
+      "continued_down": 8,
+      "continued": 50,
+      "against": 50,
+      "neutral": 67,
+      "rate": 0.5,
       "show": false,
-      "label": "continued 51 of the last 100 moves (up 42 · down 9)"
+      "label": "continued 50 of the last 100 moves (up 42 · down 8)"
+     },
+     "60s": {
+      "n": 126,
+      "decisive": 100,
+      "continued_up": 43,
+      "continued_down": 9,
+      "continued": 52,
+      "against": 48,
+      "neutral": 26,
+      "rate": 0.52,
+      "show": false,
+      "label": "continued 52 of the last 100 moves (up 43 · down 9)"
      }
     },
     "ADA": {
