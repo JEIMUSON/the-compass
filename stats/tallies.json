@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "what": "Past-only tallies of three order-flow patterns on the merged 5-venue feed. Not a prediction.",
- "generated_at": "2026-10-21T11:19:12.864Z",
+ "generated_at": "2026-10-21T11:46:08.523Z",
  "window": 100,
  "rule": "'continued' = mid moved in the pattern's implied direction by more than the spread at the event, at +15s / +60s; 'against' = moved the other way by more than the spread; 'neutral' = moved less than the spread. decisive = continued + against. rate = continued / decisive (neutral excluded). Window = the most recent outcomes back to the 100th decisive one; n = decisive + neutral in that window. void outcomes (feed gap / venue set changed) are skipped.",
  "display": "show 'continued X of the last D moves' (D = decisive) only when decisive>=100 and rate outside 0.45-0.55 (field 'show'); never draw a projected price.",
@@ -12,31 +12,31 @@
  },
  "patterns": {
   "eaten_wall": {
-   "total_logged": 394,
+   "total_logged": 396,
    "all": {
     "15s": {
      "n": 147,
      "decisive": 100,
-     "continued_up": 35,
-     "continued_down": 30,
+     "continued_up": 36,
+     "continued_down": 29,
      "continued": 65,
      "against": 35,
      "neutral": 47,
      "rate": 0.65,
      "show": true,
-     "label": "continued 65 of the last 100 moves (up 35 · down 30)"
+     "label": "continued 65 of the last 100 moves (up 36 · down 29)"
     },
     "60s": {
-     "n": 115,
+     "n": 114,
      "decisive": 100,
-     "continued_up": 29,
-     "continued_down": 24,
+     "continued_up": 30,
+     "continued_down": 23,
      "continued": 53,
      "against": 47,
-     "neutral": 15,
+     "neutral": 14,
      "rate": 0.53,
      "show": false,
-     "label": "continued 53 of the last 100 moves (up 29 · down 24)"
+     "label": "continued 53 of the last 100 moves (up 30 · down 23)"
     }
    },
    "coins": {
@@ -276,58 +276,58 @@
     },
     "XLM": {
      "15s": {
-      "n": 28,
-      "decisive": 23,
-      "continued_up": 8,
+      "n": 30,
+      "decisive": 25,
+      "continued_up": 10,
       "continued_down": 8,
-      "continued": 16,
+      "continued": 18,
       "against": 7,
       "neutral": 5,
-      "rate": 0.696,
+      "rate": 0.72,
       "show": false,
-      "label": "continued 16 of the last 23 moves (up 8 · down 8)"
+      "label": "continued 18 of the last 25 moves (up 10 · down 8)"
      },
      "60s": {
-      "n": 28,
-      "decisive": 23,
-      "continued_up": 9,
+      "n": 30,
+      "decisive": 25,
+      "continued_up": 11,
       "continued_down": 5,
-      "continued": 14,
+      "continued": 16,
       "against": 9,
       "neutral": 5,
-      "rate": 0.609,
+      "rate": 0.64,
       "show": false,
-      "label": "continued 14 of the last 23 moves (up 9 · down 5)"
+      "label": "continued 16 of the last 25 moves (up 11 · down 5)"
      }
     }
    }
   },
   "aggressor_burst": {
-   "total_logged": 1037,
+   "total_logged": 1038,
    "all": {
     "15s": {
      "n": 121,
      "decisive": 100,
-     "continued_up": 30,
+     "continued_up": 31,
      "continued_down": 29,
-     "continued": 59,
-     "against": 41,
+     "continued": 60,
+     "against": 40,
      "neutral": 21,
-     "rate": 0.59,
+     "rate": 0.6,
      "show": true,
-     "label": "continued 59 of the last 100 moves (up 30 · down 29)"
+     "label": "continued 60 of the last 100 moves (up 31 · down 29)"
     },
     "60s": {
      "n": 109,
      "decisive": 100,
-     "continued_up": 24,
-     "continued_down": 26,
+     "continued_up": 25,
+     "continued_down": 25,
      "continued": 50,
      "against": 50,
      "neutral": 9,
      "rate": 0.5,
      "show": false,
-     "label": "continued 50 of the last 100 moves (up 24 · down 26)"
+     "label": "continued 50 of the last 100 moves (up 25 · down 25)"
     }
    },
    "coins": {
@@ -387,26 +387,26 @@
      "15s": {
       "n": 126,
       "decisive": 100,
-      "continued_up": 27,
-      "continued_down": 34,
+      "continued_up": 28,
+      "continued_down": 33,
       "continued": 61,
       "against": 39,
       "neutral": 26,
       "rate": 0.61,
       "show": true,
-      "label": "continued 61 of the last 100 moves (up 27 · down 34)"
+      "label": "continued 61 of the last 100 moves (up 28 · down 33)"
      },
      "60s": {
       "n": 111,
       "decisive": 100,
-      "continued_up": 22,
+      "continued_up": 23,
       "continued_down": 30,
-      "continued": 52,
-      "against": 48,
+      "continued": 53,
+      "against": 47,
       "neutral": 11,
-      "rate": 0.52,
+      "rate": 0.53,
       "show": false,
-      "label": "continued 52 of the last 100 moves (up 22 · down 30)"
+      "label": "continued 53 of the last 100 moves (up 23 · down 30)"
      }
     },
     "SOL": {
@@ -594,31 +594,31 @@
    }
   },
   "repeat_pull": {
-   "total_logged": 2367,
+   "total_logged": 2374,
    "all": {
     "15s": {
      "n": 124,
      "decisive": 100,
-     "continued_up": 38,
-     "continued_down": 18,
+     "continued_up": 36,
+     "continued_down": 20,
      "continued": 56,
      "against": 44,
      "neutral": 24,
      "rate": 0.56,
      "show": true,
-     "label": "continued 56 of the last 100 moves (up 38 · down 18)"
+     "label": "continued 56 of the last 100 moves (up 36 · down 20)"
     },
     "60s": {
-     "n": 109,
+     "n": 111,
      "decisive": 100,
-     "continued_up": 41,
-     "continued_down": 18,
-     "continued": 59,
-     "against": 41,
-     "neutral": 9,
-     "rate": 0.59,
+     "continued_up": 40,
+     "continued_down": 20,
+     "continued": 60,
+     "against": 40,
+     "neutral": 11,
+     "rate": 0.6,
      "show": true,
-     "label": "continued 59 of the last 100 moves (up 41 · down 18)"
+     "label": "continued 60 of the last 100 moves (up 40 · down 20)"
     }
    },
    "coins": {
@@ -650,28 +650,28 @@
     },
     "ETH": {
      "15s": {
-      "n": 107,
+      "n": 108,
       "decisive": 100,
-      "continued_up": 38,
-      "continued_down": 21,
+      "continued_up": 37,
+      "continued_down": 22,
       "continued": 59,
       "against": 41,
-      "neutral": 7,
+      "neutral": 8,
       "rate": 0.59,
       "show": true,
-      "label": "continued 59 of the last 100 moves (up 38 · down 21)"
+      "label": "continued 59 of the last 100 moves (up 37 · down 22)"
      },
      "60s": {
       "n": 103,
       "decisive": 100,
       "continued_up": 40,
-      "continued_down": 15,
-      "continued": 55,
-      "against": 45,
+      "continued_down": 16,
+      "continued": 56,
+      "against": 44,
       "neutral": 3,
-      "rate": 0.55,
-      "show": false,
-      "label": "continued 55 of the last 100 moves (up 40 · down 15)"
+      "rate": 0.56,
+      "show": true,
+      "label": "continued 56 of the last 100 moves (up 40 · down 16)"
      }
     },
     "XRP": {
@@ -702,51 +702,51 @@
     },
     "SOL": {
      "15s": {
-      "n": 115,
+      "n": 116,
       "decisive": 100,
-      "continued_up": 26,
-      "continued_down": 24,
+      "continued_up": 25,
+      "continued_down": 25,
       "continued": 50,
       "against": 50,
-      "neutral": 15,
+      "neutral": 16,
       "rate": 0.5,
       "show": false,
-      "label": "continued 50 of the last 100 moves (up 26 · down 24)"
+      "label": "continued 50 of the last 100 moves (up 25 · down 25)"
      },
      "60s": {
       "n": 108,
       "decisive": 100,
       "continued_up": 30,
-      "continued_down": 27,
-      "continued": 57,
-      "against": 43,
+      "continued_down": 28,
+      "continued": 58,
+      "against": 42,
       "neutral": 8,
-      "rate": 0.57,
+      "rate": 0.58,
       "show": true,
-      "label": "continued 57 of the last 100 moves (up 30 · down 27)"
+      "label": "continued 58 of the last 100 moves (up 30 · down 28)"
      }
     },
     "DOGE": {
      "15s": {
-      "n": 178,
+      "n": 179,
       "decisive": 100,
       "continued_up": 45,
       "continued_down": 8,
       "continued": 53,
       "against": 47,
-      "neutral": 78,
+      "neutral": 79,
       "rate": 0.53,
       "show": false,
       "label": "continued 53 of the last 100 moves (up 45 · down 8)"
      },
      "60s": {
-      "n": 126,
+      "n": 127,
       "decisive": 100,
       "continued_up": 44,
       "continued_down": 7,
       "continued": 51,
       "against": 49,
-      "neutral": 26,
+      "neutral": 27,
       "rate": 0.51,
       "show": false,
       "label": "continued 51 of the last 100 moves (up 44 · down 7)"
