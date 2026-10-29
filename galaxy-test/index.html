@@ -1,8 +1,9 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='galaxy3d-20261029-1025';</script>
+<script>window.OFC_BUILD='galaxy3d-20261029-1030';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;height:100%;background:#020308;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -11,10 +12,10 @@ canvas{position:fixed;inset:0;width:100%;height:100%}
 #hud a,#hud span.c{color:#8a94b0;cursor:pointer;margin-right:6px;text-decoration:none}
 #hud .on{color:#fff}
 #st{position:fixed;left:10px;bottom:8px;opacity:.55}
-#px{position:fixed;right:10px;top:8px;color:#fff;font-size:13px;opacity:.85;text-align:right}
+#px{position:fixed;right:10px;top:44px;color:#fff;font-size:13px;opacity:.85;text-align:right}
 </style></head><body>
 <canvas id="cv"></canvas>
-<div id="hud"><b>GALAXY TEST</b> · The Compass · <a href="../">← live</a><br>
+<div id="hud"><b>GALAXY TEST 3D</b> · The Compass · <span id="bid" style="color:#ffd27a"></span> · <a href="../">← live</a><br>
 <span id="coins"></span> │ <span id="wins"></span></div>
 <div id="px"></div><div id="st"></div>
 <script>
@@ -64,8 +65,8 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  if(V.length>cap){const big=V.filter(t=>t.usd>=mu),sm=V.length-big.length,keep=Math.max(0,cap-big.length)/sm;D=V.filter(t=>t.usd>=mu||t.j<keep);lodNote=' · LOD: all big prints + '+Math.round(keep*100)+'% of small';}
  // world: z = age (0 at NOW .. ZD far past), y = price, x = lateral scatter (buys left, sells right, spread grows with size)
  const ZD=9,Yw=p=>((p-lo)/(hi-lo)-.5)*1.8;
- const yaw=.5+.18*Math.sin(now/11000)+yawU,pitch=.12+.05*Math.sin(now/13000)+pitchU,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
- const F=Math.min(W,H)*1.6,CX=W*.5,CYc=H*.5,camD=7,zc=ZD*.45;
+ const MOB=matchMedia('(pointer:coarse)').matches||innerWidth<700;const yaw=(MOB?.28:.55)+(MOB?.22:.3)*Math.sin(now/7000)+yawU,pitch=(MOB?-.3:.28)+.12*Math.sin(now/9000)+pitchU,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const F=Math.min(W,H)*(MOB?1.05:1.2),CX=W*.5,CYc=H*.5,camD=MOB?5:5,zc=ZD*(MOB?.22:.45);
  const PJ=(x,y,z)=>{z-=zc;const x1=x*cy-z*sy,z1=x*sy+z*cy;const y1=y*cp-z1*sp,z2=y*sp+z1*cp+camD;if(z2<.15)return null;const k=F/z2;return[CX+x1*k,CYc-y1*k,k,z2];};
  // faint depth grid: price rings every quarter at a few time slices (time tunnel)
  g.strokeStyle='rgba(120,140,200,.07)';g.lineWidth=DPR;
@@ -95,5 +96,5 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
 let lu=0;function upd(V,now,last,nd){if(now-lu<500)return;lu=now;
  document.getElementById('px').innerHTML=last?COIN+' $'+fmt(last.px)+'<br><span style="font-size:10px;opacity:.6">'+V.length.toLocaleString()+' prints in view'+(nd&&nd<V.length?' ('+nd.toLocaleString()+' drawn)':'')+'</span>':'';
  document.getElementById('st').textContent='build '+OFC_BUILD+' · '+Object.entries(VEN).map(([k,v])=>k+' '+v).join(' · ')+' · sparks = real prints · trail = 1s VWAP · depth = time · drag to orbit · nothing past NOW'+lodNote;}
-frame();
+document.getElementById('bid').textContent=OFC_BUILD;frame();
 </script></body></html>
