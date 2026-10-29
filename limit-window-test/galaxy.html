@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='limitwin-galaxy-20261029-1119';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-galaxy-20261029-1125';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;touch-action:none;overscroll-behavior:none;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -111,12 +111,20 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  // LIMIT walls at NOW: resting liquidity drawn as glowing glass curtains near the NOW plane. Bids (mint) hang on the left, asks (amber) on the right,
  // each at its real price; length + brightness = USD resting there. They exist only at NOW (z 0..0.9) — the book has no past drawn here.
  {const cw=(sd,w)=>{const f=Math.sqrt(w.u/WALLS.mx),x0=(sd==='b'?-1:1)*.12,x1=x0+(sd==='b'?-1:1)*(.06+.5*f),y=Yw(w.px),th=Math.max(.004,(WALLS.step/(hi-lo))*1.8*.6),zd=.06+.3*f;
-   const col=sd==='b'?'90,255,190':'255,170,90';const C=[[x0,y-th,0],[x1,y-th,0],[x1,y+th,0],[x0,y+th,0]],Bk=C.map(p=>[p[0],p[1],zd]);
-   const poly=(pts,al)=>{const q=pts.map(p=>PJ(...p));if(q.some(v=>!v))return;g.globalAlpha=al;g.beginPath();g.moveTo(q[0][0],q[0][1]);for(let i=1;i<q.length;i++)g.lineTo(q[i][0],q[i][1]);g.closePath();g.fill();};
-   g.fillStyle='rgb('+col+')';const sh=.6+.4*Math.sin(now/700+w.px);
-   poly([C[2],C[3],Bk[3],Bk[2]],(.03+.1*f)*sh);poly(C,(.03+.1*f));poly([C[0],C[1],Bk[1],Bk[0]],.02+.04*f);
-   const a=PJ(x0,y,0),b=PJ(x1,y,0);if(a&&b){g.strokeStyle='rgb('+col+')';g.globalAlpha=.25+.6*f;g.lineWidth=Math.max(DPR*.6,Math.min(3*DPR,.003*a[2]));g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
-    const R=Math.min(90*DPR,(.03+.12*f)*b[2]);g.globalAlpha=.12+.25*f;g.drawImage(sprite(col),b[0]-R,b[1]-R,2*R,2*R);}};
+   const col=sd==='b'?'90,255,190':'255,170,90';
+   // GLASS WALL: a horizontal glass rod (same glass language as the candle pills) lying at its real price at NOW, reaching out from the centre.
+   // length + thickness + glow = USD resting; stacked depth copies give it body; a bright neon core + white highlight; hot bead at the outer end.
+   const zm=zd*.5,pa=PJ(x0,y,zm),pb=PJ(x1,y,zm);if(!(pa&&pb))return;const br=1+.06*Math.sin(now/800+w.px*7),rr=Math.max(1.6*DPR,(.012+.03*f)*br*pa[2]);
+   const dx=pb[0]-pa[0],dy=pb[1]-pa[1],L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L;const ln=(p,q,o)=>{g.beginPath();g.moveTo(p[0]+nx*o,p[1]+ny*o);g.lineTo(q[0]+nx*o,q[1]+ny*o);g.stroke();};
+   for(const zz of [zd*.95,zd*.2]){const qa=PJ(x0,y,zz),qb=PJ(x1,y,zz);if(qa&&qb){g.strokeStyle='rgb('+col+')';g.globalAlpha=(.05+.07*f);g.lineWidth=rr*1.6;g.beginPath();g.moveTo(qa[0],qa[1]);g.lineTo(qb[0],qb[1]);g.stroke();}}
+   g.strokeStyle='rgb('+col+')';g.globalAlpha=.06+.08*f;g.lineWidth=rr*4;ln(pa,pb,0);
+   const gr=g.createLinearGradient(pa[0]+nx*rr,pa[1]+ny*rr,pa[0]-nx*rr,pa[1]-ny*rr);gr.addColorStop(0,'rgba('+col+',.15)');gr.addColorStop(.35,'rgba('+col+',.7)');gr.addColorStop(.6,'rgba(255,255,255,.4)');gr.addColorStop(1,'rgba('+col+',.15)');
+   const fade=g.createLinearGradient(pa[0],pa[1],pb[0],pb[1]);fade.addColorStop(0,'rgba(0,0,0,0)');
+   g.strokeStyle=gr;g.globalAlpha=(.45+.45*f);g.lineWidth=rr*2;ln(pa,pb,0);
+   g.strokeStyle='rgb('+col+')';g.globalAlpha=.5+.4*f;g.lineWidth=Math.max(DPR*.7,rr*.35);ln(pa,pb,0);
+   g.strokeStyle='#fff';g.globalAlpha=.25+.2*f;g.lineWidth=Math.max(DPR*.5,rr*.25);ln(pa,pb,rr*.45);
+   const R=Math.min(90*DPR,(.03+.12*f)*pb[2]);g.globalAlpha=.25+.35*f;g.drawImage(sprite(col),pb[0]-R,pb[1]-R,2*R,2*R);
+   const R2=Math.min(30*DPR,rr*2.2);g.globalAlpha=.7;g.drawImage(sprite('255,255,255'),pb[0]-R2,pb[1]-R2,2*R2,2*R2);};
   g.globalCompositeOperation='lighter';for(const w of WALLS.b)cw('b',w);for(const w of WALLS.a)cw('a',w);
   // vanished walls: EATEN = white shatter burst; PULLED = cold ghost that slides away and fades (no trades hit it)
   for(const e of WFX){const age=(now-e.t)/1600;if(age>1)continue;const sg=e.sd==='b'?-1:1,y=Yw(e.px);
