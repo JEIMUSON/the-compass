@@ -1,0 +1,88 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GALAXY TEST · The Compass</title>
+<link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
+<script>window.OFC_BUILD='galaxy-20261029-1010';</script>
+<style>
+html,body{margin:0;height:100%;background:#020308;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#hud{position:fixed;left:10px;top:8px;pointer-events:auto;opacity:.75}
+#hud b{color:#ffd27a;letter-spacing:.12em}
+#hud a,#hud span.c{color:#8a94b0;cursor:pointer;margin-right:6px;text-decoration:none}
+#hud .on{color:#fff}
+#st{position:fixed;left:10px;bottom:8px;opacity:.55}
+#px{position:fixed;right:10px;top:8px;color:#fff;font-size:13px;opacity:.85;text-align:right}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div id="hud"><b>GALAXY TEST</b> · The Compass · <a href="../">← live</a><br>
+<span id="coins"></span> │ <span id="wins"></span></div>
+<div id="px"></div><div id="st"></div>
+<script>
+// GALAXY TEST: each spark = one real trade print (5 public feeds). Trail = 1s VWAP of those prints, ends at NOW (right edge). Nothing drawn right of NOW.
+const Q=new URLSearchParams(location.search);
+const COINS={BTC:{kr:'BTC/USD',cb:'BTC-USD',bs:'btcusd',bn:'btcusd',bf:'tBTCUSD'},ETH:{kr:'ETH/USD',cb:'ETH-USD',bs:'ethusd',bn:'ethusd',bf:'tETHUSD'},
+ SOL:{kr:'SOL/USD',cb:'SOL-USD',bs:'solusd',bn:'solusd',bf:'tSOLUSD'},XRP:{kr:'XRP/USD',cb:'XRP-USD',bs:'xrpusd',bn:'xrpusd',bf:'tXRPUSD'}};
+const COIN=COINS[(Q.get('c')||'BTC').toUpperCase()]?(Q.get('c')||'BTC').toUpperCase():'BTC',CC=COINS[COIN];
+const WINS=[60,300,900];let WIN=+Q.get('w')||300;if(!WINS.includes(WIN))WIN=300;
+document.getElementById('coins').innerHTML=Object.keys(COINS).map(c=>`<a class="${c===COIN?'on':''}" href="?c=${c}&w=${WIN}">${c}</a>`).join('');
+const wsp=document.getElementById('wins');const drawW=()=>wsp.innerHTML=WINS.map(w=>`<span class="c ${w===WIN?'on':''}" data-w="${w}">${w<120?w+'s':w/60+'m'}</span>`).join('');drawW();
+wsp.onclick=e=>{const w=+e.target.dataset.w;if(w){WIN=w;drawW();history.replaceState(0,'','?c='+COIN+'&w='+w);}};
+const T=[];const SEEN=new Set();const VEN={kraken:'·',coinbase:'·',bitstamp:'·',binanceus:'·',bitfinex:'·'};let nT=0;
+function add(v,id,ts,px,qty,side){const k=v+id;if(SEEN.has(k))return;SEEN.add(k);if(!(px>0&&qty>0&&ts>0))return;ts=Math.min(ts,Date.now());T.push({ts,px,usd:px*qty,b:side==='buy',v,j:Math.random()});nT++;}
+setInterval(()=>{T.sort((a,b)=>a.ts-b.ts);const cut=Date.now()-930000;let i=0;while(i<T.length&&T[i].ts<cut)i++;if(i)T.splice(0,i);if(SEEN.size>400000)SEEN.clear();},2000);
+function feed(v,url,open,msg){let bo=1000;const go=()=>{let ws;try{ws=new WebSocket(url);}catch(e){return setTimeout(go,bo);}
+ ws.onopen=()=>{VEN[v]='LIVE';bo=1000;open(o=>ws.send(JSON.stringify(o)));};
+ ws.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(x){return;}try{msg(m,ws);}catch(x){}};
+ ws.onclose=()=>{VEN[v]='DOWN';setTimeout(go,bo);bo=Math.min(bo*2,30000);};ws.onerror=()=>{try{ws.close()}catch(x){}};};go();}
+feed('kraken','wss://ws.kraken.com/v2',s=>s({method:'subscribe',params:{channel:'trade',symbol:[CC.kr],snapshot:true}}),m=>{if(m.channel==='trade')for(const d of m.data||[])add('kraken',d.trade_id,Date.parse(d.timestamp),+d.price,+d.qty,d.side);});
+feed('coinbase','wss://ws-feed.exchange.coinbase.com',s=>s({type:'subscribe',product_ids:[CC.cb],channels:['matches']}),m=>{if(m.type==='match'||m.type==='last_match')add('coinbase',m.trade_id,Date.parse(m.time),+m.price,+m.size,m.side==='sell'?'buy':'sell');});
+feed('bitstamp','wss://ws.bitstamp.net',s=>s({event:'bts:subscribe',data:{channel:'live_trades_'+CC.bs}}),(m,ws)=>{if(m.event==='bts:request_reconnect')ws.close();if(m.event==='trade'){const d=m.data;add('bitstamp',d.id,+d.microtimestamp/1000,+d.price,+d.amount,d.type===0?'buy':'sell');}});
+feed('binanceus','wss://stream.binance.us:9443/stream?streams='+CC.bn+'@trade',()=>{},m=>{const d=m.data;if(d&&d.e==='trade')add('binanceus',d.t,d.T,+d.p,+d.q,d.m?'sell':'buy');});
+feed('bitfinex','wss://api-pub.bitfinex.com/ws/2',s=>s({event:'subscribe',channel:'trades',symbol:CC.bf}),m=>{if(!Array.isArray(m))return;const d=m[1];const mk=t=>add('bitfinex',t[0],t[1],t[3],Math.abs(t[2]),t[2]>0?'buy':'sell');if(Array.isArray(d))d.forEach(mk);else if(d==='te')mk(m[2]);});
+// recent-history seed (REST, public): Coinbase last 1000 + Binance.US last 1000 prints
+fetch('https://api.exchange.coinbase.com/products/'+CC.cb+'/trades?limit=1000').then(r=>r.json()).then(a=>a.forEach(t=>add('coinbase',t.trade_id,Date.parse(t.time),+t.price,+t.size,t.side==='sell'?'buy':'sell'))).catch(()=>{});
+fetch('https://api.binance.us/api/v3/trades?symbol='+CC.bn.toUpperCase()+'&limit=1000').then(r=>r.json()).then(a=>a.forEach(t=>add('binanceus',t.id,t.time,+t.price,+t.qty,t.isBuyerMaker?'sell':'buy'))).catch(()=>{});
+// ---- render ----
+const cv=document.getElementById('cv'),g=cv.getContext('2d');let W,H,DPR;
+function rs(){DPR=Math.min(2,devicePixelRatio||1);W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR;}addEventListener('resize',rs);rs();
+const SPR={};function sprite(col){if(SPR[col])return SPR[col];const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,0,32,32,32);
+ gr.addColorStop(0,'rgba('+col+',1)');gr.addColorStop(.18,'rgba('+col+',.55)');gr.addColorStop(.5,'rgba('+col+',.12)');gr.addColorStop(1,'rgba('+col+',0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return SPR[col]=c;}
+let lo=0,hi=0;const fmt=p=>p>=1000?p.toLocaleString('en-US',{maximumFractionDigits:0}):p.toPrecision(5);
+function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*1000;
+ const padL=0,padR=W*0.12,padY=H*0.12,xN=W-padR;   // NOW sits at xN; right of it stays empty
+ let a=0;while(a<T.length&&T[a].ts<t0)a++;const V=T.slice(a);
+ g.globalCompositeOperation='source-over';g.fillStyle='#020308';g.fillRect(0,0,W,H);
+ if(V.length<2){g.fillStyle='#556';g.font=12*DPR+'px monospace';g.fillText('waiting for prints…',W/2-60*DPR,H/2);upd(V,now);return;}
+ let mn=Infinity,mx=-Infinity;for(const t of V){if(t.px<mn)mn=t.px;if(t.px>mx)mx=t.px;}const pad=(mx-mn)*0.15||mn*0.0005;
+ if(!lo){lo=mn-pad;hi=mx+pad;}lo+=(mn-pad-lo)*0.08;hi+=(mx+pad-hi)*0.08;
+ const X=ts=>padL+(ts-t0)/(WIN*1000)*(xN-padL),Y=p=>H-padY-(p-lo)/(hi-lo)*(H-2*padY);
+ // usd scale: median-ish via mean
+ let su=0;for(const t of V)su+=t.usd;const mu=su/V.length;
+ // spark cloud (additive). Every print in window is drawn; jitter spreads overlapping prints vertically a hair so dense clusters bloom.
+ g.globalCompositeOperation='lighter';const sb=sprite('120,170,255'),ss=sprite('255,120,150'),sw=sprite('255,240,210');
+ const spread=(H-2*padY)*0.07;
+ for(const t of V){const r=Math.min(40,(3+8*Math.sqrt(t.usd/mu)))*DPR;const age=(now-t.ts)/(WIN*1000);
+  const x=X(t.ts),y=Y(t.px)+(t.j-.5)*spread*(1+Math.sqrt(t.usd/mu)*.3);g.globalAlpha=Math.max(.1,.8-age*.5);
+  g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),x-r,y-r,2*r,2*r);}
+ // trail: 1s VWAP buckets
+ const BK=new Map();for(const t of V){const k=Math.floor(t.ts/1000);const b=BK.get(k)||{pu:0,u:0,ts:0};b.pu+=t.px*t.usd;b.u+=t.usd;b.ts=Math.max(b.ts,t.ts);BK.set(k,b);}
+ const P=[...BK.keys()].sort((x,y)=>x-y).map(k=>{const b=BK.get(k);return[X(Math.min(b.ts,now)),Y(b.pu/b.u),b.u];});
+ const last=V[V.length-1];P.push([X(last.ts),Y(last.px),0]);P.push([X(now),Y(last.px),0]);   // hold last printed price up to NOW (no projection)
+ g.globalCompositeOperation='lighter';g.lineJoin=g.lineCap='round';
+ for(const [w,al,col] of [[22,.06,'255,190,90'],[11,.14,'255,200,110'],[5,.5,'255,225,160'],[2,.95,'255,255,240']]){
+  g.lineWidth=w*DPR;g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
+  const gr=g.createLinearGradient(P[0][0],0,P[P.length-1][0],0);gr.addColorStop(0,'rgba('+col+',0)');gr.addColorStop(.6,'rgba('+col+','+al*.6+')');gr.addColorStop(1,'rgba('+col+','+al+')');g.strokeStyle=gr;g.stroke();}
+ // head = NOW
+ const hx=P[P.length-1][0],hy=P[P.length-1][1],pulse=1+.15*Math.sin(now/180);const hs=sprite('255,240,200');
+ g.globalAlpha=1;for(const r of [70,28,10])g.drawImage(hs,hx-r*DPR*pulse,hy-r*DPR*pulse,2*r*DPR*pulse,2*r*DPR*pulse);
+ g.globalCompositeOperation='source-over';g.globalAlpha=1;
+ // minimal chrome: NOW tick + price
+ g.strokeStyle='rgba(255,255,255,.12)';g.lineWidth=DPR;g.beginPath();g.moveTo(xN+.5,padY*.5);g.lineTo(xN+.5,H-padY*.5);g.stroke();
+ g.fillStyle='rgba(255,255,255,.35)';g.font=10*DPR+'px monospace';g.fillText('NOW',xN+4*DPR,H-padY*.5);
+ g.fillText(fmt(hi),4*DPR,padY*.8);g.fillText(fmt(lo),4*DPR,H-padY*.6);g.fillText('−'+(WIN<120?WIN+'s':WIN/60+'m'),4*DPR,H-6*DPR);
+ upd(V,now,last);}
+let lu=0;function upd(V,now,last){if(now-lu<500)return;lu=now;
+ document.getElementById('px').innerHTML=last?COIN+' $'+fmt(last.px)+'<br><span style="font-size:10px;opacity:.6">'+V.length.toLocaleString()+' prints in view</span>':'';
+ document.getElementById('st').textContent='build '+OFC_BUILD+' · '+Object.entries(VEN).map(([k,v])=>k+' '+v).join(' · ')+' · sparks = real prints · trail = 1s VWAP · nothing past NOW';}
+frame();
+</script></body></html>
