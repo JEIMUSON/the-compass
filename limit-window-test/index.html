@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='limitwin-20261029-1059';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-20261029-1103';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2610,7 +2610,7 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
 </style>
 <script>
 (function(){const st=document.getElementById('stage');const ifr=document.createElement('iframe');ifr.id='gwin';ifr.title='galaxy window';ifr.setAttribute('scrolling','no');
- ifr.src='galaxy.html?embed=1&view=side&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='SIDE VIEW · WINDOW TEST';
+ ifr.src='galaxy.html?embed=1&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='GALAXY · WINDOW TEST';
  st.appendChild(ifr);st.appendChild(rim);st.appendChild(tag);let last='';
  const K=+(new URLSearchParams(location.search).get('wr')||1);   // window radius = the LIMIT dial's outer circle (RMAX), same size as normal LIMIT
  let WON=false;try{WON=localStorage.getItem('ofc.gwin')==='1'}catch(e){}
