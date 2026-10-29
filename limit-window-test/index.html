@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='limitwin-20261029-1110';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-20261029-1052';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2611,8 +2611,8 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
 (function(){const st=document.getElementById('stage');const ifr=document.createElement('iframe');ifr.id='gwin';ifr.title='galaxy window';ifr.setAttribute('scrolling','no');
  ifr.src='galaxy.html?embed=1&view=side&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='SIDE VIEW · WINDOW TEST';
  st.appendChild(ifr);st.appendChild(rim);st.appendChild(tag);let last='';
- const K=+(new URLSearchParams(location.search).get('wr')||0.535);   // window radius as a fraction of the dial radius (sits on the white NOW ring)
- function place(){requestAnimationFrame(place);if(!window.__gw)return;const {CX,CY,RMAX,VIEW}=window.__gw();if(!RMAX)return;const on=VIEW==='limit';const r=Math.round(RMAX*K);
+ const QW=new URLSearchParams(location.search).get('wr'),K=QW?+QW:0;   // default: BIG outer circle = outer bezel + gauge band (RMAX+30), past the side button; ?wr= overrides as fraction of RMAX
+ function place(){requestAnimationFrame(place);if(!window.__gw)return;const {CX,CY,RMAX,VIEW}=window.__gw();if(!RMAX)return;const on=VIEW==='limit';const r=Math.round(K?RMAX*K:RMAX+30);
   const k=on+'|'+CX+'|'+CY+'|'+r;if(k===last)return;last=k;
   for(const el of [ifr,rim]){el.style.left=(CX-r)+'px';el.style.top=(CY-r)+'px';el.style.width=el.style.height=(2*r)+'px';}
   tag.style.left=CX+'px';tag.style.top=(CY+r+4)+'px';ifr.style.opacity=on?1:0;rim.style.opacity=on?1:0;tag.style.opacity=on?1:0;}
