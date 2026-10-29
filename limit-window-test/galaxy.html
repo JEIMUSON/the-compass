@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='limitwin-galaxy-20261029-1151';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-galaxy-20261029-1200';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;touch-action:none;overscroll-behavior:none;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -92,26 +92,32 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  const cap=CAP();let D=V;lodNote='';
  if(V.length>cap){const big=V.filter(t=>t.usd>=mu),sm=V.length-big.length,keep=Math.max(0,cap-big.length)/sm;D=V.filter(t=>t.usd>=mu||t.j<keep);lodNote=' · LOD: all big prints + '+Math.round(keep*100)+'% of small';}
  // world: z = age (0 at NOW .. ZD far past), y = price, x = lateral scatter (buys left, sells right, spread grows with size)
- const ZD=9,Yw=p=>((p-lo)/(hi-lo)-.5)*(SIDEG?4:1.8);
+ const ZD=9,Yw=p=>((p-lo)/(hi-lo)-.5)*(SIDEG?4:3.0);
  const MOB=matchMedia('(pointer:coarse)').matches||innerWidth<700,SIDE=Q.get('view')==='side';const yaw=SIDE?1.22+.1*Math.sin(now/8000)+yawU:(MOB?.28:.4)+.22*Math.sin(now/7000)+yawU,pitch=SIDE?-.14+.06*Math.sin(now/9000)+pitchU:-.3+.12*Math.sin(now/9000)+pitchU,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
- const F=Math.min(W,H)*(SIDE?1.15:MOB?1.05:1.2),CX=W*(SIDE?.5:.5),CYc=H*.5,camD=(SIDE?8.5:5)*zoomU,zc=SIDE?ZD*.42:0;   // camera orbits the NOW point: NOW (z=0, last price) is pinned to the window centre; the past recedes behind it
+ const F=Math.min(W,H)*(SIDE?1.15:MOB?1.05:1.2),CX=W*(SIDE?.5:.5),CYc=H*.5,camD=(SIDE?8.5:3.3)*zoomU,zc=SIDE?ZD*.42:0;   // camera orbits the NOW point: NOW (z=0, last price) is pinned to the window centre; the past recedes behind it
  {const yt=V.length?Yw(V[V.length-1].px):0;window.YC=window.YC==null?yt:window.YC+(yt-window.YC)*.25;}const yc=SIDE?0:window.YC;   // zooming in slides the orbit focus toward NOW so the walls stay in front of the camera
  const PJ=(x,y,z)=>{z-=zc;y-=yc;const x1=x*cy-z*sy,z1=x*sy+z*cy;const y1=y*cp-z1*sp,z2=y*sp+z1*cp+camD;if(z2<.08)return null;const k=F/z2;return[CX+x1*k,CYc-y1*k,k,z2];};
  // decorative background starfield (STYLED, not data) — fixed points far behind the tunnel, parallax with camera
  if(!window.STARS){STARS=[];for(let i=0;i<420;i++)STARS.push([(Math.random()-.5)*60,(Math.random()-.5)*40,ZD+6+Math.random()*30,Math.random()]);}
  g.globalCompositeOperation='lighter';for(const s of STARS){const p=PJ(s[0],s[1],s[2]);if(!p)continue;g.globalAlpha=.25+.5*s[3]*(.7+.3*Math.sin(now/900+s[3]*40));g.fillStyle=s[3]>.9?'#ffe9c8':'#b8c8ff';const r=(s[3]>.95?1.6:.8)*DPR;g.fillRect(p[0]-r/2,p[1]-r/2,r,r);}
+ // volumetric dust (STYLED depth cue, not data): soft motes filling the tunnel volume between NOW and the far past, drifting back with time.
+ // nearer = bigger/brighter, far = fogged out -> parallax on orbit makes the space read as volume. Never in front of NOW (z>=0).
+ if(!window.DUST){DUST=[];for(let i=0;i<(MOB?260:520);i++)DUST.push([(Math.random()-.5)*7,(Math.random()-.5)*4.4,Math.random()*ZD*1.3,Math.random()]);}
+ {const dz=(window.__dl?Math.min(.1,(now-window.__dl)/1000):0)*ZD/WIN;window.__dl=now;const dsp=sprite('120,160,255');
+  for(const d of DUST){d[2]+=dz;if(d[2]>ZD*1.3)d[2]-=ZD*1.3;const p=PJ(d[0],d[1]+yc,d[2]);if(!p)continue;const fog=Math.max(0,1-d[2]/(ZD*1.3));const r=Math.min(18*DPR,(.006+.012*d[3])*p[2]);
+   g.globalAlpha=(.05+.12*d[3])*fog*(.7+.3*Math.sin(now/1300+d[3]*50));g.drawImage(dsp,p[0]-r,p[1]-r,2*r,2*r);}}
  const sb=sprite('70,230,255'),ss=sprite('255,70,200'),sw=sprite('255,236,200'),nb=sprite('90,120,255'),nm=sprite('200,60,230');
  // nebula pass: every drawn print adds a huge, very faint halo -> overlapping prints pool into glowing gas where volume is dense
  g.globalCompositeOperation='lighter';
  for(const t of D){gs(t);const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
-  const x=(t.b?-1:1)*(.06+Math.abs(t.gx)*.28*(1+s*.6)),y=Yw(t.px)+t.gy*.05*(1+s*.4),z=age*ZD+t.gz*.04;
+  const x=(t.b?-1:1)*(.1+Math.abs(t.gx)*.75*(1+s*.6)),y=Yw(t.px)+t.gy*.16*(1+s*.4),z=age*ZD+t.gz*.04;
   const p=PJ(x,y,z);t.p=p;if(!p)continue;const R=Math.min(220*DPR,(.06+.05*s)*p[2]);g.globalAlpha=Math.min(.05,.012*(1+s))*(1-age*.5);g.drawImage(t.b?nb:nm,p[0]-R,p[1]-R,2*R,2*R);}
  for(const t of D){const p=t.p;if(!p)continue;const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
   const r=Math.min(60*DPR,(.005+.01*s)*p[2]);g.globalAlpha=Math.min(1,Math.max(.08,.8-age*.6)*(1.6/p[3]+.3));
   g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),p[0]-r,p[1]-r,2*r,2*r);}
  // LIMIT walls at NOW: resting liquidity drawn as glowing glass curtains near the NOW plane. Bids (mint) hang on the left, asks (amber) on the right,
  // each at its real price; length + brightness = USD resting there. They exist only at NOW (z 0..0.9) — the book has no past drawn here.
- {const cw=(sd,w)=>{const f=Math.sqrt(w.u/WALLS.mx),x0=(sd==='b'?-1:1)*.12,x1=x0+(sd==='b'?-1:1)*(.06+.5*f),y=Yw(w.px),th=Math.max(.004,(WALLS.step/(hi-lo))*1.8*.6),zd=.06+.3*f;
+ {const cw=(sd,w)=>{const f=Math.sqrt(w.u/WALLS.mx),x0=(sd==='b'?-1:1)*.16,x1=x0+(sd==='b'?-1:1)*(.12+1.25*f),y=Yw(w.px),th=Math.max(.004,(WALLS.step/(hi-lo))*1.8*.6),zd=.06+.3*f;
    const col=sd==='b'?'90,255,190':'255,170,90';
    // GLASS WALL: a horizontal glass rod (same glass language as the candle pills) lying at its real price at NOW, reaching out from the centre.
    // length + thickness + glow = USD resting; stacked depth copies give it body; a bright neon core + white highlight; hot bead at the outer end.
