@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='limitwin-20261029-1129';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-20261029-1151';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2605,7 +2605,6 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
 #gwin{position:absolute;border:0;border-radius:50%;pointer-events:none;z-index:2;background:#000;opacity:0;touch-action:none;
  box-shadow:0 0 0 2px rgba(255,255,255,.55),0 0 18px 3px rgba(0,240,255,.45),inset 0 0 40px 10px rgba(0,0,0,.9)}
 #gwrim{position:absolute;border-radius:50%;pointer-events:none;z-index:3;box-shadow:inset 0 0 22px 6px rgba(0,0,0,.95),inset 0 0 2px 1px rgba(0,240,255,.6)}
-#gwbtn{position:absolute;z-index:5;font:10px "Share Tech Mono",monospace;letter-spacing:.15em;color:#ffe066;background:rgba(10,8,20,.85);border:1px solid rgba(255,224,102,.6);border-radius:3px;padding:4px 8px;cursor:pointer}#gwbtn b{color:#9aa}#gwbtn.on b{color:#0ff}#gwbtn.on{box-shadow:0 0 10px rgba(0,240,255,.5);border-color:#0ff}
 #wtag{position:absolute;opacity:0;z-index:4;pointer-events:none;font:9px "Share Tech Mono",monospace;letter-spacing:.2em;color:rgba(255,230,180,.6);transform:translateX(-50%)}
 </style>
 <script>
@@ -2614,11 +2613,17 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
  st.appendChild(ifr);st.appendChild(rim);st.appendChild(tag);let last='';
  const K=+(new URLSearchParams(location.search).get('wr')||1);   // window radius = the LIMIT dial's outer circle (RMAX), same size as normal LIMIT
  let WON=false;try{WON=localStorage.getItem('ofc.gwin')==='1'}catch(e){}
- const btn=document.createElement('button');btn.id='gwbtn';st.appendChild(btn);
- const lbl=()=>{btn.innerHTML='WINDOW ▸ <b>'+(WON?'ON':'OFF')+'</b>';btn.classList.toggle('on',WON);};lbl();
+ // LIMIT twin of MARKET's #sidectl: own full-width row right above ZOOM/VIEW/COIN, same yellow Orbitron button; label = the view you'll turn to
+ const row=document.createElement('div');row.id='limctl';
+ row.style.cssText='position:static;display:none;gap:8px;align-items:center;justify-content:center;box-sizing:border-box;width:100%;height:32px;margin:0 0 4px;font:11px "Share Tech Mono",monospace;color:#00f0ff;background:rgba(6,9,20,.78);border:1px solid rgba(0,240,255,.3);padding:0 6px;white-space:nowrap;touch-action:manipulation';
+ const btn=document.createElement('button');btn.id='gwbtn';btn.type='button';
+ btn.style.cssText='height:24px;padding:0 12px;font-family:Orbitron,sans-serif;font-weight:700;font-size:9px;letter-spacing:1px;line-height:1;white-space:nowrap;color:#ffe600;border:1px solid rgba(255,230,0,.55);background:rgba(255,230,0,.08);cursor:pointer;min-width:'+(innerWidth<600?84:96)+'px';
+ row.appendChild(btn);{const wn=document.getElementById('win');if(wn&&wn.parentNode)wn.parentNode.insertBefore(row,wn);else st.appendChild(row);}
+ const lbl=()=>{const t=WON?'FRONT':'WINDOW';btn.innerHTML='<b style="font-size:11px;letter-spacing:2px">'+t+'</b> ▸';btn.setAttribute('aria-label','turn to '+t.toLowerCase()+' view');};lbl();
+ row.addEventListener('pointerdown',e=>e.stopPropagation());
  btn.addEventListener('click',e=>{e.stopPropagation();WON=!WON;try{localStorage.setItem('ofc.gwin',WON?'1':'0')}catch(_){};lbl();last='';});
  function place(){requestAnimationFrame(place);if(!window.__gw)return;const {CX,CY,RMAX,VIEW}=window.__gw();if(!RMAX)return;const r=Math.round((RMAX+10)*K);   // = outer bezel ring (RMAX+10) the 72 ticks hang off
-  btn.style.display=VIEW==='limit'?'':'none';btn.style.left=Math.max(6,CX-RMAX-6)+'px';btn.style.top=Math.max(4,CY-RMAX-26)+'px';const on=VIEW==='limit'&&WON;const k=on+'|'+CX+'|'+CY+'|'+r;if(k===last)return;last=k;
+  {const dv=VIEW==='limit'?'flex':'none';if(row.style.display!==dv)row.style.display=dv;}const on=VIEW==='limit'&&WON;const k=on+'|'+CX+'|'+CY+'|'+r;if(k===last)return;last=k;
   for(const el of [ifr,rim]){el.style.left=(CX-r)+'px';el.style.top=(CY-r)+'px';el.style.width=el.style.height=(2*r)+'px';}
   tag.style.left=CX+'px';tag.style.top=(CY+r+4)+'px';ifr.style.opacity=on?1:0;ifr.style.pointerEvents=on?'auto':'none';ifr.style.visibility=rim.style.visibility=on?'visible':'hidden';rim.style.opacity=on?1:0;tag.style.opacity=on?1:0;}
  place();})();
