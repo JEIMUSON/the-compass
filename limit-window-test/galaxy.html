@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='limitwin-galaxy-20261029-1100';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-galaxy-20261029-1110';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -20,7 +20,7 @@ body.embed #hud,body.embed #px,body.embed #st{display:none}</style></head><body>
 <div id="px"></div><div id="st"></div>
 <script>
 // GALAXY TEST: each spark = one real trade print (5 public feeds). Trail = 1s VWAP of those prints, ends at NOW (right edge). Nothing drawn right of NOW.
-const Q=new URLSearchParams(location.search);
+const Q=new URLSearchParams(location.search);const SIDEG=Q.get('view')==='side';
 const COINS={BTC:{kr:'BTC/USD',cb:'BTC-USD',bs:'btcusd',bn:'btcusd',bf:'tBTCUSD'},ETH:{kr:'ETH/USD',cb:'ETH-USD',bs:'ethusd',bn:'ethusd',bf:'tETHUSD'},
  SOL:{kr:'SOL/USD',cb:'SOL-USD',bs:'solusd',bn:'solusd',bf:'tSOLUSD'},XRP:{kr:'XRP/USD',cb:'XRP-USD',bs:'xrpusd',bn:'xrpusd',bf:'tXRPUSD'}};
 const COIN=(Q.get('c')||'BTC').toUpperCase().replace(/[^A-Z0-9]/g,'');if(!COINS[COIN]){const l=COIN.toLowerCase();COINS[COIN]={kr:COIN+'/USD',cb:COIN+'-USD',bs:l+'usd',bn:l+'usd',bf:'t'+COIN+'USD'};}const CC=COINS[COIN];
@@ -86,9 +86,9 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  const cap=CAP();let D=V;lodNote='';
  if(V.length>cap){const big=V.filter(t=>t.usd>=mu),sm=V.length-big.length,keep=Math.max(0,cap-big.length)/sm;D=V.filter(t=>t.usd>=mu||t.j<keep);lodNote=' · LOD: all big prints + '+Math.round(keep*100)+'% of small';}
  // world: z = age (0 at NOW .. ZD far past), y = price, x = lateral scatter (buys left, sells right, spread grows with size)
- const ZD=9,Yw=p=>((p-lo)/(hi-lo)-.5)*1.8;
- const MOB=matchMedia('(pointer:coarse)').matches||innerWidth<700;const yaw=(MOB?.28:.4)+.22*Math.sin(now/7000)+yawU,pitch=-.3+.12*Math.sin(now/9000)+pitchU,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
- const F=Math.min(W,H)*(MOB?1.05:1.2),CX=W*.5,CYc=H*.5,camD=MOB?5:5,zc=ZD*.22;
+ const ZD=9,Yw=p=>((p-lo)/(hi-lo)-.5)*(SIDEG?4:1.8);
+ const MOB=matchMedia('(pointer:coarse)').matches||innerWidth<700,SIDE=Q.get('view')==='side';const yaw=SIDE?1.22+.1*Math.sin(now/8000)+yawU:(MOB?.28:.4)+.22*Math.sin(now/7000)+yawU,pitch=SIDE?-.14+.06*Math.sin(now/9000)+pitchU:-.3+.12*Math.sin(now/9000)+pitchU,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const F=Math.min(W,H)*(SIDE?1.15:MOB?1.05:1.2),CX=W*(SIDE?.5:.5),CYc=H*.5,camD=SIDE?8.5:5,zc=ZD*(SIDE?.42:.22);
  const PJ=(x,y,z)=>{z-=zc;const x1=x*cy-z*sy,z1=x*sy+z*cy;const y1=y*cp-z1*sp,z2=y*sp+z1*cp+camD;if(z2<.15)return null;const k=F/z2;return[CX+x1*k,CYc-y1*k,k,z2];};
  // decorative background starfield (STYLED, not data) — fixed points far behind the tunnel, parallax with camera
  if(!window.STARS){STARS=[];for(let i=0;i<420;i++)STARS.push([(Math.random()-.5)*60,(Math.random()-.5)*40,ZD+6+Math.random()*30,Math.random()]);}

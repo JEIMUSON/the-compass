@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='limitwin-20261029-1100';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-20261029-1110';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -1525,7 +1525,7 @@ function drawLogosTop(){   // all logos on the top canvas (z-index above vignett
   const g=logoGeom();
   if(g){lx.save();lx.shadowColor='rgba(0,240,255,.85)';lx.shadowBlur=Q>0?18:8;lx.drawImage(LOGO,g.x,g.y,g.S,g.S);
     if(Q>0){lx.shadowBlur=6;lx.globalAlpha=0.5;lx.drawImage(LOGO,g.x,g.y,g.S,g.S);}lx.restore();}
-  if(!WIDE){const RH=R0,S=RH*1.62;lx.save();lx.beginPath();lx.arc(CX,CY,RH-2,0,Math.PI*2);lx.clip();lx.shadowColor='rgba(0,240,255,.8)';lx.shadowBlur=8;
+  if(!WIDE&&VIEW!=='limit'){const RH=R0,S=RH*1.62;lx.save();lx.beginPath();lx.arc(CX,CY,RH-2,0,Math.PI*2);lx.clip();lx.shadowColor='rgba(0,240,255,.8)';lx.shadowBlur=8;
     lx.drawImage(LOGO,CX-S/2,CY-S/2,S,S);lx.restore();}
   const F=window.__lgF;if(F){const D=F.n===3?950:620,k=1-(performance.now()-F.t)/D;if(k<=0)window.__lgF=null;else{const I=[0,0.4,0.7,1][F.n]*Math.pow(k,0.8);   // tap flash: tap 1 faint, 2 brighter, 3 full
     const c=g?{x:g.x+g.S/2,y:g.y+g.S/2,r:g.S*0.5,S:g.S,x0:g.x,y0:g.y}:(!WIDE?{x:CX,y:CY,r:R0,S:R0*1.62,x0:CX-R0*0.81,y0:CY-R0*0.81}:null);
@@ -2609,9 +2609,9 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
 </style>
 <script>
 (function(){const st=document.getElementById('stage');const ifr=document.createElement('iframe');ifr.id='gwin';ifr.title='galaxy window';ifr.setAttribute('scrolling','no');
- ifr.src='galaxy.html?embed=1&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='NOW · WINDOW TEST';
+ ifr.src='galaxy.html?embed=1&view=side&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='SIDE VIEW · WINDOW TEST';
  st.appendChild(ifr);st.appendChild(rim);st.appendChild(tag);let last='';
- const K=+(new URLSearchParams(location.search).get('wr')||0.5);   // window radius as a fraction of the dial radius (sits on the white NOW ring)
+ const K=+(new URLSearchParams(location.search).get('wr')||0.535);   // window radius as a fraction of the dial radius (sits on the white NOW ring)
  function place(){requestAnimationFrame(place);if(!window.__gw)return;const {CX,CY,RMAX,VIEW}=window.__gw();if(!RMAX)return;const on=VIEW==='limit';const r=Math.round(RMAX*K);
   const k=on+'|'+CX+'|'+CY+'|'+r;if(k===last)return;last=k;
   for(const el of [ifr,rim]){el.style.left=(CX-r)+'px';el.style.top=(CY-r)+'px';el.style.width=el.style.height=(2*r)+'px';}
