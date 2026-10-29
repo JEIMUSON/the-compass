@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='galaxy-crystal-20261029-1045';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='galaxy-limit-20261029-1050';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -40,6 +40,28 @@ feed('coinbase','wss://ws-feed.exchange.coinbase.com',s=>s({type:'subscribe',pro
 feed('bitstamp','wss://ws.bitstamp.net',s=>s({event:'bts:subscribe',data:{channel:'live_trades_'+CC.bs}}),(m,ws)=>{if(m.event==='bts:request_reconnect')ws.close();if(m.event==='trade'){const d=m.data;add('bitstamp',d.id,+d.microtimestamp/1000,+d.price,+d.amount,d.type===0?'buy':'sell');}});
 feed('binanceus','wss://stream.binance.us:9443/stream?streams='+CC.bn+'@trade',()=>{},m=>{const d=m.data;if(d&&d.e==='trade')add('binanceus',d.t,d.T,+d.p,+d.q,d.m?'sell':'buy');});
 feed('bitfinex','wss://api-pub.bitfinex.com/ws/2',s=>s({event:'subscribe',channel:'trades',symbol:CC.bf}),m=>{if(!Array.isArray(m))return;const d=m[1];const mk=t=>add('bitfinex',t[0],t[1],t[3],Math.abs(t[2]),t[2]>0?'buy':'sell');if(Array.isArray(d))d.forEach(mk);else if(d==='te')mk(m[2]);});
+// ---- LIMIT: public order books (same 5 venues, USD pair). Each venue keeps its own bid/ask map; walls = summed USD per price bin across venues.
+const BK5={};const bk=v=>BK5[v]||(BK5[v]={b:new Map(),a:new Map()});const setL=(m,p,q)=>{p=+p;q=+q;if(q>0)m.set(p,q);else m.delete(p);};
+const trim=(B,n)=>{for(const [m,desc] of [[B.b,1],[B.a,0]])if(m.size>n){const k=[...m.keys()].sort((x,y)=>desc?y-x:x-y);for(const p of k.slice(n))m.delete(p);}};
+feed('kraken','wss://ws.kraken.com/v2',s=>{s({method:'subscribe',params:{channel:'book',symbol:[CC.kr],depth:500,snapshot:true}});},m=>{if(m.channel!=='book')return;const B=bk('kraken');for(const d of m.data||[]){if(m.type==='snapshot'){B.b.clear();B.a.clear();}for(const l of d.bids||[])setL(B.b,l.price,l.qty);for(const l of d.asks||[])setL(B.a,l.price,l.qty);trim(B,500);}});
+feed('coinbase','wss://ws-feed.exchange.coinbase.com',s=>s({type:'subscribe',product_ids:[CC.cb],channels:['level2_batch']}),m=>{const B=bk('coinbase');
+ if(m.type==='snapshot'){B.b.clear();B.a.clear();for(const [p,q] of m.bids.slice(0,1500))setL(B.b,p,q);for(const [p,q] of m.asks.slice(0,1500))setL(B.a,p,q);}
+ else if(m.type==='l2update'){for(const [sd,p,q] of m.changes)setL(sd==='buy'?B.b:B.a,p,q);}});
+feed('bitstamp','wss://ws.bitstamp.net',s=>s({event:'bts:subscribe',data:{channel:'order_book_'+CC.bs}}),m=>{if(m.event==='data'){const B=bk('bitstamp');B.b.clear();B.a.clear();for(const [p,q] of m.data.bids)setL(B.b,p,q);for(const [p,q] of m.data.asks)setL(B.a,p,q);}});
+feed('binanceus','wss://stream.binance.us:9443/ws/'+CC.bn+'@depth20@1000ms',()=>{},m=>{if(!m.bids)return;const B=bk('binanceus');B.b.clear();B.a.clear();for(const [p,q] of m.bids)setL(B.b,p,q);for(const [p,q] of m.asks)setL(B.a,p,q);});
+feed('bitfinex','wss://api-pub.bitfinex.com/ws/2',s=>s({event:'subscribe',channel:'book',symbol:CC.bf,prec:'P0',len:'250'}),m=>{if(!Array.isArray(m)||m[1]==='hb')return;const B=bk('bitfinex'),d=m[1];
+ const lv=Array.isArray(d[0])?(B.b.clear(),B.a.clear(),d):[d];for(const [p,cnt,amt] of lv){if(cnt===0){B.b.delete(p);B.a.delete(p);}else if(amt>0)B.b.set(p,amt);else B.a.set(p,-amt);}});
+// walls: every 500ms bin both sides into 48 bins each within ±band of mid; keep top 9 per side; detect vanished walls (eaten if trades printed there in last 3s, else pulled)
+let WALLS={b:[],a:[],mx:1,step:0},WFX=[];const prevW=new Map();
+setInterval(()=>{const last=T[T.length-1];if(!last||!lo)return;const mid=last.px,band=Math.max((hi-lo)*.55,mid*.0015),NB=48,step=band/NB;
+ const S={b:new Float64Array(NB),a:new Float64Array(NB)};
+ for(const B of Object.values(BK5)){for(const [p,q] of B.b){const i=Math.floor((mid-p)/step);if(i>=0&&i<NB)S.b[i]+=p*q;}for(const [p,q] of B.a){const i=Math.floor((p-mid)/step);if(i>=0&&i<NB)S.a[i]+=p*q;}}
+ const out={b:[],a:[],step};let mx=1;
+ for(const sd of ['b','a']){const arr=[...S[sd]].map((u,i)=>({u,px:sd==='b'?mid-(i+.5)*step:mid+(i+.5)*step,i})).sort((x,y)=>y.u-x.u).slice(0,9);for(const w of arr)mx=Math.max(mx,w.u);out[sd]=arr;}
+ out.mx=mx;const now=Date.now(),cur=new Map();
+ for(const sd of ['b','a'])for(const w of out[sd]){const k=sd+Math.round(w.px/step);cur.set(k,w);}
+ for(const [k,w] of prevW){if(w.u<mx*.35)continue;const n=cur.get(k);if(!n||n.u<w.u*.4){const eaten=T.some(t=>now-t.ts<3000&&Math.abs(t.px-w.px)<step*1.2);WFX.push({px:w.px,sd:k[0],u:w.u,t:now,eaten});}}
+ prevW.clear();for(const [k,w] of cur)prevW.set(k,w);WALLS=out;if(WFX.length>30)WFX.splice(0,WFX.length-30);},500);
 // recent-history seed (REST, public): Coinbase last 1000 + Binance.US last 1000 prints
 fetch('https://api.exchange.coinbase.com/products/'+CC.cb+'/trades?limit=1000').then(r=>r.json()).then(a=>a.forEach(t=>add('coinbase',t.trade_id,Date.parse(t.time),+t.price,+t.size,t.side==='sell'?'buy':'sell'))).catch(()=>{});
 fetch('https://api.binance.us/api/v3/trades?symbol='+CC.bn.toUpperCase()+'&limit=1000').then(r=>r.json()).then(a=>a.forEach(t=>add('binanceus',t.id,t.time,+t.price,+t.qty,t.isBuyerMaker?'sell':'buy'))).catch(()=>{});
@@ -80,6 +102,20 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  for(const t of D){const p=t.p;if(!p)continue;const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
   const r=Math.min(60*DPR,(.005+.01*s)*p[2]);g.globalAlpha=Math.min(1,Math.max(.08,.8-age*.6)*(1.6/p[3]+.3));
   g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),p[0]-r,p[1]-r,2*r,2*r);}
+ // LIMIT walls at NOW: resting liquidity drawn as glowing glass curtains near the NOW plane. Bids (mint) hang on the left, asks (amber) on the right,
+ // each at its real price; length + brightness = USD resting there. They exist only at NOW (z 0..0.9) — the book has no past drawn here.
+ {const cw=(sd,w)=>{const f=Math.sqrt(w.u/WALLS.mx),x0=(sd==='b'?-1:1)*.12,x1=x0+(sd==='b'?-1:1)*(.06+.5*f),y=Yw(w.px),th=Math.max(.004,(WALLS.step/(hi-lo))*1.8*.6),zd=.06+.3*f;
+   const col=sd==='b'?'90,255,190':'255,170,90';const C=[[x0,y-th,0],[x1,y-th,0],[x1,y+th,0],[x0,y+th,0]],Bk=C.map(p=>[p[0],p[1],zd]);
+   const poly=(pts,al)=>{const q=pts.map(p=>PJ(...p));if(q.some(v=>!v))return;g.globalAlpha=al;g.beginPath();g.moveTo(q[0][0],q[0][1]);for(let i=1;i<q.length;i++)g.lineTo(q[i][0],q[i][1]);g.closePath();g.fill();};
+   g.fillStyle='rgb('+col+')';const sh=.6+.4*Math.sin(now/700+w.px);
+   poly([C[2],C[3],Bk[3],Bk[2]],(.03+.1*f)*sh);poly(C,(.03+.1*f));poly([C[0],C[1],Bk[1],Bk[0]],.02+.04*f);
+   const a=PJ(x0,y,0),b=PJ(x1,y,0);if(a&&b){g.strokeStyle='rgb('+col+')';g.globalAlpha=.25+.6*f;g.lineWidth=Math.max(DPR*.6,Math.min(3*DPR,.003*a[2]));g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
+    const R=Math.min(90*DPR,(.03+.12*f)*b[2]);g.globalAlpha=.12+.25*f;g.drawImage(sprite(col),b[0]-R,b[1]-R,2*R,2*R);}};
+  g.globalCompositeOperation='lighter';for(const w of WALLS.b)cw('b',w);for(const w of WALLS.a)cw('a',w);
+  // vanished walls: EATEN = white shatter burst; PULLED = cold ghost that slides away and fades (no trades hit it)
+  for(const e of WFX){const age=(now-e.t)/1600;if(age>1)continue;const sg=e.sd==='b'?-1:1,y=Yw(e.px);
+   if(e.eaten){for(let i=0;i<14;i++){const an=i*2.4+e.px,rr=.05+age*.35,p=PJ(sg*.2+Math.cos(an)*rr,y+Math.sin(an)*rr*.4,.1+Math.abs(Math.sin(an*3))*.3);if(!p)continue;const R=Math.min(18*DPR,.012*p[2])*(1-age);g.globalAlpha=1-age;g.drawImage(sw,p[0]-R,p[1]-R,2*R,2*R);}}
+   else{const a=PJ(sg*(.12+age*.5),y,age*.8),b=PJ(sg*(.6+age*.8),y,age*.8);if(a&&b){g.strokeStyle='rgb(150,170,255)';g.globalAlpha=.5*(1-age);g.lineWidth=DPR;g.setLineDash([4*DPR,6*DPR]);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.setLineDash([]);}}}}
  // CANDLES in depth: OHLC buckets of the same real prints (60 per window: 1s @1m, 5s @5m, 15s @15m). Each candle is a translucent 3D slab:
  // height = open..close, depth = its time span, width swells with its volume. The forming candle ends exactly at NOW.
  const BS=WIN*1000/60,CB=new Map();for(const t of V){const k=Math.floor(t.ts/BS);let c=CB.get(k);if(!c){c={o:t.px,h:t.px,l:t.px,c:t.px,u:0,k};CB.set(k,c);}c.h=Math.max(c.h,t.px);c.l=Math.min(c.l,t.px);c.c=t.px;c.u+=t.usd;}
@@ -124,6 +160,6 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  upd(V,now,last,D.length);}
 let lu=0;function upd(V,now,last,nd){if(now-lu<500)return;lu=now;
  document.getElementById('px').innerHTML=last?COIN+' $'+fmt(last.px)+'<br><span style="font-size:10px;opacity:.6">'+V.length.toLocaleString()+' prints in view'+(nd&&nd<V.length?' ('+nd.toLocaleString()+' drawn)':'')+'</span>':'';
- document.getElementById('st').textContent=OFC_BUILD+' · '+Object.values(VEN).filter(v=>v==='LIVE').length+'/5 feeds · every light is a real print'+lodNote;}
+ document.getElementById('st').textContent=OFC_BUILD+' · '+Object.values(VEN).filter(v=>v==='LIVE').length+'/5 feeds · every light is a real print · mint/amber glass = resting bids/asks (NOW)'+lodNote;}
 frame();
 </script></body></html>
