@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='limitwin-galaxy-20261029-1125';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-galaxy-20261029-1129';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;touch-action:none;overscroll-behavior:none;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -94,8 +94,9 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  // world: z = age (0 at NOW .. ZD far past), y = price, x = lateral scatter (buys left, sells right, spread grows with size)
  const ZD=9,Yw=p=>((p-lo)/(hi-lo)-.5)*(SIDEG?4:1.8);
  const MOB=matchMedia('(pointer:coarse)').matches||innerWidth<700,SIDE=Q.get('view')==='side';const yaw=SIDE?1.22+.1*Math.sin(now/8000)+yawU:(MOB?.28:.4)+.22*Math.sin(now/7000)+yawU,pitch=SIDE?-.14+.06*Math.sin(now/9000)+pitchU:-.3+.12*Math.sin(now/9000)+pitchU,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
- const F=Math.min(W,H)*(SIDE?1.15:MOB?1.05:1.2),CX=W*(SIDE?.5:.5),CYc=H*.5,camD=(SIDE?8.5:5)*zoomU,zc=ZD*(SIDE?.42:.22)*Math.pow(Math.min(1,zoomU),2);   // zooming in slides the orbit focus toward NOW so the walls stay in front of the camera
- const PJ=(x,y,z)=>{z-=zc;const x1=x*cy-z*sy,z1=x*sy+z*cy;const y1=y*cp-z1*sp,z2=y*sp+z1*cp+camD;if(z2<.08)return null;const k=F/z2;return[CX+x1*k,CYc-y1*k,k,z2];};
+ const F=Math.min(W,H)*(SIDE?1.15:MOB?1.05:1.2),CX=W*(SIDE?.5:.5),CYc=H*.5,camD=(SIDE?8.5:5)*zoomU,zc=SIDE?ZD*.42:0;   // camera orbits the NOW point: NOW (z=0, last price) is pinned to the window centre; the past recedes behind it
+ {const yt=V.length?Yw(V[V.length-1].px):0;window.YC=window.YC==null?yt:window.YC+(yt-window.YC)*.25;}const yc=SIDE?0:window.YC;   // zooming in slides the orbit focus toward NOW so the walls stay in front of the camera
+ const PJ=(x,y,z)=>{z-=zc;y-=yc;const x1=x*cy-z*sy,z1=x*sy+z*cy;const y1=y*cp-z1*sp,z2=y*sp+z1*cp+camD;if(z2<.08)return null;const k=F/z2;return[CX+x1*k,CYc-y1*k,k,z2];};
  // decorative background starfield (STYLED, not data) — fixed points far behind the tunnel, parallax with camera
  if(!window.STARS){STARS=[];for(let i=0;i<420;i++)STARS.push([(Math.random()-.5)*60,(Math.random()-.5)*40,ZD+6+Math.random()*30,Math.random()]);}
  g.globalCompositeOperation='lighter';for(const s of STARS){const p=PJ(s[0],s[1],s[2]);if(!p)continue;g.globalAlpha=.25+.5*s[3]*(.7+.3*Math.sin(now/900+s[3]*40));g.fillStyle=s[3]>.9?'#ffe9c8':'#b8c8ff';const r=(s[3]>.95?1.6:.8)*DPR;g.fillRect(p[0]-r/2,p[1]-r/2,r,r);}
