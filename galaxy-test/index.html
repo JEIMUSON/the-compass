@@ -2,7 +2,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='galaxy-20261029-1010';</script>
+<script>window.OFC_BUILD='galaxy3d-20261029-1025';</script>
 <style>
 html,body{margin:0;height:100%;background:#020308;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -48,41 +48,52 @@ function rs(){DPR=Math.min(2,devicePixelRatio||1);W=cv.width=innerWidth*DPR;H=cv
 const SPR={};function sprite(col){if(SPR[col])return SPR[col];const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,0,32,32,32);
  gr.addColorStop(0,'rgba('+col+',1)');gr.addColorStop(.18,'rgba('+col+',.55)');gr.addColorStop(.5,'rgba('+col+',.12)');gr.addColorStop(1,'rgba('+col+',0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return SPR[col]=c;}
 let lo=0,hi=0;const fmt=p=>p>=1000?p.toLocaleString('en-US',{maximumFractionDigits:0}):p.toPrecision(5);
+const CAP=()=>matchMedia('(pointer:coarse)').matches?6000:14000;let lodNote='';
+// stable gaussian per print
+function gs(t){if(t.gx===undefined){const u=Math.max(1e-6,t.j),v=Math.random();const r=Math.sqrt(-2*Math.log(u));t.gx=r*Math.cos(6.283*v);t.gy=r*Math.sin(6.283*v);t.gz=Math.random()-.5;}}
+let drag=0,dragX=0,yawU=0,pitchU=0;cv.onpointerdown=e=>{drag=1;dragX=e.clientX;dragY=e.clientY;};addEventListener('pointerup',()=>drag=0);
+let dragY=0;addEventListener('pointermove',e=>{if(!drag)return;yawU+=(e.clientX-dragX)*.004;pitchU=Math.max(-.6,Math.min(.6,pitchU+(e.clientY-dragY)*.003));dragX=e.clientX;dragY=e.clientY;});
 function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*1000;
- const padL=0,padR=W*0.12,padY=H*0.12,xN=W-padR;   // NOW sits at xN; right of it stays empty
- let a=0;while(a<T.length&&T[a].ts<t0)a++;const V=T.slice(a);
- g.globalCompositeOperation='source-over';g.fillStyle='#020308';g.fillRect(0,0,W,H);
+ let a=0;while(a<T.length&&T[a].ts<t0)a++;let V=T.slice(a);
+ g.globalCompositeOperation='source-over';g.globalAlpha=1;g.fillStyle='#020308';g.fillRect(0,0,W,H);
  if(V.length<2){g.fillStyle='#556';g.font=12*DPR+'px monospace';g.fillText('waiting for prints…',W/2-60*DPR,H/2);upd(V,now);return;}
- let mn=Infinity,mx=-Infinity;for(const t of V){if(t.px<mn)mn=t.px;if(t.px>mx)mx=t.px;}const pad=(mx-mn)*0.15||mn*0.0005;
- if(!lo){lo=mn-pad;hi=mx+pad;}lo+=(mn-pad-lo)*0.08;hi+=(mx+pad-hi)*0.08;
- const X=ts=>padL+(ts-t0)/(WIN*1000)*(xN-padL),Y=p=>H-padY-(p-lo)/(hi-lo)*(H-2*padY);
- // usd scale: median-ish via mean
- let su=0;for(const t of V)su+=t.usd;const mu=su/V.length;
- // spark cloud (additive). Every print in window is drawn; jitter spreads overlapping prints vertically a hair so dense clusters bloom.
- g.globalCompositeOperation='lighter';const sb=sprite('120,170,255'),ss=sprite('255,120,150'),sw=sprite('255,240,210');
- const spread=(H-2*padY)*0.07;
- for(const t of V){const r=Math.min(40,(3+8*Math.sqrt(t.usd/mu)))*DPR;const age=(now-t.ts)/(WIN*1000);
-  const x=X(t.ts),y=Y(t.px)+(t.j-.5)*spread*(1+Math.sqrt(t.usd/mu)*.3);g.globalAlpha=Math.max(.1,.8-age*.5);
-  g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),x-r,y-r,2*r,2*r);}
- // trail: 1s VWAP buckets
+ let mn=Infinity,mx=-Infinity,su=0;for(const t of V){if(t.px<mn)mn=t.px;if(t.px>mx)mx=t.px;su+=t.usd;}const pad=(mx-mn)*0.12||mn*0.0005;
+ if(!lo){lo=mn-pad;hi=mx+pad;}lo+=(mn-pad-lo)*0.08;hi+=(mx+pad-hi)*0.08;const mu=su/V.length;
+ // LOD: keep every print >= mu; sample smaller ones evenly if over cap
+ const cap=CAP();let D=V;lodNote='';
+ if(V.length>cap){const big=V.filter(t=>t.usd>=mu),sm=V.length-big.length,keep=Math.max(0,cap-big.length)/sm;D=V.filter(t=>t.usd>=mu||t.j<keep);lodNote=' · LOD: all big prints + '+Math.round(keep*100)+'% of small';}
+ // world: z = age (0 at NOW .. ZD far past), y = price, x = lateral scatter (buys left, sells right, spread grows with size)
+ const ZD=9,Yw=p=>((p-lo)/(hi-lo)-.5)*1.8;
+ const yaw=.5+.18*Math.sin(now/11000)+yawU,pitch=.12+.05*Math.sin(now/13000)+pitchU,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const F=Math.min(W,H)*1.6,CX=W*.5,CYc=H*.5,camD=7,zc=ZD*.45;
+ const PJ=(x,y,z)=>{z-=zc;const x1=x*cy-z*sy,z1=x*sy+z*cy;const y1=y*cp-z1*sp,z2=y*sp+z1*cp+camD;if(z2<.15)return null;const k=F/z2;return[CX+x1*k,CYc-y1*k,k,z2];};
+ // faint depth grid: price rings every quarter at a few time slices (time tunnel)
+ g.strokeStyle='rgba(120,140,200,.07)';g.lineWidth=DPR;
+ for(let i=0;i<=4;i++){const zz=ZD*i/4;g.beginPath();let f=1;for(const [x,y] of [[-1.4,-1.2],[1.4,-1.2],[1.4,1.2],[-1.4,1.2],[-1.4,-1.2]]){const p=PJ(x,y,zz);if(!p)continue;f?g.moveTo(p[0],p[1]):g.lineTo(p[0],p[1]);f=0;}g.stroke();}
+ for(const [x,y] of [[-1.4,-1.2],[1.4,-1.2],[1.4,1.2],[-1.4,1.2]]){const p=PJ(x,y,0),q=PJ(x,y,ZD);if(p&&q){g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.stroke();}}
+ g.globalCompositeOperation='lighter';const sb=sprite('110,160,255'),ss=sprite('255,110,150'),sw=sprite('255,240,210');
+ for(const t of D){gs(t);const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
+  const lat=(t.b?-1:1)*(.06+Math.abs(t.gx)*.28*(1+s*.6)),x=lat,y=Yw(t.px)+t.gy*.05*(1+s*.4),z=age*ZD+t.gz*.04;
+  const p=PJ(x,y,z);if(!p)continue;const r=Math.min(60*DPR,(.006+.011*s)*p[2]);g.globalAlpha=Math.min(1,Math.max(.08,.85-age*.6)*(1.6/p[3]+.3));
+  g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),p[0]-r,p[1]-r,2*r,2*r);}
+ // trail: 1s VWAP tube through depth, ends at NOW (z=0)
  const BK=new Map();for(const t of V){const k=Math.floor(t.ts/1000);const b=BK.get(k)||{pu:0,u:0,ts:0};b.pu+=t.px*t.usd;b.u+=t.usd;b.ts=Math.max(b.ts,t.ts);BK.set(k,b);}
- const P=[...BK.keys()].sort((x,y)=>x-y).map(k=>{const b=BK.get(k);return[X(Math.min(b.ts,now)),Y(b.pu/b.u),b.u];});
- const last=V[V.length-1];P.push([X(last.ts),Y(last.px),0]);P.push([X(now),Y(last.px),0]);   // hold last printed price up to NOW (no projection)
- g.globalCompositeOperation='lighter';g.lineJoin=g.lineCap='round';
- for(const [w,al,col] of [[22,.06,'255,190,90'],[11,.14,'255,200,110'],[5,.5,'255,225,160'],[2,.95,'255,255,240']]){
-  g.lineWidth=w*DPR;g.beginPath();P.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
-  const gr=g.createLinearGradient(P[0][0],0,P[P.length-1][0],0);gr.addColorStop(0,'rgba('+col+',0)');gr.addColorStop(.6,'rgba('+col+','+al*.6+')');gr.addColorStop(1,'rgba('+col+','+al+')');g.strokeStyle=gr;g.stroke();}
- // head = NOW
- const hx=P[P.length-1][0],hy=P[P.length-1][1],pulse=1+.15*Math.sin(now/180);const hs=sprite('255,240,200');
- g.globalAlpha=1;for(const r of [70,28,10])g.drawImage(hs,hx-r*DPR*pulse,hy-r*DPR*pulse,2*r*DPR*pulse,2*r*DPR*pulse);
- g.globalCompositeOperation='source-over';g.globalAlpha=1;
- // minimal chrome: NOW tick + price
- g.strokeStyle='rgba(255,255,255,.12)';g.lineWidth=DPR;g.beginPath();g.moveTo(xN+.5,padY*.5);g.lineTo(xN+.5,H-padY*.5);g.stroke();
- g.fillStyle='rgba(255,255,255,.35)';g.font=10*DPR+'px monospace';g.fillText('NOW',xN+4*DPR,H-padY*.5);
- g.fillText(fmt(hi),4*DPR,padY*.8);g.fillText(fmt(lo),4*DPR,H-padY*.6);g.fillText('−'+(WIN<120?WIN+'s':WIN/60+'m'),4*DPR,H-6*DPR);
- upd(V,now,last);}
-let lu=0;function upd(V,now,last){if(now-lu<500)return;lu=now;
- document.getElementById('px').innerHTML=last?COIN+' $'+fmt(last.px)+'<br><span style="font-size:10px;opacity:.6">'+V.length.toLocaleString()+' prints in view</span>':'';
- document.getElementById('st').textContent='build '+OFC_BUILD+' · '+Object.entries(VEN).map(([k,v])=>k+' '+v).join(' · ')+' · sparks = real prints · trail = 1s VWAP · nothing past NOW';}
+ const last=V[V.length-1];const W3=[...BK.keys()].sort((x,y)=>x-y).map(k=>{const b=BK.get(k);return[(now-b.ts)/(WIN*1000)*ZD,Yw(b.pu/b.u),b.u];});
+ W3.push([(now-last.ts)/(WIN*1000)*ZD,Yw(last.px),0],[0,Yw(last.px),0]);   // hold last printed price to NOW, never beyond
+ const P=W3.map(([z,y,u])=>[PJ(0,y,z),u]).filter(p=>p[0]);g.lineCap='round';
+ for(const [w,al,col] of [[.05,.07,'255,180,80'],[.025,.16,'255,200,110'],[.011,.55,'255,225,160'],[.004,1,'255,255,240']]){g.strokeStyle='rgb('+col+')';
+  for(let i=1;i<P.length;i++){const [p,u]=P[i],[q]=P[i-1];const k=(p[2]+q[2])/2,fade=1-Math.min(1,p[3]/(camD+ZD*.8));g.globalAlpha=al*Math.max(.15,fade);
+   g.lineWidth=Math.max(DPR,w*k*(1+Math.min(2,Math.sqrt((u||0)/mu/20))));g.beginPath();g.moveTo(q[0],q[1]);g.lineTo(p[0],p[1]);g.stroke();}}
+ const h=P[P.length-1][0],pulse=1+.15*Math.sin(now/180),hs=sprite('255,240,200');g.globalAlpha=1;
+ for(const r of [.16,.06,.022]){const R=r*h[2]*pulse;g.drawImage(hs,h[0]-R,h[1]-R,2*R,2*R);}
+ // NOW plane outline
+ g.globalCompositeOperation='source-over';g.globalAlpha=1;g.strokeStyle='rgba(255,230,180,.18)';g.beginPath();let f=1;
+ for(const [x,y] of [[-1.4,-1.2],[1.4,-1.2],[1.4,1.2],[-1.4,1.2],[-1.4,-1.2]]){const p=PJ(x,y,0);if(!p)continue;f?g.moveTo(p[0],p[1]):g.lineTo(p[0],p[1]);f=0;}g.stroke();
+ g.fillStyle='rgba(255,230,180,.45)';g.font=10*DPR+'px monospace';{const p=PJ(1.4,-1.2,0);if(p)g.fillText('NOW',p[0]+4*DPR,p[1]);const q=PJ(1.4,-1.2,ZD);if(q)g.fillText('−'+(WIN<120?WIN+'s':WIN/60+'m'),q[0]+4*DPR,q[1]);
+  const hi3=PJ(-1.4,1.1,0),lo3=PJ(-1.4,-1.1,0);if(hi3)g.fillText(fmt(hi),hi3[0]-60*DPR,hi3[1]);if(lo3)g.fillText(fmt(lo),lo3[0]-60*DPR,lo3[1]);}
+ upd(V,now,last,D.length);}
+let lu=0;function upd(V,now,last,nd){if(now-lu<500)return;lu=now;
+ document.getElementById('px').innerHTML=last?COIN+' $'+fmt(last.px)+'<br><span style="font-size:10px;opacity:.6">'+V.length.toLocaleString()+' prints in view'+(nd&&nd<V.length?' ('+nd.toLocaleString()+' drawn)':'')+'</span>':'';
+ document.getElementById('st').textContent='build '+OFC_BUILD+' · '+Object.entries(VEN).map(([k,v])=>k+' '+v).join(' · ')+' · sparks = real prints · trail = 1s VWAP · depth = time · drag to orbit · nothing past NOW'+lodNote;}
 frame();
 </script></body></html>
