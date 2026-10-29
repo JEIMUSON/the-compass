@@ -1,0 +1,165 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GALAXY TEST · The Compass</title>
+<link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
+<script>window.OFC_BUILD='limitwin-galaxy-20261029-1100';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<style>
+html,body{margin:0;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#hud{position:fixed;left:12px;top:10px;opacity:.5;transition:opacity .6s;letter-spacing:.08em}#hud:hover{opacity:.9}
+#hud b{color:#ffd27a;letter-spacing:.12em}
+#hud a,#hud span.c{color:#8a94b0;cursor:pointer;margin-right:6px;text-decoration:none}
+#hud .on{color:#fff}
+#st{position:fixed;right:10px;bottom:6px;opacity:.25;font-size:9px}
+#px{position:fixed;right:12px;top:10px;color:#fff;font-size:12px;opacity:.6;text-align:right;letter-spacing:.06em}
+body.embed #hud,body.embed #px,body.embed #st{display:none}</style></head><body>
+<canvas id="cv"></canvas><script>if(new URLSearchParams(location.search).get('embed'))document.body.classList.add('embed');</script>
+<div id="hud"><b style="font-weight:400">galaxy · test</b> <a href="../">compass ↗</a><br>
+<span id="coins"></span> │ <span id="wins"></span></div>
+<div id="px"></div><div id="st"></div>
+<script>
+// GALAXY TEST: each spark = one real trade print (5 public feeds). Trail = 1s VWAP of those prints, ends at NOW (right edge). Nothing drawn right of NOW.
+const Q=new URLSearchParams(location.search);
+const COINS={BTC:{kr:'BTC/USD',cb:'BTC-USD',bs:'btcusd',bn:'btcusd',bf:'tBTCUSD'},ETH:{kr:'ETH/USD',cb:'ETH-USD',bs:'ethusd',bn:'ethusd',bf:'tETHUSD'},
+ SOL:{kr:'SOL/USD',cb:'SOL-USD',bs:'solusd',bn:'solusd',bf:'tSOLUSD'},XRP:{kr:'XRP/USD',cb:'XRP-USD',bs:'xrpusd',bn:'xrpusd',bf:'tXRPUSD'}};
+const COIN=(Q.get('c')||'BTC').toUpperCase().replace(/[^A-Z0-9]/g,'');if(!COINS[COIN]){const l=COIN.toLowerCase();COINS[COIN]={kr:COIN+'/USD',cb:COIN+'-USD',bs:l+'usd',bn:l+'usd',bf:'t'+COIN+'USD'};}const CC=COINS[COIN];
+const WINS=[60,300,900];let WIN=+Q.get('w')||300;if(!WINS.includes(WIN))WIN=300;
+document.getElementById('coins').innerHTML=Object.keys(COINS).map(c=>`<a class="${c===COIN?'on':''}" href="?c=${c}&w=${WIN}">${c}</a>`).join('');
+const wsp=document.getElementById('wins');const drawW=()=>wsp.innerHTML=WINS.map(w=>`<span class="c ${w===WIN?'on':''}" data-w="${w}">${w<120?w+'s':w/60+'m'}</span>`).join('');drawW();
+wsp.onclick=e=>{const w=+e.target.dataset.w;if(w){WIN=w;drawW();history.replaceState(0,'','?c='+COIN+'&w='+w);}};
+const T=[];const SEEN=new Set();const VEN={kraken:'·',coinbase:'·',bitstamp:'·',binanceus:'·',bitfinex:'·'};let nT=0;
+function add(v,id,ts,px,qty,side){const k=v+id;if(SEEN.has(k))return;SEEN.add(k);if(!(px>0&&qty>0&&ts>0))return;ts=Math.min(ts,Date.now());T.push({ts,px,usd:px*qty,b:side==='buy',v,j:Math.random()});nT++;}
+setInterval(()=>{T.sort((a,b)=>a.ts-b.ts);const cut=Date.now()-930000;let i=0;while(i<T.length&&T[i].ts<cut)i++;if(i)T.splice(0,i);if(SEEN.size>400000)SEEN.clear();},2000);
+function feed(v,url,open,msg){let bo=1000;const go=()=>{let ws;try{ws=new WebSocket(url);}catch(e){return setTimeout(go,bo);}
+ ws.onopen=()=>{VEN[v]='LIVE';bo=1000;open(o=>ws.send(JSON.stringify(o)));};
+ ws.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(x){return;}try{msg(m,ws);}catch(x){}};
+ ws.onclose=()=>{VEN[v]='DOWN';setTimeout(go,bo);bo=Math.min(bo*2,30000);};ws.onerror=()=>{try{ws.close()}catch(x){}};};go();}
+feed('kraken','wss://ws.kraken.com/v2',s=>s({method:'subscribe',params:{channel:'trade',symbol:[CC.kr],snapshot:true}}),m=>{if(m.channel==='trade')for(const d of m.data||[])add('kraken',d.trade_id,Date.parse(d.timestamp),+d.price,+d.qty,d.side);});
+feed('coinbase','wss://ws-feed.exchange.coinbase.com',s=>s({type:'subscribe',product_ids:[CC.cb],channels:['matches']}),m=>{if(m.type==='match'||m.type==='last_match')add('coinbase',m.trade_id,Date.parse(m.time),+m.price,+m.size,m.side==='sell'?'buy':'sell');});
+feed('bitstamp','wss://ws.bitstamp.net',s=>s({event:'bts:subscribe',data:{channel:'live_trades_'+CC.bs}}),(m,ws)=>{if(m.event==='bts:request_reconnect')ws.close();if(m.event==='trade'){const d=m.data;add('bitstamp',d.id,+d.microtimestamp/1000,+d.price,+d.amount,d.type===0?'buy':'sell');}});
+feed('binanceus','wss://stream.binance.us:9443/stream?streams='+CC.bn+'@trade',()=>{},m=>{const d=m.data;if(d&&d.e==='trade')add('binanceus',d.t,d.T,+d.p,+d.q,d.m?'sell':'buy');});
+feed('bitfinex','wss://api-pub.bitfinex.com/ws/2',s=>s({event:'subscribe',channel:'trades',symbol:CC.bf}),m=>{if(!Array.isArray(m))return;const d=m[1];const mk=t=>add('bitfinex',t[0],t[1],t[3],Math.abs(t[2]),t[2]>0?'buy':'sell');if(Array.isArray(d))d.forEach(mk);else if(d==='te')mk(m[2]);});
+// ---- LIMIT: public order books (same 5 venues, USD pair). Each venue keeps its own bid/ask map; walls = summed USD per price bin across venues.
+const BK5={};const bk=v=>BK5[v]||(BK5[v]={b:new Map(),a:new Map()});const setL=(m,p,q)=>{p=+p;q=+q;if(q>0)m.set(p,q);else m.delete(p);};
+const trim=(B,n)=>{for(const [m,desc] of [[B.b,1],[B.a,0]])if(m.size>n){const k=[...m.keys()].sort((x,y)=>desc?y-x:x-y);for(const p of k.slice(n))m.delete(p);}};
+feed('kraken','wss://ws.kraken.com/v2',s=>{s({method:'subscribe',params:{channel:'book',symbol:[CC.kr],depth:500,snapshot:true}});},m=>{if(m.channel!=='book')return;const B=bk('kraken');for(const d of m.data||[]){if(m.type==='snapshot'){B.b.clear();B.a.clear();}for(const l of d.bids||[])setL(B.b,l.price,l.qty);for(const l of d.asks||[])setL(B.a,l.price,l.qty);trim(B,500);}});
+feed('coinbase','wss://ws-feed.exchange.coinbase.com',s=>s({type:'subscribe',product_ids:[CC.cb],channels:['level2_batch']}),m=>{const B=bk('coinbase');
+ if(m.type==='snapshot'){B.b.clear();B.a.clear();for(const [p,q] of m.bids.slice(0,1500))setL(B.b,p,q);for(const [p,q] of m.asks.slice(0,1500))setL(B.a,p,q);}
+ else if(m.type==='l2update'){for(const [sd,p,q] of m.changes)setL(sd==='buy'?B.b:B.a,p,q);}});
+feed('bitstamp','wss://ws.bitstamp.net',s=>s({event:'bts:subscribe',data:{channel:'order_book_'+CC.bs}}),m=>{if(m.event==='data'){const B=bk('bitstamp');B.b.clear();B.a.clear();for(const [p,q] of m.data.bids)setL(B.b,p,q);for(const [p,q] of m.data.asks)setL(B.a,p,q);}});
+feed('binanceus','wss://stream.binance.us:9443/ws/'+CC.bn+'@depth20@1000ms',()=>{},m=>{if(!m.bids)return;const B=bk('binanceus');B.b.clear();B.a.clear();for(const [p,q] of m.bids)setL(B.b,p,q);for(const [p,q] of m.asks)setL(B.a,p,q);});
+feed('bitfinex','wss://api-pub.bitfinex.com/ws/2',s=>s({event:'subscribe',channel:'book',symbol:CC.bf,prec:'P0',len:'250'}),m=>{if(!Array.isArray(m)||m[1]==='hb')return;const B=bk('bitfinex'),d=m[1];
+ const lv=Array.isArray(d[0])?(B.b.clear(),B.a.clear(),d):[d];for(const [p,cnt,amt] of lv){if(cnt===0){B.b.delete(p);B.a.delete(p);}else if(amt>0)B.b.set(p,amt);else B.a.set(p,-amt);}});
+// walls: every 500ms bin both sides into 48 bins each within ±band of mid; keep top 9 per side; detect vanished walls (eaten if trades printed there in last 3s, else pulled)
+let WALLS={b:[],a:[],mx:1,step:0},WFX=[];const prevW=new Map();
+setInterval(()=>{const last=T[T.length-1];if(!last||!lo)return;const mid=last.px,band=Math.max((hi-lo)*.55,mid*.0015),NB=48,step=band/NB;
+ const S={b:new Float64Array(NB),a:new Float64Array(NB)};
+ for(const B of Object.values(BK5)){for(const [p,q] of B.b){const i=Math.floor((mid-p)/step);if(i>=0&&i<NB)S.b[i]+=p*q;}for(const [p,q] of B.a){const i=Math.floor((p-mid)/step);if(i>=0&&i<NB)S.a[i]+=p*q;}}
+ const out={b:[],a:[],step};let mx=1;
+ for(const sd of ['b','a']){const arr=[...S[sd]].map((u,i)=>({u,px:sd==='b'?mid-(i+.5)*step:mid+(i+.5)*step,i})).sort((x,y)=>y.u-x.u).slice(0,9);for(const w of arr)mx=Math.max(mx,w.u);out[sd]=arr;}
+ out.mx=mx;const now=Date.now(),cur=new Map();
+ for(const sd of ['b','a'])for(const w of out[sd]){const k=sd+Math.round(w.px/step);cur.set(k,w);}
+ for(const [k,w] of prevW){if(w.u<mx*.35)continue;const n=cur.get(k);if(!n||n.u<w.u*.4){const eaten=T.some(t=>now-t.ts<3000&&Math.abs(t.px-w.px)<step*1.2);WFX.push({px:w.px,sd:k[0],u:w.u,t:now,eaten});}}
+ prevW.clear();for(const [k,w] of cur)prevW.set(k,w);WALLS=out;if(WFX.length>30)WFX.splice(0,WFX.length-30);},500);
+// recent-history seed (REST, public): Coinbase last 1000 + Binance.US last 1000 prints
+fetch('https://api.exchange.coinbase.com/products/'+CC.cb+'/trades?limit=1000').then(r=>r.json()).then(a=>a.forEach(t=>add('coinbase',t.trade_id,Date.parse(t.time),+t.price,+t.size,t.side==='sell'?'buy':'sell'))).catch(()=>{});
+fetch('https://api.binance.us/api/v3/trades?symbol='+CC.bn.toUpperCase()+'&limit=1000').then(r=>r.json()).then(a=>a.forEach(t=>add('binanceus',t.id,t.time,+t.price,+t.qty,t.isBuyerMaker?'sell':'buy'))).catch(()=>{});
+// ---- render ----
+const cv=document.getElementById('cv'),g=cv.getContext('2d');let W,H,DPR;
+function rs(){DPR=Math.min(2,devicePixelRatio||1);W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR;}addEventListener('resize',rs);rs();
+const SPR={};function sprite(col){if(SPR[col])return SPR[col];const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,0,32,32,32);
+ gr.addColorStop(0,'rgba('+col+',1)');gr.addColorStop(.18,'rgba('+col+',.55)');gr.addColorStop(.5,'rgba('+col+',.12)');gr.addColorStop(1,'rgba('+col+',0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return SPR[col]=c;}
+let lo=0,hi=0;const fmt=p=>p>=1000?p.toLocaleString('en-US',{maximumFractionDigits:0}):p.toPrecision(5);
+const CAP=()=>matchMedia('(pointer:coarse)').matches?6000:14000;let lodNote='';
+// stable gaussian per print
+function gs(t){if(t.gx===undefined){const u=Math.max(1e-6,t.j),v=Math.random();const r=Math.sqrt(-2*Math.log(u));t.gx=r*Math.cos(6.283*v);t.gy=r*Math.sin(6.283*v);t.gz=Math.random()-.5;}}
+let drag=0,dragX=0,yawU=0,pitchU=0;cv.onpointerdown=e=>{drag=1;dragX=e.clientX;dragY=e.clientY;};addEventListener('pointerup',()=>drag=0);
+let dragY=0;addEventListener('pointermove',e=>{if(!drag)return;yawU+=(e.clientX-dragX)*.004;pitchU=Math.max(-.6,Math.min(.6,pitchU+(e.clientY-dragY)*.003));dragX=e.clientX;dragY=e.clientY;});
+function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*1000;
+ let a=0;while(a<T.length&&T[a].ts<t0)a++;let V=T.slice(a);
+ g.globalCompositeOperation='source-over';g.globalAlpha=1;g.fillStyle='#000003';g.fillRect(0,0,W,H);
+ if(V.length<2){g.fillStyle='#556';g.font=12*DPR+'px monospace';g.fillText('waiting for prints…',W/2-60*DPR,H/2);upd(V,now);return;}
+ let mn=Infinity,mx=-Infinity,su=0;for(const t of V){if(t.px<mn)mn=t.px;if(t.px>mx)mx=t.px;su+=t.usd;}const pad=(mx-mn)*0.12||mn*0.0005;
+ if(!lo){lo=mn-pad;hi=mx+pad;}lo+=(mn-pad-lo)*0.08;hi+=(mx+pad-hi)*0.08;const mu=su/V.length;
+ // LOD: keep every print >= mu; sample smaller ones evenly if over cap
+ const cap=CAP();let D=V;lodNote='';
+ if(V.length>cap){const big=V.filter(t=>t.usd>=mu),sm=V.length-big.length,keep=Math.max(0,cap-big.length)/sm;D=V.filter(t=>t.usd>=mu||t.j<keep);lodNote=' · LOD: all big prints + '+Math.round(keep*100)+'% of small';}
+ // world: z = age (0 at NOW .. ZD far past), y = price, x = lateral scatter (buys left, sells right, spread grows with size)
+ const ZD=9,Yw=p=>((p-lo)/(hi-lo)-.5)*1.8;
+ const MOB=matchMedia('(pointer:coarse)').matches||innerWidth<700;const yaw=(MOB?.28:.4)+.22*Math.sin(now/7000)+yawU,pitch=-.3+.12*Math.sin(now/9000)+pitchU,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const F=Math.min(W,H)*(MOB?1.05:1.2),CX=W*.5,CYc=H*.5,camD=MOB?5:5,zc=ZD*.22;
+ const PJ=(x,y,z)=>{z-=zc;const x1=x*cy-z*sy,z1=x*sy+z*cy;const y1=y*cp-z1*sp,z2=y*sp+z1*cp+camD;if(z2<.15)return null;const k=F/z2;return[CX+x1*k,CYc-y1*k,k,z2];};
+ // decorative background starfield (STYLED, not data) — fixed points far behind the tunnel, parallax with camera
+ if(!window.STARS){STARS=[];for(let i=0;i<420;i++)STARS.push([(Math.random()-.5)*60,(Math.random()-.5)*40,ZD+6+Math.random()*30,Math.random()]);}
+ g.globalCompositeOperation='lighter';for(const s of STARS){const p=PJ(s[0],s[1],s[2]);if(!p)continue;g.globalAlpha=.25+.5*s[3]*(.7+.3*Math.sin(now/900+s[3]*40));g.fillStyle=s[3]>.9?'#ffe9c8':'#b8c8ff';const r=(s[3]>.95?1.6:.8)*DPR;g.fillRect(p[0]-r/2,p[1]-r/2,r,r);}
+ const sb=sprite('70,230,255'),ss=sprite('255,70,200'),sw=sprite('255,236,200'),nb=sprite('90,120,255'),nm=sprite('200,60,230');
+ // nebula pass: every drawn print adds a huge, very faint halo -> overlapping prints pool into glowing gas where volume is dense
+ g.globalCompositeOperation='lighter';
+ for(const t of D){gs(t);const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
+  const x=(t.b?-1:1)*(.06+Math.abs(t.gx)*.28*(1+s*.6)),y=Yw(t.px)+t.gy*.05*(1+s*.4),z=age*ZD+t.gz*.04;
+  const p=PJ(x,y,z);t.p=p;if(!p)continue;const R=Math.min(220*DPR,(.06+.05*s)*p[2]);g.globalAlpha=Math.min(.05,.012*(1+s))*(1-age*.5);g.drawImage(t.b?nb:nm,p[0]-R,p[1]-R,2*R,2*R);}
+ for(const t of D){const p=t.p;if(!p)continue;const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
+  const r=Math.min(60*DPR,(.005+.01*s)*p[2]);g.globalAlpha=Math.min(1,Math.max(.08,.8-age*.6)*(1.6/p[3]+.3));
+  g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),p[0]-r,p[1]-r,2*r,2*r);}
+ // LIMIT walls at NOW: resting liquidity drawn as glowing glass curtains near the NOW plane. Bids (mint) hang on the left, asks (amber) on the right,
+ // each at its real price; length + brightness = USD resting there. They exist only at NOW (z 0..0.9) — the book has no past drawn here.
+ {const cw=(sd,w)=>{const f=Math.sqrt(w.u/WALLS.mx),x0=(sd==='b'?-1:1)*.12,x1=x0+(sd==='b'?-1:1)*(.06+.5*f),y=Yw(w.px),th=Math.max(.004,(WALLS.step/(hi-lo))*1.8*.6),zd=.06+.3*f;
+   const col=sd==='b'?'90,255,190':'255,170,90';const C=[[x0,y-th,0],[x1,y-th,0],[x1,y+th,0],[x0,y+th,0]],Bk=C.map(p=>[p[0],p[1],zd]);
+   const poly=(pts,al)=>{const q=pts.map(p=>PJ(...p));if(q.some(v=>!v))return;g.globalAlpha=al;g.beginPath();g.moveTo(q[0][0],q[0][1]);for(let i=1;i<q.length;i++)g.lineTo(q[i][0],q[i][1]);g.closePath();g.fill();};
+   g.fillStyle='rgb('+col+')';const sh=.6+.4*Math.sin(now/700+w.px);
+   poly([C[2],C[3],Bk[3],Bk[2]],(.03+.1*f)*sh);poly(C,(.03+.1*f));poly([C[0],C[1],Bk[1],Bk[0]],.02+.04*f);
+   const a=PJ(x0,y,0),b=PJ(x1,y,0);if(a&&b){g.strokeStyle='rgb('+col+')';g.globalAlpha=.25+.6*f;g.lineWidth=Math.max(DPR*.6,Math.min(3*DPR,.003*a[2]));g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
+    const R=Math.min(90*DPR,(.03+.12*f)*b[2]);g.globalAlpha=.12+.25*f;g.drawImage(sprite(col),b[0]-R,b[1]-R,2*R,2*R);}};
+  g.globalCompositeOperation='lighter';for(const w of WALLS.b)cw('b',w);for(const w of WALLS.a)cw('a',w);
+  // vanished walls: EATEN = white shatter burst; PULLED = cold ghost that slides away and fades (no trades hit it)
+  for(const e of WFX){const age=(now-e.t)/1600;if(age>1)continue;const sg=e.sd==='b'?-1:1,y=Yw(e.px);
+   if(e.eaten){for(let i=0;i<14;i++){const an=i*2.4+e.px,rr=.05+age*.35,p=PJ(sg*.2+Math.cos(an)*rr,y+Math.sin(an)*rr*.4,.1+Math.abs(Math.sin(an*3))*.3);if(!p)continue;const R=Math.min(18*DPR,.012*p[2])*(1-age);g.globalAlpha=1-age;g.drawImage(sw,p[0]-R,p[1]-R,2*R,2*R);}}
+   else{const a=PJ(sg*(.12+age*.5),y,age*.8),b=PJ(sg*(.6+age*.8),y,age*.8);if(a&&b){g.strokeStyle='rgb(150,170,255)';g.globalAlpha=.5*(1-age);g.lineWidth=DPR;g.setLineDash([4*DPR,6*DPR]);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.setLineDash([]);}}}}
+ // CANDLES in depth: OHLC buckets of the same real prints (60 per window: 1s @1m, 5s @5m, 15s @15m). Each candle is a translucent 3D slab:
+ // height = open..close, depth = its time span, width swells with its volume. The forming candle ends exactly at NOW.
+ const BS=WIN*1000/60,CB=new Map();for(const t of V){const k=Math.floor(t.ts/BS);let c=CB.get(k);if(!c){c={o:t.px,h:t.px,l:t.px,c:t.px,u:0,k};CB.set(k,c);}c.h=Math.max(c.h,t.px);c.l=Math.min(c.l,t.px);c.c=t.px;c.u+=t.usd;}
+ const CS=[...CB.values()].sort((a,b)=>b.k-a.k);let cu=0;for(const c of CS)cu+=c.u;cu/=Math.max(1,CS.length);const last=V[V.length-1];
+ const quad=(pts,fill,al)=>{const q=pts.map(p=>PJ(...p));if(q.some(x=>!x))return;g.globalAlpha=al;g.fillStyle=fill;g.beginPath();g.moveTo(q[0][0],q[0][1]);for(let i=1;i<4;i++)g.lineTo(q[i][0],q[i][1]);g.closePath();g.fill();};
+ g.globalCompositeOperation='lighter';g.lineCap='round';
+ for(let ci=CS.length-1;ci>=0;ci--){const c=CS[ci];const zN=Math.max(0,(now-Math.min(now,(c.k+1)*BS))/(WIN*1000)*ZD),zF=Math.min(ZD,(now-c.k*BS)/(WIN*1000)*ZD);
+  const gap=(zF-zN)*.12,z0=zN+gap,z1=zF-gap;if(z1<=z0)continue;const up=c.c>=c.o,age=zN/ZD,vis=Math.max(.12,1-age*.8);
+  const bw=Math.min(.32,.06+.07*Math.sqrt(c.u/cu));let y0=Yw(Math.min(c.o,c.c)),y1=Yw(Math.max(c.o,c.c));if(y1-y0<.008){const m=(y0+y1)/2;y0=m-.004;y1=m+.004;}
+  const col=up?'70,230,255':'255,70,200',fill='rgb('+col+')';
+  // CRYSTAL SHARD: a slowly turning faceted crystal. Fat middle prism = body (open..close); its points stretch to the real HIGH (top tip) and LOW (bottom tip).
+  // cyan = closed up, magenta = closed down; a hot ember marks the CLOSE, a dim halo marks the OPEN.
+  const zm=(z0+z1)/2,rz=Math.min(bw,(z1-z0)*.5),rot=c.k*.9+now/(2600+((c.k*37)%11)*200),NS=5;
+  const ring=y=>{const r=[];for(let i=0;i<NS;i++){const an=rot+i*6.283/NS,sk=i%2?.62:1;r.push([Math.cos(an)*bw*sk,y,zm+Math.sin(an)*rz*sk]);}return r;};
+  const yh=Math.max(Yw(c.h),y1+.015),yl=Math.min(Yw(c.l),y0-.015),R0=ring(y0),R1=ring(y1),TH=[0,yh,zm],TL=[0,yl,zm];
+  const tri=(A,B,C,al)=>{const q=[A,B,C].map(p=>PJ(...p));if(q.some(x=>!x))return;g.globalAlpha=al;g.beginPath();g.moveTo(q[0][0],q[0][1]);g.lineTo(q[1][0],q[1][1]);g.lineTo(q[2][0],q[2][1]);g.closePath();g.fill();};
+  g.fillStyle=fill;
+  for(let i=0;i<NS;i++){const j=(i+1)%NS,sh=.5+.5*Math.cos(rot+i*1.257);
+   tri(TH,R1[i],R1[j],(.05+.16*sh)*vis);tri(TL,R0[i],R0[j],(.03+.08*sh)*vis);
+   tri(R0[i],R0[j],R1[j],(.04+.13*sh)*vis);tri(R0[i],R1[j],R1[i],(.04+.13*sh)*vis);}
+  g.strokeStyle='rgb('+col+')';g.globalAlpha=.5*vis;
+  for(let i=0;i<NS;i++){const p=PJ(...R1[i]),q=PJ(...R0[i]),th=PJ(...TH),tl=PJ(...TL);if(!(p&&q&&th&&tl))continue;g.lineWidth=Math.max(DPR*.5,Math.min(2*DPR,.0025*p[2]));
+   g.beginPath();g.moveTo(th[0],th[1]);g.lineTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.lineTo(tl[0],tl[1]);g.stroke();}
+  {const th=PJ(...TH),tl=PJ(...TL),pc=PJ(0,Yw(c.c),zm),po=PJ(0,Yw(c.o),zm);
+   if(th){const r=Math.min(14*DPR,.012*th[2]);g.globalAlpha=.7*vis;g.drawImage(sw,th[0]-r,th[1]-r,2*r,2*r);}
+   if(tl){const r=Math.min(14*DPR,.012*tl[2]);g.globalAlpha=.5*vis;g.drawImage(sw,tl[0]-r,tl[1]-r,2*r,2*r);}
+   if(pc){const r=Math.min(40*DPR,.03*pc[2]);g.globalAlpha=.9*vis;g.drawImage(sw,pc[0]-r,pc[1]-r,2*r,2*r);}
+   if(po){const r=Math.min(30*DPR,.025*po[2]);g.globalAlpha=.25*vis;g.drawImage(up?sb:ss,po[0]-r,po[1]-r,2*r,2*r);}}
+  // a soft glow sprite in each candle, scaled by volume (makes heavy candles bloom)
+  const cp=PJ(0,(y0+y1)/2,zm);if(cp){const R=Math.min(160*DPR,(.05+.06*Math.sqrt(c.u/cu))*cp[2]);g.globalAlpha=.08*vis;g.drawImage(up?sb:ss,cp[0]-R,cp[1]-R,2*R,2*R);}}
+ const P=[[PJ(0,Yw(last.px),0)]];const sw2=sw;
+ const h=P[P.length-1][0],pulse=1+.15*Math.sin(now/180),hs=sprite('255,240,200');g.globalAlpha=1;
+ for(const r of [.16,.06,.022]){const R=Math.min(r*h[2],r/.16*90*DPR)*pulse;g.drawImage(hs,h[0]-R,h[1]-R,2*R,2*R);}
+ // bloom: downsampled copy of the frame, blurred by scaling, added back
+ if(!window.BL){BL=document.createElement('canvas');BG=BL.getContext('2d');}const bw=Math.max(1,W>>3),bh=Math.max(1,H>>3);if(BL.width!==bw){BL.width=bw;BL.height=bh;}
+ BG.globalCompositeOperation='copy';BG.drawImage(cv,0,0,bw,bh);g.globalCompositeOperation='lighter';g.globalAlpha=.55;g.imageSmoothingQuality='high';g.drawImage(BL,0,0,W,H);
+ // subtle NOW cue: soft halo ring on the head, no frame
+ g.globalCompositeOperation='source-over';g.globalAlpha=.22+.08*Math.sin(now/600);g.strokeStyle='#ffe6c0';g.lineWidth=DPR;g.beginPath();g.arc(h[0],h[1],Math.min(.12*h[2],60*DPR),0,6.283);g.stroke();
+ // vignette + grade
+ if(!window.VG||VG.w!==W){VG=g.createRadialGradient(W/2,H*.55,Math.min(W,H)*.2,W/2,H*.55,Math.max(W,H)*.75);VG.addColorStop(0,'rgba(0,0,0,0)');VG.addColorStop(1,'rgba(0,0,4,.85)');VG.w=W;}
+ g.globalAlpha=1;g.fillStyle=VG;g.fillRect(0,0,W,H);
+ upd(V,now,last,D.length);}
+let lu=0;function upd(V,now,last,nd){if(now-lu<500)return;lu=now;
+ document.getElementById('px').innerHTML=last?COIN+' $'+fmt(last.px)+'<br><span style="font-size:10px;opacity:.6">'+V.length.toLocaleString()+' prints in view'+(nd&&nd<V.length?' ('+nd.toLocaleString()+' drawn)':'')+'</span>':'';
+ document.getElementById('st').textContent=OFC_BUILD+' · '+Object.values(VEN).filter(v=>v==='LIVE').length+'/5 feeds · every light is a real print · mint/amber glass = resting bids/asks (NOW)'+lodNote;}
+frame();
+</script></body></html>
