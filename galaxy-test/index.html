@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='galaxy-candles-20261029-1040';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='galaxy-crystal-20261029-1045';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -90,17 +90,24 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
   const gap=(zF-zN)*.12,z0=zN+gap,z1=zF-gap;if(z1<=z0)continue;const up=c.c>=c.o,age=zN/ZD,vis=Math.max(.12,1-age*.8);
   const bw=Math.min(.32,.06+.07*Math.sqrt(c.u/cu));let y0=Yw(Math.min(c.o,c.c)),y1=Yw(Math.max(c.o,c.c));if(y1-y0<.008){const m=(y0+y1)/2;y0=m-.004;y1=m+.004;}
   const col=up?'70,230,255':'255,70,200',fill='rgb('+col+')';
-  // faces: front, back, left, right, top, bottom (additive translucency -> glassy volume)
-  quad([[-bw,y0,z0],[bw,y0,z0],[bw,y1,z0],[-bw,y1,z0]],fill,.16*vis);
-  quad([[-bw,y0,z1],[bw,y0,z1],[bw,y1,z1],[-bw,y1,z1]],fill,.07*vis);
-  quad([[-bw,y0,z0],[-bw,y0,z1],[-bw,y1,z1],[-bw,y1,z0]],fill,.1*vis);
-  quad([[bw,y0,z0],[bw,y0,z1],[bw,y1,z1],[bw,y1,z0]],fill,.1*vis);
-  quad([[-bw,y1,z0],[bw,y1,z0],[bw,y1,z1],[-bw,y1,z1]],fill,.2*vis);
-  quad([[-bw,y0,z0],[bw,y0,z0],[bw,y0,z1],[-bw,y0,z1]],fill,.06*vis);
-  // glowing edges of the front face
-  const fq=[[-bw,y0,z0],[bw,y0,z0],[bw,y1,z0],[-bw,y1,z0]].map(p=>PJ(...p));if(fq.every(x=>x)){g.globalAlpha=.55*vis;g.strokeStyle='rgb('+col+')';g.lineWidth=Math.max(DPR*.7,Math.min(3*DPR,.004*fq[0][2]));g.beginPath();g.moveTo(fq[0][0],fq[0][1]);for(let i=1;i<4;i++)g.lineTo(fq[i][0],fq[i][1]);g.closePath();g.stroke();}
-  // wick: high..low through the middle of the slab
-  const zm=(z0+z1)/2,wh=PJ(0,Yw(c.h),zm),wl=PJ(0,Yw(c.l),zm);if(wh&&wl){g.globalAlpha=.7*vis;g.strokeStyle='rgb(255,235,215)';g.lineWidth=Math.max(DPR*.6,Math.min(2.5*DPR,.003*wh[2]));g.beginPath();g.moveTo(wh[0],wh[1]);g.lineTo(wl[0],wl[1]);g.stroke();}
+  // CRYSTAL SHARD: a slowly turning faceted crystal. Fat middle prism = body (open..close); its points stretch to the real HIGH (top tip) and LOW (bottom tip).
+  // cyan = closed up, magenta = closed down; a hot ember marks the CLOSE, a dim halo marks the OPEN.
+  const zm=(z0+z1)/2,rz=Math.min(bw,(z1-z0)*.5),rot=c.k*.9+now/(2600+((c.k*37)%11)*200),NS=5;
+  const ring=y=>{const r=[];for(let i=0;i<NS;i++){const an=rot+i*6.283/NS,sk=i%2?.62:1;r.push([Math.cos(an)*bw*sk,y,zm+Math.sin(an)*rz*sk]);}return r;};
+  const yh=Math.max(Yw(c.h),y1+.015),yl=Math.min(Yw(c.l),y0-.015),R0=ring(y0),R1=ring(y1),TH=[0,yh,zm],TL=[0,yl,zm];
+  const tri=(A,B,C,al)=>{const q=[A,B,C].map(p=>PJ(...p));if(q.some(x=>!x))return;g.globalAlpha=al;g.beginPath();g.moveTo(q[0][0],q[0][1]);g.lineTo(q[1][0],q[1][1]);g.lineTo(q[2][0],q[2][1]);g.closePath();g.fill();};
+  g.fillStyle=fill;
+  for(let i=0;i<NS;i++){const j=(i+1)%NS,sh=.5+.5*Math.cos(rot+i*1.257);
+   tri(TH,R1[i],R1[j],(.05+.16*sh)*vis);tri(TL,R0[i],R0[j],(.03+.08*sh)*vis);
+   tri(R0[i],R0[j],R1[j],(.04+.13*sh)*vis);tri(R0[i],R1[j],R1[i],(.04+.13*sh)*vis);}
+  g.strokeStyle='rgb('+col+')';g.globalAlpha=.5*vis;
+  for(let i=0;i<NS;i++){const p=PJ(...R1[i]),q=PJ(...R0[i]),th=PJ(...TH),tl=PJ(...TL);if(!(p&&q&&th&&tl))continue;g.lineWidth=Math.max(DPR*.5,Math.min(2*DPR,.0025*p[2]));
+   g.beginPath();g.moveTo(th[0],th[1]);g.lineTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.lineTo(tl[0],tl[1]);g.stroke();}
+  {const th=PJ(...TH),tl=PJ(...TL),pc=PJ(0,Yw(c.c),zm),po=PJ(0,Yw(c.o),zm);
+   if(th){const r=Math.min(14*DPR,.012*th[2]);g.globalAlpha=.7*vis;g.drawImage(sw,th[0]-r,th[1]-r,2*r,2*r);}
+   if(tl){const r=Math.min(14*DPR,.012*tl[2]);g.globalAlpha=.5*vis;g.drawImage(sw,tl[0]-r,tl[1]-r,2*r,2*r);}
+   if(pc){const r=Math.min(40*DPR,.03*pc[2]);g.globalAlpha=.9*vis;g.drawImage(sw,pc[0]-r,pc[1]-r,2*r,2*r);}
+   if(po){const r=Math.min(30*DPR,.025*po[2]);g.globalAlpha=.25*vis;g.drawImage(up?sb:ss,po[0]-r,po[1]-r,2*r,2*r);}}
   // a soft glow sprite in each candle, scaled by volume (makes heavy candles bloom)
   const cp=PJ(0,(y0+y1)/2,zm);if(cp){const R=Math.min(160*DPR,(.05+.06*Math.sqrt(c.u/cu))*cp[2]);g.globalAlpha=.08*vis;g.drawImage(up?sb:ss,cp[0]-R,cp[1]-R,2*R,2*R);}}
  const P=[[PJ(0,Yw(last.px),0)]];const sw2=sw;
