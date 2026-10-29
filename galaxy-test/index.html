@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='galaxy-art-20261029-1035';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='galaxy-candles-20261029-1040';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -80,18 +80,30 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  for(const t of D){const p=t.p;if(!p)continue;const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
   const r=Math.min(60*DPR,(.005+.01*s)*p[2]);g.globalAlpha=Math.min(1,Math.max(.08,.8-age*.6)*(1.6/p[3]+.3));
   g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),p[0]-r,p[1]-r,2*r,2*r);}
- // trail: 1s VWAP tube through depth, ends at NOW (z=0)
- const BK=new Map();for(const t of V){const k=Math.floor(t.ts/1000);const b=BK.get(k)||{pu:0,u:0,ts:0};b.pu+=t.px*t.usd;b.u+=t.usd;b.ts=Math.max(b.ts,t.ts);BK.set(k,b);}
- const last=V[V.length-1];const W3=[...BK.keys()].sort((x,y)=>x-y).map(k=>{const b=BK.get(k);return[(now-b.ts)/(WIN*1000)*ZD,Yw(b.pu/b.u),b.u];});
- W3.push([(now-last.ts)/(WIN*1000)*ZD,Yw(last.px),0],[0,Yw(last.px),0]);   // hold last printed price to NOW, never beyond
- const P=W3.map(([z,y,u])=>[PJ(0,y,z),u]).filter(p=>p[0]);g.lineCap='round';
- // luminous ribbon: wide warm wake far back, white-hot core near NOW; width swells with that second's volume
- const NP=P.length;for(const [w,al,c0,c1] of [[.16,.035,[255,90,60],[255,170,80]],[.07,.09,[255,120,90],[255,200,120]],[.028,.35,[255,170,140],[255,230,170]],[.009,.9,[255,220,210],[255,255,245]]]){
-  for(let i=1;i<NP;i++){const [p,u]=P[i],[q]=P[i-1];const f=i/NP,k=(p[2]+q[2])/2,fade=Math.pow(f,1.6);
-   g.strokeStyle='rgb('+c0.map((v,j)=>Math.round(v+(c1[j]-v)*f)).join(',')+')';g.globalAlpha=al*Math.max(.04,fade);
-   g.lineWidth=Math.min(w/.16*34*DPR,Math.max(DPR*.8,w*k*(.5+f)*(1+Math.min(2.5,Math.sqrt((u||0)/mu/15)))));g.beginPath();g.moveTo(q[0],q[1]);g.lineTo(p[0],p[1]);g.stroke();}}
- // comet dust: soft motes shed along the last stretch of the real trail (positions from trail points; jitter is styled)
- for(let i=Math.max(1,NP-140);i<NP;i++){const p=P[i][0],f=(i-(NP-140))/140,R=Math.min(26*DPR,(.01+.03*f)*p[2])*(.6+.4*Math.sin(i*12.9+now/400));g.globalAlpha=.05+.12*f;g.drawImage(sw,p[0]-R+Math.sin(i*7.3)*R,p[1]-R+Math.cos(i*3.1)*R,2*R,2*R);}
+ // CANDLES in depth: OHLC buckets of the same real prints (60 per window: 1s @1m, 5s @5m, 15s @15m). Each candle is a translucent 3D slab:
+ // height = open..close, depth = its time span, width swells with its volume. The forming candle ends exactly at NOW.
+ const BS=WIN*1000/60,CB=new Map();for(const t of V){const k=Math.floor(t.ts/BS);let c=CB.get(k);if(!c){c={o:t.px,h:t.px,l:t.px,c:t.px,u:0,k};CB.set(k,c);}c.h=Math.max(c.h,t.px);c.l=Math.min(c.l,t.px);c.c=t.px;c.u+=t.usd;}
+ const CS=[...CB.values()].sort((a,b)=>b.k-a.k);let cu=0;for(const c of CS)cu+=c.u;cu/=Math.max(1,CS.length);const last=V[V.length-1];
+ const quad=(pts,fill,al)=>{const q=pts.map(p=>PJ(...p));if(q.some(x=>!x))return;g.globalAlpha=al;g.fillStyle=fill;g.beginPath();g.moveTo(q[0][0],q[0][1]);for(let i=1;i<4;i++)g.lineTo(q[i][0],q[i][1]);g.closePath();g.fill();};
+ g.globalCompositeOperation='lighter';g.lineCap='round';
+ for(let ci=CS.length-1;ci>=0;ci--){const c=CS[ci];const zN=Math.max(0,(now-Math.min(now,(c.k+1)*BS))/(WIN*1000)*ZD),zF=Math.min(ZD,(now-c.k*BS)/(WIN*1000)*ZD);
+  const gap=(zF-zN)*.12,z0=zN+gap,z1=zF-gap;if(z1<=z0)continue;const up=c.c>=c.o,age=zN/ZD,vis=Math.max(.12,1-age*.8);
+  const bw=Math.min(.32,.06+.07*Math.sqrt(c.u/cu));let y0=Yw(Math.min(c.o,c.c)),y1=Yw(Math.max(c.o,c.c));if(y1-y0<.008){const m=(y0+y1)/2;y0=m-.004;y1=m+.004;}
+  const col=up?'70,230,255':'255,70,200',fill='rgb('+col+')';
+  // faces: front, back, left, right, top, bottom (additive translucency -> glassy volume)
+  quad([[-bw,y0,z0],[bw,y0,z0],[bw,y1,z0],[-bw,y1,z0]],fill,.16*vis);
+  quad([[-bw,y0,z1],[bw,y0,z1],[bw,y1,z1],[-bw,y1,z1]],fill,.07*vis);
+  quad([[-bw,y0,z0],[-bw,y0,z1],[-bw,y1,z1],[-bw,y1,z0]],fill,.1*vis);
+  quad([[bw,y0,z0],[bw,y0,z1],[bw,y1,z1],[bw,y1,z0]],fill,.1*vis);
+  quad([[-bw,y1,z0],[bw,y1,z0],[bw,y1,z1],[-bw,y1,z1]],fill,.2*vis);
+  quad([[-bw,y0,z0],[bw,y0,z0],[bw,y0,z1],[-bw,y0,z1]],fill,.06*vis);
+  // glowing edges of the front face
+  const fq=[[-bw,y0,z0],[bw,y0,z0],[bw,y1,z0],[-bw,y1,z0]].map(p=>PJ(...p));if(fq.every(x=>x)){g.globalAlpha=.55*vis;g.strokeStyle='rgb('+col+')';g.lineWidth=Math.max(DPR*.7,Math.min(3*DPR,.004*fq[0][2]));g.beginPath();g.moveTo(fq[0][0],fq[0][1]);for(let i=1;i<4;i++)g.lineTo(fq[i][0],fq[i][1]);g.closePath();g.stroke();}
+  // wick: high..low through the middle of the slab
+  const zm=(z0+z1)/2,wh=PJ(0,Yw(c.h),zm),wl=PJ(0,Yw(c.l),zm);if(wh&&wl){g.globalAlpha=.7*vis;g.strokeStyle='rgb(255,235,215)';g.lineWidth=Math.max(DPR*.6,Math.min(2.5*DPR,.003*wh[2]));g.beginPath();g.moveTo(wh[0],wh[1]);g.lineTo(wl[0],wl[1]);g.stroke();}
+  // a soft glow sprite in each candle, scaled by volume (makes heavy candles bloom)
+  const cp=PJ(0,(y0+y1)/2,zm);if(cp){const R=Math.min(160*DPR,(.05+.06*Math.sqrt(c.u/cu))*cp[2]);g.globalAlpha=.08*vis;g.drawImage(up?sb:ss,cp[0]-R,cp[1]-R,2*R,2*R);}}
+ const P=[[PJ(0,Yw(last.px),0)]];const sw2=sw;
  const h=P[P.length-1][0],pulse=1+.15*Math.sin(now/180),hs=sprite('255,240,200');g.globalAlpha=1;
  for(const r of [.16,.06,.022]){const R=Math.min(r*h[2],r/.16*90*DPR)*pulse;g.drawImage(hs,h[0]-R,h[1]-R,2*R,2*R);}
  // bloom: downsampled copy of the frame, blurred by scaling, added back
