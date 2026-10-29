@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='limitwin-20261029-1219';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-20261029-1235';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2609,7 +2609,7 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
 </style>
 <script>
 (function(){const st=document.getElementById('stage');const ifr=document.createElement('iframe');ifr.id='gwin';ifr.title='galaxy window';ifr.setAttribute('scrolling','no');
- ifr.src='galaxy.html?v=limitwin-20261029-1219&embed=1&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='GALAXY · WINDOW TEST';
+ ifr.src='galaxy.html?v=limitwin-20261029-1235&embed=1&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='GALAXY · WINDOW TEST';
  st.appendChild(ifr);st.appendChild(rim);st.appendChild(tag);let last='';
  const K=+(new URLSearchParams(location.search).get('wr')||1);   // window radius = the LIMIT dial's outer circle (RMAX), same size as normal LIMIT
  let WON=false;try{WON=localStorage.getItem('ofc.gwin')==='1'}catch(e){}
@@ -2626,6 +2626,12 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
   {const dv=VIEW==='limit'?'flex':'none';if(row.style.display!==dv)row.style.display=dv;}const on=VIEW==='limit'&&WON;const k=on+'|'+CX+'|'+CY+'|'+r;if(k===last)return;last=k;
   for(const el of [ifr,rim]){el.style.left=(CX-r)+'px';el.style.top=(CY-r)+'px';el.style.width=el.style.height=(2*r)+'px';}
   tag.style.left=CX+'px';tag.style.top=(CY+r+4)+'px';ifr.style.opacity=on?1:0;ifr.style.pointerEvents=on?'auto':'none';ifr.style.visibility=rim.style.visibility=on?'visible':'hidden';rim.style.opacity=on?1:0;tag.style.opacity=on?1:0;}
+ // AUTO → galaxy time window (LIMIT-style: busier = longer depth). AUTO off = 900 (full out). Widen at once, narrow only after 6 s hold.
+ let GW=0,gwC=window.COIN||'BTC',gwT=0;const want=()=>{if(!(typeof raEff==='function'?raEff():rangeAuto))return 900;const q=(typeof LT!=='undefined'&&LT.q)||1,b=typeof burst!=='undefined'&&burst.on;
+   const cur=GW||60;if(b||q>=(cur===900?1.6:2))return 900;if(q>=(cur>=300?0.6:0.8))return 300;return 60;};
+ setInterval(()=>{const c=window.COIN||'BTC';if(c!==gwC){gwC=c;GW=0;ifr.src='galaxy.html?v=limitwin-20261029-1235&embed=1&c='+encodeURIComponent(c)+'&w='+want();return;}
+  if(!WON)return;const w=want(),n=performance.now();if(GW&&w<GW){if(!gwT)gwT=n;if(n-gwT<6000)return;}gwT=0;if(w!==GW){GW=w;try{ifr.contentWindow.postMessage({type:'ofc-gwin',w,c},location.origin);}catch(_){}}},500);
+ ifr.addEventListener('load',()=>{GW=0;});btn.addEventListener('click',()=>{GW=0;gwT=0;});
  place();})();
 </script>
 </body>

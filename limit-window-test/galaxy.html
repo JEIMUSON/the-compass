@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='limitwin-galaxy-20261029-1219';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-galaxy-20261029-1235';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;touch-action:none;overscroll-behavior:none;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -28,6 +28,7 @@ const WINS=[60,300,900];let WIN=+Q.get('w')||300;if(!WINS.includes(WIN))WIN=300;
 document.getElementById('coins').innerHTML=Object.keys(COINS).map(c=>`<a class="${c===COIN?'on':''}" href="?c=${c}&w=${WIN}">${c}</a>`).join('');
 const wsp=document.getElementById('wins');const drawW=()=>wsp.innerHTML=WINS.map(w=>`<span class="c ${w===WIN?'on':''}" data-w="${w}">${w<120?w+'s':w/60+'m'}</span>`).join('');drawW();
 wsp.onclick=e=>{const w=+e.target.dataset.w;if(w){WIN=w;drawW();history.replaceState(0,'','?c='+COIN+'&w='+w);}};
+addEventListener('message',e=>{if(e.origin!==location.origin)return;const d=e.data;if(!d||d.type!=='ofc-gwin')return;const w=+d.w;if(WINS.includes(w)&&w!==WIN){WIN=w;drawW();}});   // parent AUTO drives the time window
 const T=[];const SEEN=new Set();const VEN={kraken:'·',coinbase:'·',bitstamp:'·',binanceus:'·',bitfinex:'·'};let nT=0;
 function add(v,id,ts,px,qty,side){const k=v+id;if(SEEN.has(k))return;SEEN.add(k);if(!(px>0&&qty>0&&ts>0))return;ts=Math.min(ts,Date.now());T.push({ts,px,usd:px*qty,b:side==='buy',v,j:Math.random()});nT++;}
 setInterval(()=>{T.sort((a,b)=>a.ts-b.ts);const cut=Date.now()-930000;let i=0;while(i<T.length&&T[i].ts<cut)i++;if(i)T.splice(0,i);if(SEEN.size>400000)SEEN.clear();},2000);
