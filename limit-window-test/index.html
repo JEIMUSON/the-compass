@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='limitwin-20261029-1103';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-20261029-1107';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2602,7 +2602,7 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
 
 <!-- LIMIT WINDOW TEST: galaxy scene (real trades + real books) seen through the LIMIT NOW ring like a window -->
 <style>
-#gwin{position:absolute;border:0;border-radius:50%;pointer-events:none;z-index:2;background:#000;opacity:0;transition:opacity .6s;
+#gwin{position:absolute;border:0;border-radius:50%;pointer-events:none;z-index:2;background:#000;opacity:0;touch-action:none;
  box-shadow:0 0 0 2px rgba(255,255,255,.55),0 0 18px 3px rgba(0,240,255,.45),inset 0 0 40px 10px rgba(0,0,0,.9)}
 #gwrim{position:absolute;border-radius:50%;pointer-events:none;z-index:3;box-shadow:inset 0 0 22px 6px rgba(0,0,0,.95),inset 0 0 2px 1px rgba(0,240,255,.6)}
 #gwbtn{position:absolute;z-index:5;font:10px "Share Tech Mono",monospace;letter-spacing:.15em;color:#ffe066;background:rgba(10,8,20,.85);border:1px solid rgba(255,224,102,.6);border-radius:3px;padding:4px 8px;cursor:pointer}#gwbtn b{color:#9aa}#gwbtn.on b{color:#0ff}#gwbtn.on{box-shadow:0 0 10px rgba(0,240,255,.5);border-color:#0ff}
@@ -2617,10 +2617,10 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
  const btn=document.createElement('button');btn.id='gwbtn';st.appendChild(btn);
  const lbl=()=>{btn.innerHTML='WINDOW ▸ <b>'+(WON?'ON':'OFF')+'</b>';btn.classList.toggle('on',WON);};lbl();
  btn.addEventListener('click',e=>{e.stopPropagation();WON=!WON;try{localStorage.setItem('ofc.gwin',WON?'1':'0')}catch(_){};lbl();last='';});
- function place(){requestAnimationFrame(place);if(!window.__gw)return;const {CX,CY,RMAX,VIEW}=window.__gw();if(!RMAX)return;const r=Math.round(RMAX*K);
+ function place(){requestAnimationFrame(place);if(!window.__gw)return;const {CX,CY,RMAX,VIEW}=window.__gw();if(!RMAX)return;const r=Math.round((RMAX+10)*K);   // = outer bezel ring (RMAX+10) the 72 ticks hang off
   btn.style.display=VIEW==='limit'?'':'none';btn.style.left=Math.max(6,CX-RMAX-6)+'px';btn.style.top=Math.max(4,CY-RMAX-26)+'px';const on=VIEW==='limit'&&WON;const k=on+'|'+CX+'|'+CY+'|'+r;if(k===last)return;last=k;
   for(const el of [ifr,rim]){el.style.left=(CX-r)+'px';el.style.top=(CY-r)+'px';el.style.width=el.style.height=(2*r)+'px';}
-  tag.style.left=CX+'px';tag.style.top=(CY+r+4)+'px';ifr.style.opacity=on?1:0;rim.style.opacity=on?1:0;tag.style.opacity=on?1:0;}
+  tag.style.left=CX+'px';tag.style.top=(CY+r+4)+'px';ifr.style.opacity=on?1:0;ifr.style.pointerEvents=on?'auto':'none';ifr.style.visibility=rim.style.visibility=on?'visible':'hidden';rim.style.opacity=on?1:0;tag.style.opacity=on?1:0;}
  place();})();
 </script>
 </body>
