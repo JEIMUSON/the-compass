@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='limitwin-20261030-0925';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-20261030-0930';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -915,7 +915,7 @@ let SW=null;
 cv.addEventListener('touchstart',e=>{if(e.touches.length!==1){SW=null;return;}const t=e.touches[0];SW={x0:t.clientX,y0:t.clientY,ax:null};},{passive:true});
 cv.addEventListener('touchmove',e=>{if(!SW)return;if(e.touches.length!==1){SW=null;return;}if(e.cancelable)e.preventDefault();const t=e.touches[0],dx=t.clientX-SW.x0,dy=t.clientY-SW.y0;
   if(!SW.ax){if(Math.hypot(dx,dy)<10)return;SW.ax=Math.abs(dx)>Math.abs(dy)?'x':'y';SW.x0=t.clientX;SW.y0=t.clientY;SW.f0=rangeFrac;SW.p0=PZ;if(intro){rangeAuto=intro.ra;intro=null;}return;}
-  if(SW.ax==='y'){setAuto(false);syncZA();rangeFrac=zR(zT(SW.f0)-dy/(H*0.55));zRead(fmtAge(Math.round((VIEW==='limit'?lWinOf:mWinOf)(rangeFrac))).replace('-',''));}
+  if(SW.ax==='y'){setAuto(false);syncZA();rangeFrac=zR(zT(SW.f0)-dy/(H*0.55));zRead((VIEW==='limit'&&window.__GWON&&window.__GWS)?(window.__GWS/60)+'m WINDOW':fmtAge(Math.round((VIEW==='limit'?lWinOf:mWinOf)(rangeFrac))).replace('-',''));}
   else if(VIEW==='limit')setPZ(SW.p0*Math.exp(dx/(W*0.7)*Math.log(PZMAX/PZMIN)));},{passive:false});
 cv.addEventListener('touchend',e=>{if(!SW)return;if(SW.ax)window.__swp=performance.now();else if(VIEW==='limit'){const n=performance.now();if(n-lastTap<300)setAuto(true);lastTap=n;}SW=null;},{passive:true});
 cv.addEventListener('touchcancel',()=>{SW=null;},{passive:true});
@@ -2063,7 +2063,7 @@ function drawZoomBar(now){
   ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,ty);ctx.stroke();                                                        // fill from max-out
   ctx.fillStyle=`rgb(${col})`;ctx.beginPath();ctx.moveTo(x-6,ty);ctx.lineTo(x+1,ty-4);ctx.lineTo(x+1,ty+4);ctx.closePath();ctx.fill();  // marker
   ctx.fillRect(x-1.5,ty-1,4,2);ctx.shadowBlur=0;
-  const lab=Math.round(VIEW==='limit'?LWIN:MWIN)+'s';   // zoom = time (15-60 s): LIMIT depth / MARKET window -- one fixed value label, outer side on desktop, inward in the portrait corner
+  const lab=(VIEW==='limit'&&window.__GWON&&window.__GWS)?(window.__GWS/60)+'m':Math.round(VIEW==='limit'?LWIN:MWIN)+'s';   // WINDOW on: label = galaxy time window   // zoom = time (15-60 s): LIMIT depth / MARKET window -- one fixed value label, outer side on desktop, inward in the portrait corner
   barVal(lab,'60s',rangeAuto,Z.pw?x+12:x-12,(y0+y1)/2,Z.pw?1:-1,Z.pw?null:y1);
   if(Z.pw){const {px,py,pw,ph}=Z,on=autoOn();   // big AUTO toggle: yellow like the VIEW button when on, dim when off
     ctx.beginPath();ctx.moveTo(px+7,py);ctx.lineTo(px+pw,py);ctx.lineTo(px+pw,py+ph-7);ctx.lineTo(px+pw-7,py+ph);ctx.lineTo(px,py+ph);ctx.lineTo(px,py+7);ctx.closePath();
@@ -2078,7 +2078,8 @@ function drawZoomBar(now){
 // LIMIT price-zoom bar: mirror of the time bar on the opposite side; top = tight (±0.15%), bottom = wide (±1%), log scale
 function pbarGeom(){if(VIEW!=='limit')return null;const Z=zbarGeom();if(!Z)return null;return {x:Math.max(8,Math.min(W-8,2*CX-Z.x)),y0:Z.y0,y1:Z.y1};}
 const pzT=v=>Math.max(0,Math.min(1,Math.log(PZMAX/v)/Math.log(PZMAX/PZMIN))), pzV=t=>PZMAX*Math.pow(PZMIN/PZMAX,Math.max(0,Math.min(1,t)));
-function drawPriceBar(){const P=pbarGeom();if(!P)return;const {x,y0,y1}=P,t=pzT(PRANGE),ty=y1-(y1-y0)*t,col=PAUTO?'0,240,255':'255,230,0';
+function drawPriceBar(){if(window.__GWON){ctx.save();ctx.globalAlpha=.3;try{drawPriceBar0();}finally{ctx.restore();}return;}drawPriceBar0();}   // WINDOW on: price bar dimmed (no galaxy effect)
+function drawPriceBar0(){const P=pbarGeom();if(!P)return;const {x,y0,y1}=P,t=pzT(PRANGE),ty=y1-(y1-y0)*t,col=PAUTO?'0,240,255':'255,230,0';
   ctx.save();ctx.lineCap='round';
   ctx.strokeStyle='rgba(0,240,255,.18)';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke();
   ctx.strokeStyle='rgba(0,240,255,.45)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke();
@@ -2609,7 +2610,7 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
 </style>
 <script>
 (function(){const st=document.getElementById('stage');const ifr=document.createElement('iframe');ifr.id='gwin';ifr.title='galaxy window';ifr.setAttribute('scrolling','no');
- ifr.src='galaxy.html?v=limitwin-20261030-0925&embed=1&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='GALAXY · WINDOW TEST';
+ ifr.src='galaxy.html?v=limitwin-20261030-0930&embed=1&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='GALAXY · WINDOW TEST';
  st.appendChild(ifr);st.appendChild(rim);st.appendChild(tag);let last='';
  const K=+(new URLSearchParams(location.search).get('wr')||1);   // window radius = the LIMIT dial's outer circle (RMAX), same size as normal LIMIT
  let WON=false;try{WON=localStorage.getItem('ofc.gwin')==='1'}catch(e){}
@@ -2623,14 +2624,15 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
  row.addEventListener('pointerdown',e=>e.stopPropagation());
  btn.addEventListener('click',e=>{e.stopPropagation();WON=!WON;try{localStorage.setItem('ofc.gwin',WON?'1':'0')}catch(_){};lbl();last='';});
  function place(){requestAnimationFrame(place);if(!window.__gw)return;const {CX,CY,RMAX,VIEW}=window.__gw();if(!RMAX)return;const r=Math.round((RMAX+10)*K);   // = outer bezel ring (RMAX+10) the 72 ticks hang off
-  {const dv=VIEW==='limit'?'flex':'none';if(row.style.display!==dv)row.style.display=dv;}const on=VIEW==='limit'&&WON;const k=on+'|'+CX+'|'+CY+'|'+r;if(k===last)return;last=k;
+  {const dv=VIEW==='limit'?'flex':'none';if(row.style.display!==dv)row.style.display=dv;}const on=VIEW==='limit'&&WON;window.__GWON=on;const k=on+'|'+CX+'|'+CY+'|'+r;if(k===last)return;last=k;
   for(const el of [ifr,rim]){el.style.left=(CX-r)+'px';el.style.top=(CY-r)+'px';el.style.width=el.style.height=(2*r)+'px';}
   tag.style.left=CX+'px';tag.style.top=(CY+r+4)+'px';ifr.style.opacity=on?1:0;ifr.style.pointerEvents=on?'auto':'none';ifr.style.visibility=rim.style.visibility=on?'visible':'hidden';rim.style.opacity=on?1:0;tag.style.opacity=on?1:0;}
  // AUTO → galaxy time window (LIMIT-style: busier = longer depth). AUTO off = 900 (full out). Widen at once, narrow only after 6 s hold.
- let GW=0,gwC=window.COIN||'BTC',gwT=0;const want=()=>{if(!(typeof raEff==='function'?raEff():rangeAuto))return 900;const q=(typeof LT!=='undefined'&&LT.q)||1,b=typeof burst!=='undefined'&&burst.on;
-   const cur=GW||60;if(b||q>=(cur===900?1.6:2))return 900;if(q>=(cur>=300?0.6:0.8))return 300;return 60;};
- setInterval(()=>{const c=window.COIN||'BTC';if(c!==gwC){gwC=c;GW=0;ifr.src='galaxy.html?v=limitwin-20261030-0925&embed=1&c='+encodeURIComponent(c)+'&w='+want();return;}
-  if(!WON)return;const w=want(),n=performance.now();if(GW&&w<GW){if(!gwT)gwT=n;if(n-gwT<6000)return;}gwT=0;if(w!==GW){GW=w;try{ifr.contentWindow.postMessage({type:'ofc-gwin',w,c},location.origin);}catch(_){}}},500);
+ let GW=0,gwC=window.COIN||'BTC',gwT=0;const want=()=>{const cur=GW||300;if(!(typeof raEff==='function'?raEff():rangeAuto)){   // AUTO off: follow the time zoom bar (top = in = 1m, middle = 5m, bottom = out = 15m)
+   const t=zT(rangeFrac),hy=.04;if(t>(cur===60?.667-hy:.667+hy))return 60;if(t>(cur===900?.333+hy:.333-hy))return 300;return 900;}
+   const q=(typeof LT!=='undefined'&&LT.q)||1,b=typeof burst!=='undefined'&&burst.on;if(b||q>=(cur===900?1.6:2))return 900;if(q>=(cur>=300?0.6:0.8))return 300;return 60;};
+ setInterval(()=>{const c=window.COIN||'BTC';if(c!==gwC){gwC=c;GW=0;ifr.src='galaxy.html?v=limitwin-20261030-0930&embed=1&c='+encodeURIComponent(c)+'&w='+want();return;}
+  if(!WON)return;const w=want(),n=performance.now();const au=(typeof raEff==='function'?raEff():rangeAuto);if(au&&GW&&w<GW){if(!gwT)gwT=n;if(n-gwT<6000)return;}gwT=0;if(w!==GW){GW=w;window.__GWS=w;try{ifr.contentWindow.postMessage({type:'ofc-gwin',w,c},location.origin);}catch(_){}}},500);
  ifr.addEventListener('load',()=>{GW=0;});btn.addEventListener('click',()=>{GW=0;gwT=0;});
  place();})();
 </script>
