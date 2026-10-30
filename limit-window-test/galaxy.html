@@ -3,9 +3,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='limitwin-galaxy-20261029-1235';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-galaxy-20261030-0919';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
-html,body{margin:0;touch-action:none;overscroll-behavior:none;height:100%;background:#000003;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
+html,body{margin:0;touch-action:none;overscroll-behavior:none;height:100%;background:#05030c;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
 #hud{position:fixed;left:12px;top:10px;opacity:.5;transition:opacity .6s;letter-spacing:.08em}#hud:hover{opacity:.9}
 #hud b{color:#ffd27a;letter-spacing:.12em}
@@ -85,7 +85,7 @@ cv.addEventListener('dblclick',()=>{tY=0;tP=0;tZ=1;});
 (function ease(){yawU+=(tY-yawU)*.12;pitchU+=(tP-pitchU)*.12;zoomU+=(tZ-zoomU)*.12;requestAnimationFrame(ease);})();
 function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*1000;
  let a=0;while(a<T.length&&T[a].ts<t0)a++;let V=T.slice(a);
- g.globalCompositeOperation='source-over';g.globalAlpha=1;g.fillStyle='#000003';g.fillRect(0,0,W,H);
+ g.globalCompositeOperation='source-over';g.globalAlpha=1;g.fillStyle='#05030c';g.fillRect(0,0,W,H);
  if(V.length<2){g.fillStyle='#556';g.font=12*DPR+'px monospace';g.fillText('waiting for prints…',W/2-60*DPR,H/2);upd(V,now);return;}
  let mn=Infinity,mx=-Infinity,su=0;for(const t of V){if(t.px<mn)mn=t.px;if(t.px>mx)mx=t.px;su+=t.usd;}const pad=(mx-mn)*0.12||mn*0.0005;
  if(!lo){lo=mn-pad;hi=mx+pad;}lo+=(mn-pad-lo)*0.08;hi+=(mx+pad-hi)*0.08;const mu=su/V.length;
@@ -100,26 +100,26 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
  const PJ=(x,y,z)=>{z-=zc;y-=yc;const x1=x*cy-z*sy,z1=x*sy+z*cy;const y1=y*cp-z1*sp,z2=y*sp+z1*cp+camD;if(z2<.08)return null;const k=F/z2;return[CX+x1*k,CYc-y1*k,k,z2];};
  // decorative background starfield (STYLED, not data) — fixed points far behind the tunnel, parallax with camera
  if(!window.STARS){STARS=[];for(let i=0;i<420;i++)STARS.push([(Math.random()-.5)*60,(Math.random()-.5)*40,ZD+6+Math.random()*30,Math.random()]);}
- g.globalCompositeOperation='lighter';for(const s of STARS){const p=PJ(s[0],s[1],s[2]);if(!p)continue;g.globalAlpha=.25+.5*s[3]*(.7+.3*Math.sin(now/900+s[3]*40));g.fillStyle=s[3]>.9?'#ffe9c8':'#b8c8ff';const r=(s[3]>.95?1.6:.8)*DPR;g.fillRect(p[0]-r/2,p[1]-r/2,r,r);}
+ g.globalCompositeOperation='lighter';for(const s of STARS){const p=PJ(s[0],s[1],s[2]);if(!p)continue;g.globalAlpha=.08+.2*s[3]*(.7+.3*Math.sin(now/900+s[3]*40));g.fillStyle='#7fe8ff';const r=(s[3]>.95?1.6:.8)*DPR;g.fillRect(p[0]-r/2,p[1]-r/2,r,r);}
  // volumetric dust (STYLED depth cue, not data): soft motes filling the tunnel volume between NOW and the far past, drifting back with time.
  // nearer = bigger/brighter, far = fogged out -> parallax on orbit makes the space read as volume. Never in front of NOW (z>=0).
  if(!window.DUST){DUST=[];for(let i=0;i<(MOB?260:520);i++)DUST.push([(Math.random()-.5)*7,(Math.random()-.5)*4.4,Math.random()*ZD*1.3,Math.random()]);}
- {const dz=(window.__dl?Math.min(.1,(now-window.__dl)/1000):0)*ZD/WIN;window.__dl=now;const dsp=sprite('120,160,255');
+ {const dz=(window.__dl?Math.min(.1,(now-window.__dl)/1000):0)*ZD/WIN;window.__dl=now;const dsp=sprite('0,200,240');
   for(const d of DUST){d[2]+=dz;if(d[2]>ZD*1.3)d[2]-=ZD*1.3;const p=PJ(d[0],d[1]+yc,d[2]);if(!p)continue;const fog=Math.max(0,1-d[2]/(ZD*1.3));const r=Math.min(18*DPR,(.006+.012*d[3])*p[2]);
    g.globalAlpha=(.05+.12*d[3])*fog*(.7+.3*Math.sin(now/1300+d[3]*50));g.drawImage(dsp,p[0]-r,p[1]-r,2*r,2*r);}}
- const sb=sprite('70,230,255'),ss=sprite('255,70,200'),sw=sprite('255,236,200'),nb=sprite('90,120,255'),nm=sprite('200,60,230');
+ const sb=sprite('0,240,255'),ss=sprite('255,43,214'),sw=sprite('255,236,200'),nb=sprite('0,190,230'),nm=sprite('200,40,170');
  // nebula pass: every drawn print adds a huge, very faint halo -> overlapping prints pool into glowing gas where volume is dense
  g.globalCompositeOperation='lighter';
  for(const t of D){gs(t);const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
   const x=(t.b?-1:1)*(.1+Math.abs(t.gx)*.75*(1+s*.6)),y=Yw(t.px)+t.gy*.16*(1+s*.4),z=age*ZD+t.gz*.04;
-  const p=PJ(x,y,z);t.p=p;if(!p)continue;const R=Math.min(220*DPR,(.06+.05*s)*p[2]);g.globalAlpha=Math.min(.05,.012*(1+s))*(1-age*.5);g.drawImage(t.b?nb:nm,p[0]-R,p[1]-R,2*R,2*R);}
+  const p=PJ(x,y,z);t.p=p;if(!p)continue;const R=Math.min(220*DPR,(.06+.05*s)*p[2]);g.globalAlpha=Math.min(.025,.006*(1+s))*(1-age*.5);g.drawImage(t.b?nb:nm,p[0]-R,p[1]-R,2*R,2*R);}
  for(const t of D){const p=t.p;if(!p)continue;const age=(now-t.ts)/(WIN*1000),s=Math.sqrt(t.usd/mu);
   const r=Math.min(60*DPR,(.005+.01*s)*p[2]);g.globalAlpha=Math.min(1,Math.max(.08,.8-age*.6)*(1.6/p[3]+.3));
   g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),p[0]-r,p[1]-r,2*r,2*r);}
  // LIMIT walls at NOW: resting liquidity drawn as glowing glass curtains near the NOW plane. Bids (mint) hang on the left, asks (amber) on the right,
  // each at its real price; length + brightness = USD resting there. They exist only at NOW (z 0..0.9) — the book has no past drawn here.
  {const cw=(sd,w)=>{const f=Math.sqrt(w.u/WALLS.mx),x0=(sd==='b'?-1:1)*.16,x1=x0+(sd==='b'?-1:1)*(.12+1.25*f),y=Yw(w.px),th=Math.max(.004,(WALLS.step/(hi-lo))*1.8*.6),zd=.06+.3*f;
-   const col=sd==='b'?'90,255,190':'255,170,90';
+   const col=sd==='b'?'43,255,154':'255,190,60';
    // GLASS WALL: a horizontal glass rod (same glass language as the candle pills) lying at its real price at NOW, reaching out from the centre.
    // length + thickness + glow = USD resting; stacked depth copies give it body; a bright neon core + white highlight; hot bead at the outer end.
    const zm=zd*.5,pa=PJ(x0,y,zm),pb=PJ(x1,y,zm);if(!(pa&&pb))return;const br=1+.06*Math.sin(now/800+w.px*7),rr=Math.max(1.6*DPR,(.012+.03*f)*br*pa[2]);
@@ -137,7 +137,7 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
   // vanished walls: EATEN = white shatter burst; PULLED = cold ghost that slides away and fades (no trades hit it)
   for(const e of WFX){const age=(now-e.t)/1600;if(age>1)continue;const sg=e.sd==='b'?-1:1,y=Yw(e.px);
    if(e.eaten){for(let i=0;i<14;i++){const an=i*2.4+e.px,rr=.05+age*.35,p=PJ(sg*.2+Math.cos(an)*rr,y+Math.sin(an)*rr*.4,.1+Math.abs(Math.sin(an*3))*.3);if(!p)continue;const R=Math.min(18*DPR,.012*p[2])*(1-age);g.globalAlpha=1-age;g.drawImage(sw,p[0]-R,p[1]-R,2*R,2*R);}}
-   else{const a=PJ(sg*(.12+age*.5),y,age*.8),b=PJ(sg*(.6+age*.8),y,age*.8);if(a&&b){g.strokeStyle='rgb(150,170,255)';g.globalAlpha=.5*(1-age);g.lineWidth=DPR;g.setLineDash([4*DPR,6*DPR]);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.setLineDash([]);}}}}
+   else{const a=PJ(sg*(.12+age*.5),y,age*.8),b=PJ(sg*(.6+age*.8),y,age*.8);if(a&&b){g.strokeStyle='rgb(0,200,240)';g.globalAlpha=.5*(1-age);g.lineWidth=DPR;g.setLineDash([4*DPR,6*DPR]);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.setLineDash([]);}}}}
  // CANDLES in depth: OHLC buckets of the same real prints (60 per window: 1s @1m, 5s @5m, 15s @15m). Each candle is a translucent 3D slab:
  // height = open..close, depth = its time span, width swells with its volume. The forming candle ends exactly at NOW.
  const BS=WIN*1000/60,CB=new Map();for(const t of V){const k=Math.floor(t.ts/BS);let c=CB.get(k);if(!c){c={o:t.px,h:t.px,l:t.px,c:t.px,u:0,k};CB.set(k,c);}c.h=Math.max(c.h,t.px);c.l=Math.min(c.l,t.px);c.c=t.px;c.u+=t.usd;}
@@ -148,7 +148,7 @@ let cu=0;for(const c of CS)cu+=c.u;cu/=Math.max(1,CS.length);const last=V[V.leng
  for(let ci=CS.length-1;ci>=0;ci--){const c=CS[ci];const zN=Math.max(0,(now-Math.min(now,(c.k+1)*BS))/(WIN*1000)*ZD),zF=Math.min(ZD,(now-c.k*BS)/(WIN*1000)*ZD);
   const gap=(zF-zN)*.12,z0=zN+gap,z1=zF-gap;if(z1<=z0)continue;const up=c.c>=c.o,age=zN/ZD,vis=Math.max(.12,1-age*.8);
   const bw=Math.min(.32,.06+.07*Math.sqrt(c.u/cu));let y0=Yw(Math.min(c.o,c.c)),y1=Yw(Math.max(c.o,c.c));if(y1-y0<.008){const m=(y0+y1)/2;y0=m-.004;y1=m+.004;}
-  const col=up?'70,230,255':'255,70,200',fill='rgb('+col+')';
+  const col=up?'0,240,255':'255,43,214',fill='rgb('+col+')';
   // GLASS CAPSULE (smooth): a rounded glass pill in perspective. Pill body = open..close; a soft tapered glow thread runs to the real HIGH and LOW.
   // cyan = closed up, magenta = closed down; a hot ember marks the CLOSE, a dim halo marks the OPEN. Gentle breathing instead of spinning facets.
   const zm=(z0+z1)/2,yh=Math.max(Yw(c.h),y1+.015),yl=Math.min(Yw(c.l),y0-.015),TH=[0,yh,zm],TL=[0,yl,zm];
@@ -176,7 +176,7 @@ let cu=0;for(const c of CS)cu+=c.u;cu/=Math.max(1,CS.length);const last=V[V.leng
  // subtle NOW cue: soft halo ring on the head, no frame
  g.globalCompositeOperation='source-over';g.globalAlpha=.22+.08*Math.sin(now/600);g.strokeStyle='#ffe6c0';g.lineWidth=DPR;g.beginPath();g.arc(h[0],h[1],Math.min(.12*h[2],60*DPR),0,6.283);g.stroke();
  // vignette + grade
- if(!window.VG||VG.w!==W){VG=g.createRadialGradient(W/2,H*.55,Math.min(W,H)*.2,W/2,H*.55,Math.max(W,H)*.75);VG.addColorStop(0,'rgba(0,0,0,0)');VG.addColorStop(1,'rgba(0,0,4,.85)');VG.w=W;}
+ if(!window.VG||VG.w!==W){VG=g.createRadialGradient(W/2,H*.55,Math.min(W,H)*.2,W/2,H*.55,Math.max(W,H)*.75);VG.addColorStop(0,'rgba(0,0,0,0)');VG.addColorStop(1,'rgba(5,3,12,.9)');VG.w=W;}
  g.globalAlpha=1;g.fillStyle=VG;g.fillRect(0,0,W,H);
  upd(V,now,last,D.length);}
 let lu=0;function upd(V,now,last,nd){if(now-lu<500)return;lu=now;

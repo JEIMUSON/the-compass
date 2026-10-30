@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<script>window.OFC_BUILD='limitwin-20261029-1235';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-20261030-0919';try{localStorage.removeItem('ofc.trail')}catch(e){};(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('ofcB')!==m[1]){sessionStorage.setItem('ofcB',m[1]);location.replace(location.pathname+'?v='+m[1]+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <script>/* viewport height guard: Android standalone PWAs can report a stale/too-tall 100dvh right after a reload (e.g. coin switch) -> size from the smallest sane measurement and keep re-checking */
 (function(){var R=document.documentElement;function m(){var v=window.visualViewport,c=[window.innerHeight,R.clientHeight];if(v&&v.height>0)c.push(v.height);c=c.filter(function(x){return x>100;});if(!c.length)return;
   var h=Math.round(Math.min.apply(null,c))+'px';if(R.style.getPropertyValue('--apph')!==h){R.style.setProperty('--apph',h);try{window.dispatchEvent(new Event('ofc-vh'));}catch(e){}}}
@@ -2602,14 +2602,14 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
 
 <!-- LIMIT WINDOW TEST: galaxy scene (real trades + real books) seen through the LIMIT NOW ring like a window -->
 <style>
-#gwin{position:absolute;border:0;border-radius:50%;pointer-events:none;z-index:2;background:#000;opacity:0;touch-action:none;
- box-shadow:0 0 0 2px rgba(255,255,255,.55),0 0 18px 3px rgba(0,240,255,.45),inset 0 0 40px 10px rgba(0,0,0,.9)}
+#gwin{position:absolute;border:0;border-radius:50%;pointer-events:none;z-index:2;background:#05030c;opacity:0;touch-action:none;
+ box-shadow:0 0 0 1px rgba(0,240,255,.55),0 0 8px 1px rgba(0,240,255,.3),inset 0 0 40px 10px rgba(0,0,0,.9)}
 #gwrim{position:absolute;border-radius:50%;pointer-events:none;z-index:3;box-shadow:inset 0 0 22px 6px rgba(0,0,0,.95),inset 0 0 2px 1px rgba(0,240,255,.6)}
-#wtag{position:absolute;opacity:0;z-index:4;pointer-events:none;font:9px "Share Tech Mono",monospace;letter-spacing:.2em;color:rgba(255,230,180,.6);transform:translateX(-50%)}
+#wtag{display:none!important;position:absolute;opacity:0;z-index:4;pointer-events:none;font:9px "Share Tech Mono",monospace;letter-spacing:.2em;color:rgba(255,230,180,.6);transform:translateX(-50%)}
 </style>
 <script>
 (function(){const st=document.getElementById('stage');const ifr=document.createElement('iframe');ifr.id='gwin';ifr.title='galaxy window';ifr.setAttribute('scrolling','no');
- ifr.src='galaxy.html?v=limitwin-20261029-1235&embed=1&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='GALAXY · WINDOW TEST';
+ ifr.src='galaxy.html?v=limitwin-20261030-0919&embed=1&c='+encodeURIComponent(window.COIN||'BTC')+'&w=60';const rim=document.createElement('div');rim.id='gwrim';const tag=document.createElement('div');tag.id='wtag';tag.textContent='GALAXY · WINDOW TEST';
  st.appendChild(ifr);st.appendChild(rim);st.appendChild(tag);let last='';
  const K=+(new URLSearchParams(location.search).get('wr')||1);   // window radius = the LIMIT dial's outer circle (RMAX), same size as normal LIMIT
  let WON=false;try{WON=localStorage.getItem('ofc.gwin')==='1'}catch(e){}
@@ -2629,7 +2629,7 @@ window.__ofc={get ov(){return {ma:SHOWMA,bb:SHOWBB,sparks:NSP.length,flash:MAX.e
  // AUTO → galaxy time window (LIMIT-style: busier = longer depth). AUTO off = 900 (full out). Widen at once, narrow only after 6 s hold.
  let GW=0,gwC=window.COIN||'BTC',gwT=0;const want=()=>{if(!(typeof raEff==='function'?raEff():rangeAuto))return 900;const q=(typeof LT!=='undefined'&&LT.q)||1,b=typeof burst!=='undefined'&&burst.on;
    const cur=GW||60;if(b||q>=(cur===900?1.6:2))return 900;if(q>=(cur>=300?0.6:0.8))return 300;return 60;};
- setInterval(()=>{const c=window.COIN||'BTC';if(c!==gwC){gwC=c;GW=0;ifr.src='galaxy.html?v=limitwin-20261029-1235&embed=1&c='+encodeURIComponent(c)+'&w='+want();return;}
+ setInterval(()=>{const c=window.COIN||'BTC';if(c!==gwC){gwC=c;GW=0;ifr.src='galaxy.html?v=limitwin-20261030-0919&embed=1&c='+encodeURIComponent(c)+'&w='+want();return;}
   if(!WON)return;const w=want(),n=performance.now();if(GW&&w<GW){if(!gwT)gwT=n;if(n-gwT<6000)return;}gwT=0;if(w!==GW){GW=w;try{ifr.contentWindow.postMessage({type:'ofc-gwin',w,c},location.origin);}catch(_){}}},500);
  ifr.addEventListener('load',()=>{GW=0;});btn.addEventListener('click',()=>{GW=0;gwT=0;});
  place();})();
