@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>GALAXY TEST · The Compass</title>
 <link rel="icon" href="../favicon-32.png"><link rel="apple-touch-icon" href="../icon-180.png">
-<script>window.OFC_BUILD='limitwin-galaxy-20261030-0919';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
+<script>window.OFC_BUILD='limitwin-galaxy-20261030-0925';(function(){try{if(!/^https?:/.test(location.protocol))return;fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/OFC_BUILD='([^']+)'/);if(m&&m[1]!==window.OFC_BUILD&&sessionStorage.getItem('gxB')!==m[1]){sessionStorage.setItem('gxB',m[1]);const q=new URLSearchParams(location.search);q.set('v',m[1]);location.replace(location.pathname+'?'+q+location.hash);}}).catch(()=>{});}catch(e){}})();</script>
 <style>
 html,body{margin:0;touch-action:none;overscroll-behavior:none;height:100%;background:#05030c;overflow:hidden;font:11px/1.3 ui-monospace,Menlo,monospace;color:#8a94b0}
 canvas{position:fixed;inset:0;width:100%;height:100%}
@@ -118,26 +118,25 @@ function frame(){requestAnimationFrame(frame);const now=Date.now(),t0=now-WIN*10
   g.drawImage(t.usd>mu*12?sw:(t.b?sb:ss),p[0]-r,p[1]-r,2*r,2*r);}
  // LIMIT walls at NOW: resting liquidity drawn as glowing glass curtains near the NOW plane. Bids (mint) hang on the left, asks (amber) on the right,
  // each at its real price; length + brightness = USD resting there. They exist only at NOW (z 0..0.9) — the book has no past drawn here.
- {const cw=(sd,w)=>{const f=Math.sqrt(w.u/WALLS.mx),x0=(sd==='b'?-1:1)*.16,x1=x0+(sd==='b'?-1:1)*(.12+1.25*f),y=Yw(w.px),th=Math.max(.004,(WALLS.step/(hi-lo))*1.8*.6),zd=.06+.3*f;
+ {const ym=V.length?Yw(V[V.length-1].px):0,WR=px=>.16+Math.abs(Yw(px)-ym);   // LIMIT-style ARC walls: centred on NOW/mid, radius = price distance from mid
+  const arcP=(sd,r,sp,z)=>{const c=sd==='b'?Math.PI:0,n=24,out=[];for(let i=0;i<=n;i++){const an=c-sp+2*sp*i/n,q=PJ(Math.cos(an)*r,ym+Math.sin(an)*r,z);if(!q)return null;out.push(q);}return out;};
+  const pl=(P,o)=>{g.beginPath();for(let i=0;i<P.length;i++){const a=P[Math.max(0,i-1)],b=P[Math.min(P.length-1,i+1)],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,x=P[i][0]-dy/L*o,y=P[i][1]+dx/L*o;i?g.lineTo(x,y):g.moveTo(x,y);}g.stroke();};
+  const cw=(sd,w)=>{const f=Math.sqrt(w.u/WALLS.mx),r=WR(w.px),sp=Math.min(1.2,(.05+.55*f)/Math.max(.5,r*2)+.04),zd=.06+.3*f;
    const col=sd==='b'?'43,255,154':'255,190,60';
-   // GLASS WALL: a horizontal glass rod (same glass language as the candle pills) lying at its real price at NOW, reaching out from the centre.
-   // length + thickness + glow = USD resting; stacked depth copies give it body; a bright neon core + white highlight; hot bead at the outer end.
-   const zm=zd*.5,pa=PJ(x0,y,zm),pb=PJ(x1,y,zm);if(!(pa&&pb))return;const br=1+.06*Math.sin(now/800+w.px*7),rr=Math.max(1.6*DPR,(.012+.03*f)*br*pa[2]);
-   const dx=pb[0]-pa[0],dy=pb[1]-pa[1],L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L;const ln=(p,q,o)=>{g.beginPath();g.moveTo(p[0]+nx*o,p[1]+ny*o);g.lineTo(q[0]+nx*o,q[1]+ny*o);g.stroke();};
-   for(const zz of [zd*.95,zd*.2]){const qa=PJ(x0,y,zz),qb=PJ(x1,y,zz);if(qa&&qb){g.strokeStyle='rgb('+col+')';g.globalAlpha=(.05+.07*f);g.lineWidth=rr*1.6;g.beginPath();g.moveTo(qa[0],qa[1]);g.lineTo(qb[0],qb[1]);g.stroke();}}
-   g.strokeStyle='rgb('+col+')';g.globalAlpha=.06+.08*f;g.lineWidth=rr*4;ln(pa,pb,0);
-   const gr=g.createLinearGradient(pa[0]+nx*rr,pa[1]+ny*rr,pa[0]-nx*rr,pa[1]-ny*rr);gr.addColorStop(0,'rgba('+col+',.15)');gr.addColorStop(.35,'rgba('+col+',.7)');gr.addColorStop(.6,'rgba(255,255,255,.4)');gr.addColorStop(1,'rgba('+col+',.15)');
-   const fade=g.createLinearGradient(pa[0],pa[1],pb[0],pb[1]);fade.addColorStop(0,'rgba(0,0,0,0)');
-   g.strokeStyle=gr;g.globalAlpha=(.45+.45*f);g.lineWidth=rr*2;ln(pa,pb,0);
-   g.strokeStyle='rgb('+col+')';g.globalAlpha=.5+.4*f;g.lineWidth=Math.max(DPR*.7,rr*.35);ln(pa,pb,0);
-   g.strokeStyle='#fff';g.globalAlpha=.25+.2*f;g.lineWidth=Math.max(DPR*.5,rr*.25);ln(pa,pb,rr*.45);
-   const R=Math.min(90*DPR,(.03+.12*f)*pb[2]);g.globalAlpha=.25+.35*f;g.drawImage(sprite(col),pb[0]-R,pb[1]-R,2*R,2*R);
-   const R2=Math.min(30*DPR,rr*2.2);g.globalAlpha=.7;g.drawImage(sprite('255,255,255'),pb[0]-R2,pb[1]-R2,2*R2,2*R2);};
+   // GLASS ARC WALL (matches LIMIT front): an arc on the NOW face, bids left / asks right; angular span = USD resting; depth copies give 3D body.
+   const zm=zd*.5,P=arcP(sd,r,sp,zm);if(!P)return;const m=P[P.length>>1],br=1+.06*Math.sin(now/800+w.px*7),rr=Math.max(1.6*DPR,(.012+.03*f)*br*m[2]);
+   for(const zz of [zd*.95,zd*.2]){const Q=arcP(sd,r,sp,zz);if(Q){g.strokeStyle='rgb('+col+')';g.globalAlpha=.05+.07*f;g.lineWidth=rr*1.6;pl(Q,0);}}
+   g.strokeStyle='rgb('+col+')';g.globalAlpha=.06+.08*f;g.lineWidth=rr*4;pl(P,0);
+   g.globalAlpha=.35+.4*f;g.lineWidth=rr*2;g.strokeStyle='rgba('+col+',.6)';pl(P,0);
+   g.strokeStyle='rgb('+col+')';g.globalAlpha=.5+.4*f;g.lineWidth=Math.max(DPR*.7,rr*.35);pl(P,0);
+   g.strokeStyle='#fff';g.globalAlpha=.25+.2*f;g.lineWidth=Math.max(DPR*.5,rr*.25);pl(P,rr*.45);
+   const R=Math.min(90*DPR,(.03+.12*f)*m[2]);g.globalAlpha=.2+.3*f;g.drawImage(sprite(col),m[0]-R,m[1]-R,2*R,2*R);
+   const R2=Math.min(30*DPR,rr*2.2);g.globalAlpha=.6;g.drawImage(sprite('255,255,255'),m[0]-R2,m[1]-R2,2*R2,2*R2);};
   g.globalCompositeOperation='lighter';for(const w of WALLS.b)cw('b',w);for(const w of WALLS.a)cw('a',w);
   // vanished walls: EATEN = white shatter burst; PULLED = cold ghost that slides away and fades (no trades hit it)
-  for(const e of WFX){const age=(now-e.t)/1600;if(age>1)continue;const sg=e.sd==='b'?-1:1,y=Yw(e.px);
-   if(e.eaten){for(let i=0;i<14;i++){const an=i*2.4+e.px,rr=.05+age*.35,p=PJ(sg*.2+Math.cos(an)*rr,y+Math.sin(an)*rr*.4,.1+Math.abs(Math.sin(an*3))*.3);if(!p)continue;const R=Math.min(18*DPR,.012*p[2])*(1-age);g.globalAlpha=1-age;g.drawImage(sw,p[0]-R,p[1]-R,2*R,2*R);}}
-   else{const a=PJ(sg*(.12+age*.5),y,age*.8),b=PJ(sg*(.6+age*.8),y,age*.8);if(a&&b){g.strokeStyle='rgb(0,200,240)';g.globalAlpha=.5*(1-age);g.lineWidth=DPR;g.setLineDash([4*DPR,6*DPR]);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.setLineDash([]);}}}}
+  for(const e of WFX){const age=(now-e.t)/1600;if(age>1)continue;const sg=e.sd==='b'?-1:1,r=WR(e.px);
+   if(e.eaten){for(let i=0;i<14;i++){const an=i*2.4+e.px,rr=.05+age*.35,p=PJ(sg*r+Math.cos(an)*rr*.4,ym+Math.sin(an)*rr,.1+Math.abs(Math.sin(an*3))*.3);if(!p)continue;const R=Math.min(18*DPR,.012*p[2])*(1-age);g.globalAlpha=1-age;g.drawImage(sw,p[0]-R,p[1]-R,2*R,2*R);}}
+   else{const P=arcP(e.sd,r+age*.4,.15,age*.8);if(P){g.strokeStyle='rgb(0,200,240)';g.globalAlpha=.5*(1-age);g.lineWidth=DPR;g.setLineDash([4*DPR,6*DPR]);pl(P,0);g.setLineDash([]);}}}}
  // CANDLES in depth: OHLC buckets of the same real prints (60 per window: 1s @1m, 5s @5m, 15s @15m). Each candle is a translucent 3D slab:
  // height = open..close, depth = its time span, width swells with its volume. The forming candle ends exactly at NOW.
  const BS=WIN*1000/60,CB=new Map();for(const t of V){const k=Math.floor(t.ts/BS);let c=CB.get(k);if(!c){c={o:t.px,h:t.px,l:t.px,c:t.px,u:0,k};CB.set(k,c);}c.h=Math.max(c.h,t.px);c.l=Math.min(c.l,t.px);c.c=t.px;c.u+=t.usd;}
